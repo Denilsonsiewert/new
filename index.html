@@ -3,23 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scanner Data Matrix - Todas Opções Gratuitas</title>
+<title>Scanner Data Matrix PRO</title>
 
 <style>
-body { font-family: Arial; text-align:center; background:#f4f4f4; }
+body {
+  font-family: Arial;
+  text-align:center;
+  background:#f2f2f2;
+}
+
+#reader {
+  width:100%;
+  max-width:500px;
+  margin:auto;
+}
+
+.controls {
+  margin-top:10px;
+}
+
 button {
-  padding:10px;
+  padding:8px 12px;
   margin:5px;
   border:none;
   border-radius:6px;
   font-size:14px;
   cursor:pointer;
 }
-video, #reader {
-  width:100%;
-  max-width:500px;
-  margin-top:10px;
+
+input[type=range] {
+  width:200px;
 }
+
 #result {
   margin-top:15px;
   font-size:18px;
@@ -29,192 +44,120 @@ video, #reader {
 </head>
 <body>
 
-<h2>Scanner Data Matrix Industrial</h2>
+<h2>Scanner Data Matrix Industrial PRO</h2>
 
-<button onclick="startNative()">1 - BarcodeDetector (Nativo)</button>
-<button onclick="startZXing()">2 - ZXing Browser</button>
-<button onclick="startZXingHard()">3 - ZXing Alta Precisão</button>
-<button onclick="startHtml5()">4 - html5-qrcode</button>
-<button onclick="startQuagga()">5 - Quagga2</button>
-<button onclick="stopAll()">Parar</button>
-
-<video id="video" autoplay playsinline></video>
 <div id="reader"></div>
 
-<div id="result">Resultado aparecerá aqui</div>
+<div class="controls">
+  <button onclick="startScanner()">Iniciar</button>
+  <button onclick="stopScanner()">Parar</button>
+  <button onclick="toggleFlash()">Lanterna</button>
+</div>
 
-<!-- ZXing Browser -->
-<script src="https://unpkg.com/@zxing/browser@latest"></script>
+<div class="controls">
+  Zoom:
+  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
+</div>
 
-<!-- ZXing Library -->
-<script src="https://unpkg.com/@zxing/library@latest"></script>
+<div id="result">Aguardando leitura...</div>
 
-<!-- html5-qrcode -->
 <script src="https://unpkg.com/html5-qrcode"></script>
-
-<!-- Quagga2 -->
-<script src="https://unpkg.com/@ericblade/quagga2@latest/dist/quagga.min.js"></script>
 
 <script>
 
-let stream;
-let zxingReader;
-let html5Qr;
-let quaggaRunning = false;
-let intervalNative;
+let html5QrCode;
+let currentTrack;
+let flashOn = false;
 
-/* ================= STOP ================= */
-function stopAll(){
+async function startScanner() {
 
-  document.getElementById("result").innerText = "Parado.";
+  html5QrCode = new Html5Qrcode("reader");
 
-  if(zxingReader) zxingReader.reset();
-  if(html5Qr) html5Qr.stop().catch(()=>{});
-  if(quaggaRunning){ Quagga.stop(); quaggaRunning=false; }
+  const cameras = await Html5Qrcode.getCameras();
+  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
 
-  if(intervalNative) clearInterval(intervalNative);
-
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
-    stream = null;
-  }
-
-  document.getElementById("reader").innerHTML = "";
-}
-
-/* ================= 1 - BarcodeDetector ================= */
-async function startNative(){
-
-  stopAll();
-
-  if(!('BarcodeDetector' in window)){
-    alert("Não suportado neste navegador.");
-    return;
-  }
-
-  const formats = await BarcodeDetector.getSupportedFormats();
-  if(!formats.includes('data_matrix')){
-    alert("DataMatrix não suportado nativamente.");
-    return;
-  }
-
-  const detector = new BarcodeDetector({ formats:['data_matrix'] });
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:"environment", focusMode:"continuous" }
-  });
-
-  const video = document.getElementById("video");
-  video.srcObject = stream;
-
-  intervalNative = setInterval(async ()=>{
-    const codes = await detector.detect(video);
-    if(codes.length>0){
-      document.getElementById("result").innerText =
-        "Nativo: "+codes[0].rawValue;
+  const config = {
+    fps: 30,
+    qrbox: { width: 350, height: 350 },
+    aspectRatio: 1.0,
+    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
+    videoConstraints: {
+      facingMode: "environment",
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      focusMode: "continuous"
     }
-  },300);
-}
+  };
 
-/* ================= 2 - ZXing ================= */
-function startZXing(){
-
-  stopAll();
-
-  zxingReader = new ZXing.BrowserMultiFormatReader({
-    delayBetweenScanAttempts: 100
-  });
-
-  zxingReader.decodeFromVideoDevice(null,'video',(result)=>{
-    if(result){
-      document.getElementById("result").innerText =
-        "ZXing: "+result.text;
-    }
-  });
-}
-
-/* ================= 3 - ZXing Alta Precisão ================= */
-function startZXingHard(){
-
-  stopAll();
-
-  const hints = new Map();
-  hints.set(ZXingLibrary.DecodeHintType.TRY_HARDER, true);
-
-  const reader = new ZXingLibrary.MultiFormatReader();
-  reader.setHints(hints);
-
-  const codeReader = new ZXing.BrowserMultiFormatReader(reader);
-
-  codeReader.decodeFromVideoDevice(null,'video',(result)=>{
-    if(result){
-      document.getElementById("result").innerText =
-        "ZXing Hard: "+result.text;
-    }
-  });
-
-  zxingReader = codeReader;
-}
-
-/* ================= 4 - html5-qrcode ================= */
-function startHtml5(){
-
-  stopAll();
-
-  html5Qr = new Html5Qrcode("reader");
-
-  html5Qr.start(
-    { facingMode:"environment" },
-    {
-      fps:20,
-      qrbox:{ width:300, height:300 },
-      aspectRatio:1.0
-    },
-    text=>{
-      document.getElementById("result").innerText =
-        "HTML5: "+text;
-    }
+  await html5QrCode.start(
+    cameraId,
+    config,
+    onScanSuccess
   );
+
+  const videoElem = document.querySelector("video");
+  currentTrack = videoElem.srcObject.getVideoTracks()[0];
+
+  applyInitialConstraints();
 }
 
-/* ================= 5 - Quagga2 ================= */
-function startQuagga(){
+function onScanSuccess(decodedText) {
+  document.getElementById("result").innerText =
+    "Detectado: " + decodedText;
+}
 
-  stopAll();
+function stopScanner() {
+  if (html5QrCode) {
+    html5QrCode.stop();
+  }
+}
 
-  Quagga.init({
-    inputStream:{
-      type:"LiveStream",
-      constraints:{
-        facingMode:"environment",
-        width:{ min:640 },
-        height:{ min:480 }
-      }
-    },
-    locator:{
-      patchSize:"large",
-      halfSample:false
-    },
-    decoder:{
-      readers:["datamatrix_reader"]
-    }
-  },function(err){
+async function applyInitialConstraints() {
+  const capabilities = currentTrack.getCapabilities();
 
-    if(err){
-      console.log(err);
-      return;
-    }
+  let constraints = {};
 
-    Quagga.start();
-    quaggaRunning=true;
-  });
+  if (capabilities.focusMode) {
+    constraints.advanced = [{ focusMode: "continuous" }];
+  }
 
-  Quagga.onDetected(data=>{
-    document.getElementById("result").innerText =
-      "Quagga: "+data.codeResult.code;
+  if (capabilities.zoom) {
+    document.getElementById("zoomSlider").max = capabilities.zoom.max;
+    document.getElementById("zoomSlider").min = capabilities.zoom.min;
+  }
+
+  await currentTrack.applyConstraints(constraints);
+}
+
+async function setZoom(value) {
+  if (!currentTrack) return;
+
+  const capabilities = currentTrack.getCapabilities();
+  if (capabilities.zoom) {
+    await currentTrack.applyConstraints({
+      advanced: [{ zoom: parseFloat(value) }]
+    });
+  }
+}
+
+async function toggleFlash() {
+  if (!currentTrack) return;
+
+  const capabilities = currentTrack.getCapabilities();
+
+  if (!capabilities.torch) {
+    alert("Lanterna não suportada neste dispositivo.");
+    return;
+  }
+
+  flashOn = !flashOn;
+
+  await currentTrack.applyConstraints({
+    advanced: [{ torch: flashOn }]
   });
 }
 
 </script>
+
 </body>
 </html>
