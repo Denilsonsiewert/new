@@ -33,98 +33,381 @@
     .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
     h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
 
-    /* ===== Área do leitor (otimizada) ===== */
-    #reader-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
+    /* ===== MÓDULO DE CÂMERA PROFISSIONAL ===== */
+    #reader-container {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    }
+
     #reader {
       width: 100%;
-      border-radius: 14px;
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
       overflow: hidden;
       border: 3px solid transparent;
-      box-shadow: 0 0 0 2px rgba(40,167,69,0);
       background: #000;
       transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
       will-change: border-color, box-shadow;
     }
+
     #reader.reading {
       border-color: var(--verde);
-      box-shadow: 0 0 0 2px rgba(40,167,69,0.15), 0 0 12px rgba(40,167,69,0.3);
+      box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.15), 0 0 16px rgba(40, 167, 69, 0.35);
     }
-    #reader video, #reader canvas { border-radius: inherit; }
 
-    /* Botões flutuantes na câmera (otimizados) */
-    .floating-btn {
-      position: absolute; background: rgba(0,0,0,0.6); color: #fff;
-      padding: 10px 12px; border-radius: 50%; font-size: 1.10rem;
-      cursor: pointer; z-index: 21; user-select: none; backdrop-filter: blur(4px);
-      border: none; transition: all 0.15s ease-out; will-change: background;
+    #reader video, #reader canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      object-fit: cover;
     }
-    .floating-btn:active { background: rgba(0,0,0,0.8); transform: scale(0.95); }
-    #btnFlashFloating { right: 10px; top: 10px; }
 
-
-
-    /* Slider de zoom sobreposto (otimizado) */
-    .zoom-slider-bar {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: 10px; width: 86%; padding: 8px 10px;
-      background: rgba(0,0,0,0.55); border-radius: 12px;
-      z-index: 21; display: flex; align-items: center; gap: 10px;
-      color: #fff; font-size: .9rem; user-select: none;
-      backdrop-filter: blur(4px);
-      animation: slideUp 0.2s ease-out;
+    /* ===== CONTROLES INTEGRADOS NA CÂMERA ===== */
+    .camera-controls-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      pointer-events: none;
+      z-index: 20;
     }
-    @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    .zoom-slider-bar input[type="range"] { width: 100%; cursor: pointer; }
-    .zoom-slider-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--cor-primaria); cursor: pointer; transition: background 0.1s; }
-    .zoom-slider-bar input[type="range"]::-webkit-slider-thumb:active { background: #0b5ed7; }
-    .zoom-slider-bar input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: rgba(255,255,255,0.5); border-radius: 6px; }
-    .zoom-slider-bar input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--cor-primaria); cursor: pointer; border: none; transition: background 0.1s; }
-    .zoom-slider-bar input[type="range"]::-moz-range-track { background: transparent; border: none; }
 
-    /* Tap-to-focus indicador */
-    .tap-focus-dot {
-      position: absolute; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%;
-      transform: translate(-50%,-50%); pointer-events: none; z-index: 22; display: none;
-      animation: focusPulse 0.4s ease-out;
+    /* Controles superiores (Lanterna) */
+    .controls-top {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      justify-content: flex-end;
+      pointer-events: auto;
     }
-    @keyframes focusPulse { from { opacity: 1; transform: translate(-50%,-50%) scale(1); } to { opacity: 0; transform: translate(-50%,-50%) scale(1.3); } }
 
-    .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 14px; }
+    /* Botão de Lanterna */
+    .btn-control {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease-out;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
 
-    .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
+    .btn-control:active {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(0.92);
+    }
+
+    .btn-control.active {
+      background: rgba(255, 215, 0, 0.3);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Controles inferiores (Zoom) */
+    .controls-bottom {
+      width: 100%;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Slider de Zoom */
+    .zoom-control-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .zoom-icon {
+      color: #fff;
+      font-size: 1.2rem;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .zoom-slider {
+      width: 140px;
+      height: 4px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .zoom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s;
+    }
+
+    .zoom-slider::-webkit-slider-thumb:active {
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.5);
+    }
+
+    .zoom-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s;
+    }
+
+    .zoom-slider::-moz-range-track {
+      background: transparent;
+      border: none;
+    }
+
+    .zoom-value {
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* Status de leitura */
+    .qr-result {
+      font-weight: 500;
+      color: var(--cor-texto-claro);
+      margin: 20px 0;
+      min-height: 24px;
+      text-align: center;
+      word-break: break-all;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Formulário */
     .input-group { margin-bottom: 20px; }
     label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
-    input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--borda-cor); font-size: 1rem; box-sizing: border-box; transition: border-color 0.15s; }
-    input:focus { outline: none; border-color: var(--cor-primaria); box-shadow: 0 0 0 3px rgba(13,110,253,0.1); }
-    .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    button { background-color: var(--cor-primaria); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease-out; }
-    button:active { transform: scale(0.98); }
-    button.saida { background-color: var(--cor-perigo); }
-    button:disabled { background-color: #adb5bd; cursor: not-allowed; transform: none; }
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--borda-cor);
+      font-size: 1rem;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--cor-primaria);
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
 
-    #status { margin-top: 20px; font-weight: 500; padding: 12px; border-radius: 8px; display: none; animation: slideDown 0.2s ease-out; }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    .status-sucesso { color: var(--cor-sucesso); background-color: #d1e7dd; display: block; }
-    .status-erro { color: var(--cor-perigo); background-color: #f8d7da; display: block; }
-    .status-info { color: #0c5460; background-color: #d1ecf1; display: block; }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
 
-    .table-wrapper { overflow-x: auto; }
-    .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-    .styled-table thead tr { background-color: var(--cor-primaria); color: white; text-align: left; }
-    .styled-table th, .styled-table td { padding: 12px 15px; }
-    .styled-table tbody tr { border-bottom: 1px solid var(--borda-cor); transition: background-color 0.1s; }
-    .styled-table tbody tr:hover { background-color: #f8f9fa; }
-    .styled-table .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
-    .styled-table .tipo-saida { color: var(--cor-perigo); font-weight: 600; }
+    button {
+      background-color: var(--cor-primaria);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease-out;
+    }
 
-    .alert-list { list-style: none; padding: 0; }
-    .alert-list li { background: #f8f9fa; border-left: 5px solid var(--borda-cor); padding: 15px; margin-bottom: 10px; border-radius: 8px; color: var(--cor-texto); transition: all 0.1s; }
-    .alert-list li:hover { background: #f0f1f3; }
-    .alert-list li.alert-vencido { background: #f8d7da; border-left-color: var(--cor-perigo); color: #842029; }
-    .alert-list li.alert-7dias { background: #fff3cd; border-left-color: var(--cor-alerta); color: #664d03; }
+    button:active {
+      transform: scale(0.98);
+    }
 
-    .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
-    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 15px; font-weight: 600; color: var(--cor-texto); }
+    button.saida {
+      background-color: var(--cor-perigo);
+    }
+
+    button:disabled {
+      background-color: #adb5bd;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-weight: 500;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    .status-sucesso {
+      color: var(--cor-sucesso);
+      background-color: #d1e7dd;
+      display: block;
+    }
+
+    .status-erro {
+      color: var(--cor-perigo);
+      background-color: #f8d7da;
+      display: block;
+    }
+
+    .status-info {
+      color: #0c5460;
+      background-color: #d1ecf1;
+      display: block;
+    }
+
+    /* Tabelas */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .styled-table thead tr {
+      background-color: var(--cor-primaria);
+      color: white;
+      text-align: left;
+    }
+
+    .styled-table th, .styled-table td {
+      padding: 12px 15px;
+    }
+
+    .styled-table tbody tr {
+      border-bottom: 1px solid var(--borda-cor);
+      transition: background-color 0.1s;
+    }
+
+    .styled-table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .styled-table .tipo-entrada {
+      color: var(--cor-sucesso);
+      font-weight: 600;
+    }
+
+    .styled-table .tipo-saida {
+      color: var(--cor-perigo);
+      font-weight: 600;
+    }
+
+    /* Alertas */
+    .alert-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .alert-list li {
+      background: #f8f9fa;
+      border-left: 5px solid var(--borda-cor);
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      color: var(--cor-texto);
+      transition: all 0.1s;
+    }
+
+    .alert-list li:hover {
+      background: #f0f1f3;
+    }
+
+    .alert-list li.alert-vencido {
+      background: #f8d7da;
+      border-left-color: var(--cor-perigo);
+      color: #842029;
+    }
+
+    .alert-list li.alert-7dias {
+      background: #fff3cd;
+      border-left-color: var(--cor-alerta);
+      color: #664d03;
+    }
+
+    .placeholder {
+      text-align: center;
+      padding: 40px;
+      color: var(--cor-texto-claro);
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 15px;
+      font-weight: 600;
+      color: var(--cor-texto);
+    }
   </style>
 </head>
 <body>
@@ -140,24 +423,27 @@
         <div class="card">
           <h2>Registrar Movimentação</h2>
 
-          <!-- Leitor + elementos sobrepostos -->
+          <!-- Módulo de Câmera Integrado -->
           <div id="reader-container">
             <div id="reader"></div>
 
-            <div id="btnFlashFloating" class="floating-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+            <!-- Controles Sobrepostos -->
+            <div class="camera-controls-overlay">
+              <!-- Controles Superiores -->
+              <div class="controls-top">
+                <button id="btnFlash" class="btn-control" onclick="toggleFlash()" title="Lanterna">💡</button>
+              </div>
 
-            <!-- Slider de zoom na parte inferior da câmera -->
-            <div id="zoomBar" class="zoom-slider-bar" style="display:none;">
-              <span>🔍</span>
-              <input type="range" id="zoomSliderOverlay" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+              <!-- Controles Inferiores -->
+              <div class="controls-bottom">
+                <div class="zoom-control-group" id="zoomGroup" style="display:none;">
+                  <span class="zoom-icon">🔍</span>
+                  <input type="range" id="zoomSlider" class="zoom-slider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+                  <span class="zoom-value" id="zoomValue">1.0x</span>
+                </div>
+              </div>
             </div>
-
-            <!-- Pontinho do tap-to-focus -->
-            <div id="tapDot" class="tap-focus-dot"></div>
           </div>
-
-          <!-- Controles -->
-          <div class="scanner-controls"></div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
 
@@ -220,7 +506,7 @@
 
   <script>
     // ===================================================================
-    // CONFIGURAÇÃO E VARIÁVEIS GLOBAIS (otimizadas)
+    // CONFIGURAÇÃO E VARIÁVEIS GLOBAIS
     // ===================================================================
     const WEB_APP_URL = 'https://script.google.com/macros/d/YOUR_SCRIPT_ID/usercache';
     const API_TOKEN = 'seu_token_aqui';
@@ -231,11 +517,12 @@
     let currentRearIndex = 0;
     let rearCameras = [];
     let currentTrack = null;
+    let zoomValue = 1;
 
     const appData = { estoque: [], movimentacoes: [], alertas: [] };
 
     // ===================================================================
-    // INICIALIZAÇÃO DA CÂMERA (otimizada com cache)
+    // INICIALIZAÇÃO DA CÂMERA
     // ===================================================================
     async function initCamera() {
       try {
@@ -248,7 +535,7 @@
     }
 
     // ===================================================================
-    // SCANNER DE QR CODE (otimizado com debounce)
+    // SCANNER DE QR CODE
     // ===================================================================
     function startScannerWithDevice(deviceId) {
       if (scanner) {
@@ -285,12 +572,12 @@
     }
 
     // ===================================================================
-    // CALLBACK DE SUCESSO DO QR (com debounce para evitar duplicatas)
+    // CALLBACK DE SUCESSO DO QR
     // ===================================================================
     let lastQRTime = 0;
     function onScanSuccess(decodedText) {
       const now = Date.now();
-      if (now - lastQRTime < 300) return; // Debounce de 300ms
+      if (now - lastQRTime < 300) return;
       lastQRTime = now;
 
       qrCodeCompleto = decodedText;
@@ -301,16 +588,17 @@
       readerEl.classList.add('reading');
       setTimeout(() => readerEl.classList.remove('reading'), 600);
 
-      // Vibração (se suportado)
+      // Vibração
       if (navigator.vibrate) navigator.vibrate(100);
     }
 
     // ===================================================================
-    // ZOOM (otimizado com requestAnimationFrame)
+    // ZOOM
     // ===================================================================
-    let zoomValue = 1;
     function setZoom(value) {
       zoomValue = parseFloat(value);
+      document.getElementById('zoomValue').textContent = zoomValue.toFixed(1) + 'x';
+
       if (scanner && scanner.getState() === 2) {
         const constraints = {
           video: {
@@ -322,7 +610,7 @@
     }
 
     // ===================================================================
-    // LANTERNA (otimizada)
+    // LANTERNA
     // ===================================================================
     async function toggleFlash() {
       if (!scanner || scanner.getState() !== 2) {
@@ -347,6 +635,12 @@
           return;
         }
         flashOn = !flashOn;
+        const btnFlash = document.getElementById('btnFlash');
+        if (flashOn) {
+          btnFlash.classList.add('active');
+        } else {
+          btnFlash.classList.remove('active');
+        }
         await track.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
           alert("Falha ao controlar a lanterna neste dispositivo.");
         });
@@ -356,10 +650,8 @@
       }
     }
 
-
-
     // ===================================================================
-    // COMUNICAÇÃO COM A API (otimizada)
+    // COMUNICAÇÃO COM A API
     // ===================================================================
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
@@ -401,7 +693,6 @@
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
 
-        // Limpa e reinicia automaticamente
         setTimeout(() => {
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
@@ -415,7 +706,6 @@
       } catch (err) {
         statusDiv.innerText = 'Erro de comunicação: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
-        // Em erro, também reinicia para manter fluxo
         setTimeout(() => {
           statusDiv.style.display = 'none';
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
@@ -427,7 +717,7 @@
     }
 
     // ===================================================================
-    // CARREGAMENTO DE DADOS E RENDERIZAÇÃO (otimizado)
+    // CARREGAMENTO DE DADOS E RENDERIZAÇÃO
     // ===================================================================
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = document.getElementById('loading-overlay');
@@ -497,7 +787,7 @@
     }
 
     // ===================================================================
-    // UTILITÁRIO: Normalizar erros
+    // UTILITÁRIO
     // ===================================================================
     function normalizeError(err) {
       if (typeof err === 'string') return err;
