@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Gestão de Estoque Pro</title>
 
-  <!-- Fontes e biblioteca do leitor (CORRETAS) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- ✅ IMPORTS CORRETOS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -15,7 +14,7 @@
       --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d;
       --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px;
       --verde: #28a745; --cinza-escuro: #1f2937;
-      --glass-bg: rgba(255,255,255,0.08); --glass-brd: rgba(255,255,255,0.25);
+      --glass-brd: rgba(255,255,255,0.25);
     }
 
     body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
@@ -33,19 +32,18 @@
     .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
     h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
 
-    /* ===== Módulo da Câmera (mais bonito) ===== */
+    /* ===== Módulo da Câmera (visual) ===== */
     #reader-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
     .camera-module {
       position: relative;
       border-radius: 16px;
-      padding: 10px; /* moldura */
+      padding: 10px;
       background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.12) 100%);
       box-shadow: 0 12px 30px rgba(0,0,0,0.10);
       border: 1px solid rgba(255,255,255,0.35);
       backdrop-filter: blur(6px);
     }
 
-    /* Área do vídeo */
     #reader {
       width: 100%;
       border-radius: 12px;
@@ -61,7 +59,7 @@
     }
     #reader video, #reader canvas { border-radius: inherit; }
 
-    /* Badge do Modo Macro (sempre on) */
+    /* Badge MACRO (macro sempre ativo) */
     .macro-badge {
       position: absolute; top: 12px; left: 14px;
       background: linear-gradient(135deg, rgba(13,110,253,0.95), rgba(13,110,253,0.70));
@@ -69,7 +67,7 @@
       box-shadow: 0 4px 10px rgba(13,110,253,0.25);
     }
 
-    /* Botão lanterna — ícone “glass/neo” */
+    /* Botão lanterna “glass/neo” */
     .icon-btn {
       position: absolute; right: 14px; top: 12px; z-index: 21;
       display: inline-flex; align-items: center; justify-content: center;
@@ -179,7 +177,8 @@
             <!-- Badge MACRO sempre visível (macro sempre ativo) -->
             <div id="macroBadge" class="macro-badge">MACRO</div>
 
-            <!-- Botão lanterna (íashFloating" class="icon-btn" onclick="toggleFlash()" title="Lanterna" aria-label="Lanterna">
+            <!-- Botão lanterna (SVG) -->
+            <button id="btnFlashFloating" class="icon-btn" onclick="toggleFlash()" title="Lanterna" aria-label="Lanterna">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6 2h12l-2 4H8L6 2z"></path>
                 <path d="M10 8h4v9a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V8z"></path>
@@ -198,7 +197,7 @@
             <div id="tapDot" class="tap-focus-dot"></div>
           </div>
 
-          <!-- Controles (sem botão de Modo Macro) -->
+          <!-- Controles (sem botão macro/troca) -->
           <div class="scanner-controls"><!-- intencionalmente vazio --></div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
@@ -260,30 +259,12 @@
     <button id="nav-alertas"       class="nav-link"        onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
   </nav>
 
+  <!-- ✅ Biblioteca do leitor (coloque ANTES do seu script) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+
   <script>
     // ===================================================================
-    // CONFIGURAÇÃO E ESTADO GLOBAL
-    // ===================================================================
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
-    const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-
-    let html5QrCode;
-    let currentTrack;
-    let imageCapture = null;  // Para tap-to-focus quando suportado
-    let flashOn = false;
-    let qrCodeCompleto = null;
-    let focusIntervalId = null;
-    let scannerActive = false;         // evita múltiplas instâncias
-    let rearCameras = [];              // lista de câmeras conhecidas
-    let currentRearIndex = 0;
-
-    // Macro sempre ativo
-    const isMacroMode = true;
-
-    const appData = { estoque: [], alertas: [], movimentacoes: [] };
-
-    // ===================================================================
-    // ERROS: normalização (evita "undefined")
+    // TRATAMENTO GLOBAL DE ERROS (mostra no overlay, evita “eterno carregando”)
     // ===================================================================
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
@@ -292,9 +273,44 @@
       if (err.name || err.code) return `${err.name || ''} ${err.code || ''}`.trim();
       try { return JSON.stringify(err); } catch { return String(err); }
     }
+    window.addEventListener('error', (e) => {
+      const overlay = document.getElementById('loading-overlay');
+      const span = overlay?.querySelector('span');
+      if (span) { span.textContent = 'Falha no JavaScript: ' + normalizeError(e.error || e.message); }
+      overlay.style.display = 'flex';
+      console.error('ERRO GLOBAL:', e.error || e.message);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const overlay = document.getElementById('loading-overlay');
+      const span = overlay?.querySelector('span');
+      if (span) { span.textContent = 'Falha (promise): ' + normalizeError(e.reason); }
+      overlay.style.display = 'flex';
+      console.error('PROMISE REJEITADA:', e.reason);
+    });
 
     // ===================================================================
-    // ÁUDIO: Beep ao ler (Web Audio API)
+    // CONFIG GERAL
+    // ===================================================================
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
+    const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
+
+    let html5QrCode;
+    let currentTrack;
+    let imageCapture = null;
+    let flashOn = false;
+    let qrCodeCompleto = null;
+    let focusIntervalId = null;
+    let scannerActive = false;
+    let rearCameras = [];
+    let currentRearIndex = 0;
+
+    // Macro sempre ativo
+    const isMacroMode = true;
+
+    const appData = { estoque: [], alertas: [], movimentacoes: [] };
+
+    // ===================================================================
+    // ÁUDIO: Beep ao ler
     // ===================================================================
     function beep(duration = 120, frequency = 1100, volume = 0.3) {
       try {
@@ -311,7 +327,7 @@
     }
 
     // ===================================================================
-    // LÓGICA DA CÂMERA (html5-qrcode) + MELHORIAS ANDROID
+    // LEITOR: Start robusto (só traseira)
     // ===================================================================
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
@@ -319,13 +335,16 @@
 
       const qrEl = document.getElementById('qr-result');
       const readerEl = document.getElementById('reader');
-      readerEl.classList.remove('scanned'); // remove a borda verde ao iniciar
+      readerEl.classList.remove('scanned');
       qrEl.textContent = 'Iniciando câmera...';
       document.getElementById('status').style.display = 'none';
 
+      if (typeof Html5Qrcode === 'undefined') {
+        throw new Error('Biblioteca html5-qrcode não carregada. Verifique a tag <script> do CDN.');
+      }
+
       html5QrCode = new Html5Qrcode("reader");
 
-      // Área/qualidade (Macro on)
       const qrBoxSize   = 150;
       const idealWidth  = 1920;
       const idealHeight = 1080;
@@ -341,14 +360,13 @@
         experimentalFeatures: { useBarCodeDetectorIfSupported: true }
       };
 
-      // Estratégia de tentativa múltipla
       const attempts = [];
       if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
 
       try {
         const cameras = await Html5Qrcode.getCameras();
         const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-        const candidates = rear.length ? rear : cameras; // fallback se sem label
+        const candidates = rear.length ? rear : cameras;
         rearCameras = candidates;
         if (rearCameras.length > 0 && !deviceId) {
           currentRearIndex = 0;
@@ -368,18 +386,16 @@
       for (const a of attempts) {
         try {
           await html5QrCode.start(a.value, config, onScanSuccess);
-          // Sucesso — pós-start
           scannerActive = true;
           qrEl.textContent = 'Aguardando leitura...';
 
           const videoElem = document.getElementById('reader').querySelector("video");
           currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
-          // Evita frontal
           try {
             const s = currentTrack?.getSettings?.() || {};
             if (/user|front/i.test(s.facingMode || '')) {
-              console.warn('[Câmera] Abriu frontal por engano, trocando...');
+              console.warn('[Câmera] Frontal detectada; trocando...');
               await stopScanner(true);
               if (rearCameras?.length) {
                 await startScannerWithDevice(rearCameras[0].id);
@@ -413,11 +429,7 @@
       if (qrCodeCompleto) return;
       qrCodeCompleto = decodedText;
 
-      // ✅ Borda verde no momento da leitura
-      const readerEl = document.getElementById('reader');
-      readerEl.classList.add('scanned');
-
-      // ✅ bipe + vibração
+      document.getElementById('reader').classList.add('scanned');
       beep(120, 1100, 0.3);
       if (navigator.vibrate) navigator.vibrate(150);
 
@@ -437,7 +449,6 @@
         currentTrack = null;
         imageCapture = null;
         scannerActive = false;
-        if (!silent) {/* mantém mensagem atual */}
       }
     }
 
@@ -445,10 +456,9 @@
       if (!currentTrack?.applyConstraints) return;
       (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
       clearInterval(focusIntervalId);
-      const intervalMs = 500; // macro
       focusIntervalId = setInterval(() => {
         currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-      }, intervalMs);
+      }, 500); // macro
     }
 
     async function applyMacroStartTweaks() {
@@ -475,7 +485,6 @@
       } catch { imageCapture = null; }
     }
 
-    // ===== Tap-to-focus: toque na imagem para focar naquele ponto (quando suportado) =====
     function attachTapToFocus(videoElem) {
       const container = document.getElementById('reader-container');
       const dot = document.getElementById('tapDot');
@@ -486,7 +495,6 @@
         const x = (ev.clientX - rect.left) / rect.width;
         const y = (ev.clientY - rect.top) / rect.height;
 
-        // Indicador visual
         dot.style.left = `${ev.clientX - rect.left}px`;
         dot.style.top  = `${ev.clientY - rect.top}px`;
         dot.style.display = 'block';
@@ -519,7 +527,6 @@
       } catch {}
     }
 
-    // ===== Zoom overlay =====
     function setupZoomOverlay() {
       const bar = document.getElementById('zoomBar');
       const slider = document.getElementById('zoomSliderOverlay');
@@ -549,7 +556,6 @@
       } catch {}
     }
 
-    // ===== Lanterna =====
     async function toggleFlash() {
       if (!currentTrack || !currentTrack.getCapabilities) {
         alert("Lanterna não suportada neste dispositivo.");
@@ -567,23 +573,23 @@
     }
 
     // ===================================================================
-    // COMUNICAÇÃO COM A API (BACKEND)
+    // API (Apps Script)
     // ===================================================================
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-      return response.json();
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Erro de rede: ${resp.status} ${resp.statusText}`);
+      return resp.json();
     }
 
     async function apiPost(payload) {
-      const response = await fetch(WEB_APP_URL, {
+      const resp = await fetch(WEB_APP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // mantendo o formato que evita preflight
         body: JSON.stringify({ ...payload, token: API_TOKEN })
       });
-      if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-      return response.json();
+      if (!resp.ok) throw new Error(`Erro de rede: ${resp.status} ${resp.statusText}`);
+      return resp.json();
     }
 
     // ===================================================================
@@ -609,7 +615,6 @@
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
 
-        // Limpa e reinicia automaticamente
         setTimeout(() => {
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
@@ -624,7 +629,6 @@
       } catch (err) {
         statusDiv.innerText = 'Erro de comunicação: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
-        // Em erro, também reinicia para manter fluxo
         setTimeout(() => {
           statusDiv.style.display = 'none';
           document.getElementById('reader').classList.remove('scanned');
@@ -637,7 +641,7 @@
     }
 
     // ===================================================================
-    // CARREGAMENTO DE DADOS E RENDERIZAÇÃO
+    // Dados / Render
     // ===================================================================
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = document.getElementById('loading-overlay');
@@ -664,7 +668,7 @@
       const corpoTabela = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque || appData.estoque.length === 0) {
         corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
-      }
+        }
       corpoTabela.innerHTML = appData.estoque.map(item =>
         `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
       ).join('');
@@ -706,7 +710,7 @@ ${item.descricao}
     }
 
     // ===================================================================
-    // NAVEGAÇÃO E INICIALIZAÇÃO
+    // Navegação / boot
     // ===================================================================
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
