@@ -3,27 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scanner Data Matrix ULTRA</title>
+<title>Data Matrix Rápido</title>
 
 <style>
-body { font-family: Arial; text-align:center; background:#111; color:white; }
-video, canvas { width:100%; max-width:500px; margin:auto; display:block; }
+body { font-family: Arial; text-align:center; background:#f4f4f4; }
+#reader { width:100%; max-width:500px; margin:auto; }
 button { padding:8px 12px; margin:5px; border:none; border-radius:6px; }
 #result { margin-top:10px; font-size:18px; font-weight:bold; }
 </style>
 </head>
 <body>
 
-<h2>Scanner Data Matrix ULTRA Industrial</h2>
+<h2>Scanner Data Matrix - Rápido</h2>
 
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas" style="display:none;"></canvas>
+<div id="reader"></div>
 
-<div>
-  <button onclick="start()">Iniciar</button>
-  <button onclick="stop()">Parar</button>
-  <button onclick="toggleFlash()">Lanterna</button>
-</div>
+<button onclick="start()">Iniciar</button>
+<button onclick="stop()">Parar</button>
+<button onclick="toggleFlash()">Lanterna</button>
+
+<br>
+Zoom:
+<input type="range" id="zoom" min="1" max="3" step="0.1" value="1" onchange="setZoom(this.value)">
 
 <div id="result">Aguardando...</div>
 
@@ -31,131 +32,84 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:6px; }
 
 <script>
 
-let stream, track;
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-let scanning = false;
+let html5QrCode;
+let currentTrack;
 let flashOn = false;
-let autoZoomLevel = 1;
 
 async function start() {
 
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: {
+  html5QrCode = new Html5Qrcode("reader");
+
+  const cameras = await Html5Qrcode.getCameras();
+  const backCam = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
+
+  const config = {
+    fps: 30, // mais rápido
+    qrbox: 300,
+    aspectRatio: 1.0,
+    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
+    videoConstraints: {
       facingMode: "environment",
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
+      width: { ideal: 1280 }, // 1920 pode deixar lento
+      height: { ideal: 720 },
+      focusMode: "continuous"
     }
-  });
+  };
 
-  document.getElementById("video").srcObject = stream;
-  track = stream.getVideoTracks()[0];
+  await html5QrCode.start(
+    backCam.id,
+    config,
+    onSuccess
+  );
 
-  applyAutoFocus();
-  applyAutoExposure();
+  const video = document.querySelector("video");
+  currentTrack = video.srcObject.getVideoTracks()[0];
 
-  scanning = true;
-  requestAnimationFrame(processFrame);
+  applyFocus();
+}
+
+function onSuccess(decodedText) {
+  document.getElementById("result").innerText =
+    "Detectado: " + decodedText;
 }
 
 function stop() {
-  scanning = false;
-  if(stream) stream.getTracks().forEach(t => t.stop());
+  if(html5QrCode) html5QrCode.stop();
 }
 
-async function toggleFlash() {
-  if(!track) return;
-  const cap = track.getCapabilities();
+async function applyFocus() {
+  const cap = currentTrack.getCapabilities();
+
+  if(cap.focusMode){
+    await currentTrack.applyConstraints({
+      advanced: [{ focusMode: "continuous" }]
+    });
+  }
+
+  if(cap.zoom){
+    document.getElementById("zoom").max = cap.zoom.max;
+    document.getElementById("zoom").min = cap.zoom.min;
+  }
+}
+
+async function setZoom(val) {
+  const cap = currentTrack.getCapabilities();
+  if(cap.zoom){
+    await currentTrack.applyConstraints({
+      advanced: [{ zoom: parseFloat(val) }]
+    });
+  }
+}
+
+async function toggleFlash(){
+  const cap = currentTrack.getCapabilities();
   if(!cap.torch) return alert("Lanterna não suportada");
+
   flashOn = !flashOn;
-  await track.applyConstraints({ advanced: [{ torch: flashOn }] });
-}
 
-async function applyAutoFocus() {
-  const cap = track.getCapabilities();
-  if(cap.focusMode) {
-    await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-  }
-}
-
-async function applyAutoExposure() {
-  const cap = track.getCapabilities();
-  if(cap.exposureMode) {
-    await track.applyConstraints({ advanced: [{ exposureMode: "continuous" }] });
-  }
-}
-
-async function autoZoom() {
-  const cap = track.getCapabilities();
-  if(cap.zoom) {
-    autoZoomLevel += 0.2;
-    if(autoZoomLevel > cap.zoom.max) autoZoomLevel = cap.zoom.max;
-    await track.applyConstraints({ advanced: [{ zoom: autoZoomLevel }] });
-  }
-}
-
-function binarize(imageData) {
-
-  let data = imageData.data;
-  let sum = 0;
-
-  for(let i=0;i<data.length;i+=4){
-    let gray = (data[i] + data[i+1] + data[i+2]) / 3;
-    sum += gray;
-  }
-
-  let threshold = sum / (data.length/4);
-
-  for(let i=0;i<data.length;i+=4){
-    let gray = (data[i] + data[i+1] + data[i+2]) / 3;
-    let value = gray > threshold ? 255 : 0;
-    data[i] = data[i+1] = data[i+2] = value;
-  }
-
-  return imageData;
-}
-
-async function processFrame() {
-
-  if(!scanning) return;
-
-  let video = document.getElementById("video");
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  ctx.drawImage(video, 0, 0);
-
-  // Recorte central inteligente
-  let size = Math.min(canvas.width, canvas.height) * 0.6;
-  let x = (canvas.width - size)/2;
-  let y = (canvas.height - size)/2;
-
-  let imageData = ctx.getImageData(x, y, size, size);
-
-  imageData = binarize(imageData);
-
-  ctx.putImageData(imageData, x, y);
-
-  detectContrast(imageData);
-
-  requestAnimationFrame(processFrame);
-}
-
-function detectContrast(imageData){
-
-  let data = imageData.data;
-  let darkPixels = 0;
-
-  for(let i=0;i<data.length;i+=4){
-    if(data[i] < 50) darkPixels++;
-  }
-
-  let ratio = darkPixels / (data.length/4);
-
-  if(ratio > 0.3 && ratio < 0.7){
-    autoZoom();
-  }
+  await currentTrack.applyConstraints({
+    advanced: [{ torch: flashOn }]
+  });
 }
 
 </script>
