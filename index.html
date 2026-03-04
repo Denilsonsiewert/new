@@ -3,53 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Avançado - Data Matrix</title>
+<title>Scanner Data Matrix Industrial</title>
 
 <style>
-body {
-  font-family: Arial;
-  text-align: center;
-  background: #f2f2f2;
-}
-
+body { font-family: Arial; text-align:center; background:#f2f2f2; }
 button {
-  padding: 10px;
-  margin: 5px;
-  border: none;
-  border-radius: 5px;
-  font-size: 14px;
-  cursor: pointer;
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+  font-size:14px;
 }
-
-#video, #reader {
-  width: 100%;
-  max-width: 500px;
-  margin-top: 10px;
-}
-
-#result {
-  font-size: 18px;
-  margin-top: 15px;
-  font-weight: bold;
-  color: #333;
-}
+#video, #reader { width:100%; max-width:500px; margin-top:10px; }
+#result { margin-top:15px; font-weight:bold; font-size:18px; }
 </style>
 </head>
 <body>
 
-<h2>Comparador de Bibliotecas - Data Matrix</h2>
+<h2>Scanner Data Matrix Industrial</h2>
 
-<button onclick="startZXing()">1 - ZXing</button>
-<button onclick="startHtml5()">2 - html5-qrcode</button>
-<button onclick="startQuagga()">3 - Quagga2</button>
-<button onclick="uploadImage()">4 - jsDataMatrix (Imagem)</button>
+<button onclick="startNative()">1 - BarcodeDetector (Nativo)</button>
+<button onclick="startZXing()">2 - ZXing</button>
+<button onclick="startHtml5()">3 - html5-qrcode</button>
+<button onclick="startQuagga()">4 - Quagga2</button>
+<button onclick="uploadImage()">5 - Testar Imagem</button>
 <button onclick="stopAll()">Parar</button>
 
-<div id="reader"></div>
 <video id="video" autoplay playsinline></video>
+<div id="reader"></div>
 <input type="file" id="fileInput" style="display:none">
 
-<div id="result">Resultado aparecerá aqui...</div>
+<div id="result">Resultado aparecerá aqui</div>
 
 <!-- ZXing -->
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
@@ -57,141 +42,163 @@ button {
 <!-- html5-qrcode -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
-<!-- Quagga -->
-<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
-
-<!-- jsdatamatrix -->
-<script src="https://unpkg.com/jsdatamatrix/dist/index.min.js"></script>
+<!-- Quagga2 fork -->
+<script src="https://unpkg.com/@ericblade/quagga2@latest/dist/quagga.min.js"></script>
 
 <script>
 
 let zxingReader;
 let html5Qr;
 let quaggaRunning = false;
+let stream;
 
-/* ========================= */
-function stopAll() {
+/* ================= STOP ================= */
+function stopAll(){
 
-  document.getElementById("result").innerText = "Scanner parado.";
+  document.getElementById("result").innerText = "Parado.";
 
-  if (zxingReader) {
-    zxingReader.reset();
+  if(zxingReader) zxingReader.reset();
+  if(html5Qr) html5Qr.stop().catch(()=>{});
+  if(quaggaRunning){ Quagga.stop(); quaggaRunning=false; }
+
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
   }
-
-  if (html5Qr) {
-    html5Qr.stop().catch(()=>{});
-  }
-
-  if (quaggaRunning) {
-    Quagga.stop();
-    quaggaRunning = false;
-  }
-
-  let video = document.getElementById("video");
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(track => track.stop());
-    video.srcObject = null;
-  }
-
-  document.getElementById("reader").innerHTML = "";
 }
 
-/* ========================= */
-/* 1️⃣ ZXing */
-function startZXing() {
+/* ================= 1 - Native ================= */
+async function startNative(){
 
   stopAll();
-  document.getElementById("result").innerText = "Iniciando ZXing...";
 
-  zxingReader = new ZXing.BrowserMultiFormatReader();
+  if(!('BarcodeDetector' in window)){
+    alert("BarcodeDetector não suportado nesse navegador.");
+    return;
+  }
 
-  zxingReader.decodeFromVideoDevice(null, 'video', (result, err) => {
-    if (result) {
-      document.getElementById("result").innerText = "ZXing: " + result.text;
+  const formats = await BarcodeDetector.getSupportedFormats();
+  if(!formats.includes('data_matrix')){
+    alert("DataMatrix não suportado nativamente nesse navegador.");
+    return;
+  }
+
+  const detector = new BarcodeDetector({ formats: ['data_matrix'] });
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:"environment" }
+  });
+
+  const video = document.getElementById("video");
+  video.srcObject = stream;
+
+  setInterval(async ()=>{
+    const barcodes = await detector.detect(video);
+    if(barcodes.length>0){
+      document.getElementById("result").innerText =
+        "Nativo: "+barcodes[0].rawValue;
+    }
+  },500);
+}
+
+/* ================= 2 - ZXing ================= */
+function startZXing(){
+
+  stopAll();
+
+  zxingReader = new ZXing.BrowserMultiFormatReader({
+    delayBetweenScanAttempts: 100
+  });
+
+  zxingReader.decodeFromVideoDevice(null,'video',(result)=>{
+    if(result){
+      document.getElementById("result").innerText =
+        "ZXing: "+result.text;
     }
   });
 }
 
-/* ========================= */
-/* 2️⃣ html5-qrcode */
-function startHtml5() {
+/* ================= 3 - html5 ================= */
+function startHtml5(){
 
   stopAll();
-  document.getElementById("video").style.display = "none";
+
   html5Qr = new Html5Qrcode("reader");
 
   html5Qr.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      document.getElementById("result").innerText = "HTML5: " + decodedText;
+    { facingMode:"environment" },
+    {
+      fps:15,
+      qrbox:{ width:250, height:250 },
+      aspectRatio:1.0
+    },
+    decodedText=>{
+      document.getElementById("result").innerText =
+        "HTML5: "+decodedText;
     }
   );
 }
 
-/* ========================= */
-/* 3️⃣ Quagga */
-function startQuagga() {
+/* ================= 4 - Quagga2 ================= */
+function startQuagga(){
 
   stopAll();
-  document.getElementById("result").innerText = "Iniciando Quagga...";
 
   Quagga.init({
-    inputStream: {
-      type: "LiveStream",
-      constraints: { facingMode: "environment" }
+    inputStream:{
+      type:"LiveStream",
+      constraints:{ facingMode:"environment" }
     },
-    decoder: {
-      readers: ["datamatrix_reader"]
-    }
-  }, function(err) {
-    if (err) {
+    locator:{ patchSize:"large", halfSample:false },
+    decoder:{ readers:["datamatrix_reader"] }
+  },function(err){
+
+    if(err){
       console.log(err);
       return;
     }
+
     Quagga.start();
-    quaggaRunning = true;
+    quaggaRunning=true;
   });
 
-  Quagga.onDetected(data => {
+  Quagga.onDetected(data=>{
     document.getElementById("result").innerText =
-      "Quagga: " + data.codeResult.code;
+      "Quagga: "+data.codeResult.code;
   });
 }
 
-/* ========================= */
-/* 4️⃣ jsDataMatrix (Imagem) */
-function uploadImage() {
-
+/* ================= 5 - Upload ================= */
+function uploadImage(){
   stopAll();
   document.getElementById("fileInput").click();
 }
 
-document.getElementById("fileInput").addEventListener("change", function(e){
+document.getElementById("fileInput").addEventListener("change", async function(e){
 
   const file = e.target.files[0];
   const img = new Image();
   img.src = URL.createObjectURL(file);
 
-  img.onload = function() {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+  img.onload = async function(){
 
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
+    if(!('BarcodeDetector' in window)){
+      alert("Teste nativo não suportado.");
+      return;
+    }
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const detector = new BarcodeDetector({ formats:['data_matrix'] });
+    const results = await detector.detect(img);
 
-    const result = jsdatamatrix.decode(imageData);
-
-    document.getElementById("result").innerText =
-      "Imagem: " + (result || "Não detectado");
+    if(results.length>0){
+      document.getElementById("result").innerText =
+        "Imagem: "+results[0].rawValue;
+    }else{
+      document.getElementById("result").innerText =
+        "Nenhum Data Matrix detectado.";
+    }
   };
-
 });
 
 </script>
-
 </body>
 </html>
