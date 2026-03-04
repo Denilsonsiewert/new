@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Gestão de Estoque Pro</title>
 
-  <!-- Fontes e lib do leitor -->
+  <!-- Fontes e lib do leitor (corrigido) -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -33,26 +33,25 @@
     h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
 
     /* ===== Área do leitor ===== */
-    #reader-container {
-      position: relative; width: 100%; max-width: 360px; margin: 0 auto; /* menor */
-    }
+    #reader-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
     #reader {
       width: 100%;
       border-radius: 14px;
       overflow: hidden;
       border: 3px solid var(--verde);               /* ✅ borda verde */
       box-shadow: 0 0 0 2px rgba(40,167,69,0.15);   /* leve glow */
-      background: #000; /* fallback */
+      background: #000;
     }
     #reader video, #reader canvas { border-radius: inherit; }
 
-    /* Botão flutuante de lanterna */
+    /* Botões flutuantes na câmera */
     .floating-btn {
-      position: absolute; right: 10px; top: 10px;
-      background: rgba(0,0,0,0.55); color: #fff;
-      padding: 10px 12px; border-radius: 50%;
-      font-size: 1.25rem; cursor: pointer; z-index: 21; user-select: none; backdrop-filter: blur(4px);
+      position: absolute; background: rgba(0,0,0,0.55); color: #fff;
+      padding: 10px 12px; border-radius: 50%; font-size: 1.10rem;
+      cursor: pointer; z-index: 21; user-select: none; backdrop-filter: blur(4px);
     }
+    #btnFlashFloating { right: 10px; top: 10px; }
+    #btnSwitchCamera { right: 54px; top: 10px; }  /* 📷⇄ alternar traseiras */
 
     /* Badge do Modo Macro */
     .macro-badge {
@@ -73,6 +72,12 @@
     .zoom-slider-bar input[type="range"] { width: 100%; }
     .zoom-slider-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--cor-primaria); cursor: pointer; }
     .zoom-slider-bar input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: rgba(255,255,255,0.5); border-radius: 6px; }
+
+    /* Tap-to-focus indicador (pontinho) */
+    .tap-focus-dot {
+      position: absolute; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%;
+      transform: translate(-50%,-50%); pointer-events: none; z-index: 22; display: none;
+    }
 
     .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 14px; }
     .btn-macro.on { background-color: #0b5ed7; box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
@@ -125,13 +130,18 @@
           <div id="reader-container">
             <div id="reader"></div>
             <div id="macroBadge" class="macro-badge">MACRO</div>
+
             <div id="btnFlashFloating" class="floating-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+            <div id="btnSwitchCamera" class="floating-btn" onclick="switchRearCamera()" title="Alternar câmera traseira">📷⇄</div>
 
             <!-- Slider de zoom na parte inferior da câmera -->
             <div id="zoomBar" class="zoom-slider-bar" style="display:none;">
               <span>🔍</span>
               <input type="range" id="zoomSliderOverlay" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
             </div>
+
+            <!-- Pontinho do tap-to-focus -->
+            <div id="tapDot" class="tap-focus-dot"></div>
           </div>
 
           <!-- Controles (sem botão Reiniciar e sem Lanterna duplicada) -->
@@ -207,11 +217,14 @@
 
     let html5QrCode;
     let currentTrack;
+    let imageCapture = null;  // Para tap-to-focus quando suportado
     let flashOn = false;
     let qrCodeCompleto = null;
     let focusIntervalId = null;
     let isMacroMode = false;           // 🔍 Macro ON/OFF
     let scannerActive = false;         // evita múltiplas instâncias
+    let rearCameras = [];              // lista de deviceId das traseiras
+    let currentRearIndex = 0;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
@@ -229,15 +242,13 @@
         osc.connect(gain); gain.connect(ctx.destination);
         osc.start();
         setTimeout(() => { osc.stop(); ctx.close(); }, duration);
-      } catch (e) {
-        // restrições de autoplay: ignora silenciosamente
-      }
+      } catch {}
     }
 
     // ===================================================================
-    // LÓGICA DA CÂMERA (html5-qrcode)
+    // LÓGICA DA CÂMERA (html5-qrcode) + MELHORIAS ANDROID
     // ===================================================================
-    async function startScanner() {
+    async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
 
@@ -247,9 +258,8 @@
 
       html5QrCode = new Html5Qrcode("reader");
       try {
-        // Configuração ajustada para tela menor e Data Matrix pequeno
-        const qrBoxSize   = isMacroMode ? 150 : 200;   // janela menor = foco mais rápido
-        const idealWidth  = isMacroMode ? 1920 : 1280; // Macro pede mais detalhe
+        const qrBoxSize   = isMacroMode ? 150 : 200;   // janela menor ajuda a focar rápido
+        const idealWidth  = isMacroMode ? 1920 : 1280;
         const idealHeight = isMacroMode ? 1080 : 720;
 
         const config = {
@@ -263,51 +273,48 @@
           experimentalFeatures: { useBarCodeDetectorIfSupported: true }
         };
 
-        const cameraConstraints = {
-          facingMode: "environment",
-          width:  { ideal: idealWidth },
-          height: { ideal: idealHeight }
-        };
+        // Se deviceId traseiro foi escolhido, usa ele; senão, tenta "environment"
+        const cameraConstraints = deviceId
+          ? { deviceId: { exact: deviceId }, width: { ideal: idealWidth }, height: { ideal: idealHeight } }
+          : { facingMode: { exact: "environment" }, width: { ideal: idealWidth }, height: { ideal: idealHeight } };
 
         await html5QrCode.start(cameraConstraints, config, onScanSuccess);
         scannerActive = true;
-
         document.getElementById('qr-result').textContent = 'Aguardando leitura...';
 
-        // Obtém track para foco/zoom/lanterna
+        // Obtém trilha para foco/zoom/lanterna
         const videoElem = document.getElementById('reader').querySelector("video");
-        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0];
+        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
-        // Ajusta slider overlay de acordo com as capacidades do dispositivo
+        // Aplica foco contínuo + reforço periódico
+        setupAutofocusLoop();
+
+        // Prepara ImageCapture para tap-to-focus (se suportado)
+        setupImageCapture();
+
+        // Slider de zoom conforme capacidades
         setupZoomOverlay();
 
-        // Foco contínuo (intervalo mais curto no Macro)
-        if (currentTrack?.applyConstraints) {
-          try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {}
-          clearInterval(focusIntervalId);
-          const intervalMs = isMacroMode ? 500 : 800;
-          focusIntervalId = setInterval(() => {
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-          }, intervalMs);
-        }
-
-        // Macro: zoom inicial inteligente
+        // Macro: zoom inicial inteligente (80% do máximo)
         if (isMacroMode) {
           try {
             const caps = currentTrack?.getCapabilities?.();
-            const set  = currentTrack?.getSettings?.() || {};
             if (caps?.zoom) {
               const alvo = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.max * 0.8));
               await currentTrack.applyConstraints({ advanced: [{ zoom: alvo }] });
               const slider = document.getElementById('zoomSliderOverlay');
               if (slider) slider.value = alvo;
             }
-            try { await currentTrack.applyConstraints({ advanced: [{ exposureMode: "continuous" }] }); } catch {}
-            try { await currentTrack.applyConstraints({ advanced: [{ whiteBalanceMode: "continuous" }] }); } catch {}
           } catch {}
         }
 
-        // Atualiza UI Macro
+        // Popula lista de câmeras traseiras (uma vez após permissão)
+        await ensureRearCameraList();
+
+        // Liga o tap-to-focus na área do vídeo
+        attachTapToFocus(videoElem);
+
+        // Atualiza UI do Macro
         updateMacroUI();
 
       } catch (err) {
@@ -337,14 +344,85 @@
       } catch {}
       finally {
         currentTrack = null;
+        imageCapture = null;
         scannerActive = false;
         if (!silent) {/* mantém mensagem atual */}
       }
     }
 
-    // ===================================================================
-    // Zoom (slider overlay) — mantém a função setZoom
-    // ===================================================================
+    function setupAutofocusLoop() {
+      if (!currentTrack?.applyConstraints) return;
+      // Tenta foco contínuo + reforço periódico (intervalo menor no Macro)
+      (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
+      clearInterval(focusIntervalId);
+      const intervalMs = isMacroMode ? 500 : 900;
+      focusIntervalId = setInterval(() => {
+        currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+      }, intervalMs);
+    }
+
+    function setupImageCapture() {
+      try {
+        if (!('ImageCapture' in window) || !currentTrack) return;
+        imageCapture = new ImageCapture(currentTrack);
+        // Opcional: pede foco contínuo via ImageCapture quando suportado
+        imageCapture.getPhotoCapabilities?.().then(caps => {
+          if (caps?.focusMode && caps.focusMode !== 'none') {
+            imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
+          }
+        }).catch(()=>{});
+      } catch { imageCapture = null; }
+    }
+
+    // ===== Tap-to-focus: toca na imagem para focar naquele ponto (quando suportado) =====
+    function attachTapToFocus(videoElem) {
+      const container = document.getElementById('reader-container');
+      const dot = document.getElementById('tapDot');
+      container.onclick = async (ev) => {
+        if (!videoElem) return;
+
+        // Calcula ponto normalizado [0..1]
+        const rect = videoElem.getBoundingClientRect();
+        const x = (ev.clientX - rect.left) / rect.width;
+        const y = (ev.clientY - rect.top) / rect.height;
+
+        // Mostra ponto visual
+        dot.style.left = `${ev.clientX - rect.left}px`;
+        dot.style.top  = `${ev.clientY - rect.top}px`;
+        dot.style.display = 'block';
+        setTimeout(()=> dot.style.display='none', 700);
+
+        // Tenta pointsOfInterest (quando suportado)
+        try {
+          if (imageCapture?.setOptions) {
+            await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
+            // “pinga” o AF single-shot em seguida
+            await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
+            setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 250);
+          } else {
+            // Fallback: micro-ajuste de zoom para “acordar” o AF em alguns Samsung
+            quickRefocusByMicroZoom();
+          }
+        } catch {
+          quickRefocusByMicroZoom();
+        }
+      };
+    }
+
+    async function quickRefocusByMicroZoom() {
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+        const settings = currentTrack.getSettings?.() || {};
+        const cur = settings.zoom || caps.zoom.min || 1;
+        const nudge = Math.min(cur + (caps.zoom.step || 0.05), caps.zoom.max);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
+        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 120);
+      } catch {}
+    }
+
+    // ===== Zoom overlay =====
     function setupZoomOverlay() {
       const bar = document.getElementById('zoomBar');
       const slider = document.getElementById('zoomSliderOverlay');
@@ -374,9 +452,7 @@
       } catch {}
     }
 
-    // ===================================================================
-    // Lanterna (apenas ícone flutuante na câmera)
-    // ===================================================================
+    // ===== Lanterna =====
     async function toggleFlash() {
       if (!currentTrack || !currentTrack.getCapabilities) {
         alert("Lanterna não suportada neste dispositivo.");
@@ -393,13 +469,53 @@
       });
     }
 
+    // ===== Alternar entre câmeras traseiras (nunca usa frontal) =====
+    async function ensureRearCameraList() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        // Seleciona somente videoinput e evita front/user/frontal
+        rearCameras = devices
+          .filter(d => d.kind === 'videoinput')
+          .filter(d => {
+            const lbl = (d.label || '').toLowerCase();
+            // inclui se parecer traseira (back, rear, environment, traseira)
+            const looksRear = /back|rear|environment|traseir/.test(lbl);
+            const looksFront = /front|frontal|user/.test(lbl);
+            return looksRear && !looksFront;
+          });
+
+        // Fallback: se os labels vierem vazios (Android antes de permissão), pega todos e confia no facingMode atual
+        if (rearCameras.length === 0) {
+          rearCameras = devices.filter(d => d.kind === 'videoinput');
+        }
+
+        // Garante um index válido
+        if (currentRearIndex >= rearCameras.length) currentRearIndex = 0;
+      } catch {}
+    }
+
+    async function switchRearCamera() {
+      if (rearCameras.length <= 1) return; // não há outra traseira
+      currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
+      const candidate = rearCameras[currentRearIndex];
+      // Protege contra acionar frontal por engano (labels inconsistentes)
+      if (candidate && !/front|frontal|user/i.test(candidate.label || '')) {
+        await startScannerWithDevice(candidate.deviceId);
+      } else {
+        // Se cair numa frontal por rótulo ruim, avança mais uma
+        currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
+        const cand2 = rearCameras[currentRearIndex];
+        if (cand2) await startScannerWithDevice(cand2.deviceId);
+      }
+    }
+
     // ===================================================================
     // 🔍 MODO MACRO (toggle)
     // ===================================================================
     function toggleMacroMode() {
       isMacroMode = !isMacroMode;
       updateMacroUI();
-      startScanner(); // reinicia com configs do modo selecionado
+      startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
     }
 
     function updateMacroUI() {
@@ -457,25 +573,24 @@
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
 
-        // Limpa campos e reinicia câmera automaticamente após o registro
+        // Limpa e reinicia automaticamente
         setTimeout(() => {
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
           document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
           statusDiv.style.display = 'none';
-          startScanner(); // ✅ reinicia a câmera sem precisar de botão
-        }, 1000);
+          startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
+        }, 900);
 
-        // Atualiza dados
         await carregarTodosOsDados(true);
 
       } catch (err) {
         statusDiv.innerText = 'Erro de comunicação: ' + err.message;
         statusDiv.className = 'status-erro';
-        // Em erro, também reiniciamos para não travar o fluxo
+        // Em erro, também reinicia para manter fluxo
         setTimeout(() => {
           statusDiv.style.display = 'none';
-          startScanner();
+          startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
         }, 1200);
       } finally {
         document.getElementById('btnEntrada').disabled = false;
@@ -562,7 +677,7 @@ ${item.descricao}
       document.getElementById('nav-' + pageId).classList.add('active');
 
       if (pageId === 'registrar') {
-        startScanner(); // inicia a câmera automaticamente
+        startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
       } else {
         stopScanner();
         if (pageId === 'estoque') renderizarEstoque();
