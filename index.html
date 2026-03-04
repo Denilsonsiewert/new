@@ -4,22 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão de Estoque Pro – Scanner</title>
-
-<!-- Biblioteca do leitor (CORRETA) -->
 <script src="https://unpkg.com/html5-qrcode" defer></script>
-
 <style>
+  /* Seu CSS existente está ótimo, não precisa de mudanças. Cole ele aqui. */
   :root { --b:#0d6efd; --ok:#198754; --err:#dc3545; --warn:#664d03; }
   body { font-family: Arial, system-ui; margin:0; background:#f5f6f8; color:#222; }
   .container { max-width: 920px; margin: 0 auto; padding: 16px; }
   .card { background:#fff; border:1px solid #e3e6eb; border-radius:12px; padding:20px; margin:16px 0; }
   h1,h2 { margin:0 0 12px 0; }
   #reader { width:100%; max-width:560px; margin: 0 auto; }
+  #camera-preview { width:100%; max-width:560px; margin:10px auto; display:none; border-radius:8px; }
   .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:10px; flex-wrap:wrap; }
   input[type=number], input[type=text] { padding:10px; border:1px solid #d0d7de; border-radius:6px; }
   input[type=number] { width:160px; }
   button { padding:12px 16px; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
-  .btn { background:var(--b); color:#fff; }
+  .btn { background:var(--b ); color:#fff; }
   .btn.alt { background:var(--err); }
   .status { margin-top:10px; font-weight:600; }
   .ok { color:var(--ok); }
@@ -42,24 +41,32 @@
     <p id="statusGlobal" class="status">Carregando dados…</p>
   </div>
 
+  <!-- SEÇÃO DE FOTO -->
+  <div class="card">
+    <h2>Fotografar Item</h2>
+    <div class="controls">
+      <button id="btnIniciarCameraFoto" class="btn">📷 Iniciar Câmera</button>
+      <button id="btnTirarFoto" class="btn alt" disabled>📸 Tirar e Salvar Foto</button>
+    </div>
+    <video id="camera-preview" autoplay playsinline></video>
+    <canvas id="camera-canvas" style="display:none;"></canvas>
+    <p id="statusFoto" class="status"></p>
+  </div>
+
+  <!-- SEÇÃO DO SCANNER (seu código original) -->
   <div class="card">
     <h2>Leitor Data Matrix / QR</h2>
-
     <div class="controls">
       <button id="btnStart" class="btn">▶️ Iniciar Scanner</button>
       <button id="btnStop" class="btn alt" disabled>⏹️ Parar</button>
     </div>
-
     <div id="reader" style="margin-top:10px;"></div>
-
     <div class="controls">
       <label>Zoom: <input type="range" id="zoomSlider" min="1" max="10" step="0.1" value="1"></label>
       <button id="btnTorch" class="btn" style="display:none;">🔦 Lanterna</button>
     </div>
-
     <p id="ultimoCodigo" class="status">Aguardando leitura…</p>
     <pre id="diag" style="display:none;"></pre>
-
     <div class="controls" style="margin-top:14px;">
       <input type="number" id="qtd" placeholder="Quantidade" min="1">
       <button class="btn" id="btnEntrada">Registrar Entrada</button>
@@ -68,277 +75,127 @@
     <p id="statusRegistro" class="status"></p>
   </div>
 
-  <div class="card">
-    <h2>Alertas</h2>
-    <ul id="listaAlertas"></ul>
-  </div>
-
-  <div class="card">
-    <h2>Estoque</h2>
-    <input type="text" id="buscaEstoque" placeholder="Buscar…" oninput="filtrarTabela(this,'tblEstoque')">
-    <table id="tblEstoque">
-      <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
-      <tbody id="corpoEstoque"></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>Últimas Movimentações</h2>
-    <input type="text" id="buscaMov" placeholder="Buscar…" oninput="filtrarTabela(this,'tblMov')">
-    <table id="tblMov">
-      <thead><tr><th>Data/Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
-      <tbody id="corpoMov"></tbody>
-    </table>
-  </div>
+  <!-- Suas outras seções (Alertas, Estoque, Movimentações) permanecem aqui -->
+  <!-- ... -->
 
 </div>
 
 <script>
 /* ========= CONFIG ========= */
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
+const WEB_APP_URL = 'COLE_AQUI_A_URL_DO_SEU_APP_DA_WEB_PUBLICADO';
 const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
+// Variáveis globais para os componentes
 let html5QrCode = null;
-let ultimoCodigo = null;
-let currentTrack = null;
+let ultimoCodigoLido = null;
+let trackScanner = null;
+let trackFoto = null;
 let torchOn = false;
 
-/* ========= Utils ========= */
-function parseDateFlexible(value) {
-  if (!value) return null;
-  if (value instanceof Date && !isNaN(value)) return new Date(value.getFullYear(), value.getMonth(), value.getDate());
-  const s = String(value).trim(); if (!s) return null;
-  let m = s.match(/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})$/); if (m) return new Date(+m[1], +m[2]-1, +m[3]);
-  m = s.match(/^(\d{1,2})\D?(\d{1,2})\D?(\d{4})$/);      if (m) return new Date(+m[3], +m[2]-1, +m[1]);
-  return null;
-}
-function diffDiasHoje(date) { const h=new Date(); h.setHours(0,0,0,0); const d=new Date(date.getFullYear(),date.getMonth(),date.getDate()); return Math.round((d-h)/(1000*60*60*24)); }
-function formatBR(date) { if (!(date instanceof Date) || isNaN(date)) return ''; const d=String(date.getDate()).padStart(2,'0'); const m=String(date.getMonth()+1).padStart(2,'0'); const y=String(date.getFullYear()); return `${d}/${m}/${y}`; }
-function filtrarTabela(input, tblId) {
-  const filtro = (input.value || '').toUpperCase();
-  const linhas = document.querySelectorAll(`#${tblId} tbody tr`);
-  [...linhas].forEach(tr => tr.style.display = (tr.textContent.toUpperCase().includes(filtro) ? '' : 'none'));
-}
-
-/* ========= API ========= */
-async function apiGetObter() {
-  const url = `${WEB_APP_URL}?action=obter&token=${encodeURIComponent(API_TOKEN)}`;
-  console.log('GET->', url);
-  const res = await fetch(url, { method: 'GET' });
-  return res.json();
-}
-async function apiPostRegistrar(tipo, qrCodeCompleto, quantidade) {
-  const payload = { action: 'registrar', token: API_TOKEN, tipo, qrCodeCompleto, quantidade };
+/* ========= API (com adição da função de foto) ========= */
+async function apiPost(payload) {
+  // Função unificada para evitar pre-flight (CORS)
   const res = await fetch(WEB_APP_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight
-    body: JSON.stringify(payload)
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ ...payload, token: API_TOKEN })
   });
   return res.json();
 }
 
-/* ========= Render ========= */
-function renderEstoque(lista) {
-  const tbody = document.getElementById('corpoEstoque');
-  if (!lista || !lista.length) { tbody.innerHTML = '<tr><td colspan="4">Nenhum item encontrado.</td></tr>'; return; }
-  tbody.innerHTML = lista.map(i => `<tr><td>${i.item}</td><td>${i.lote || ''}</td><td>${i.validade || ''}</td><td><b>${i.total}</b></td></tr>`).join('');
-}
-function renderAlertas(alertas) {
-  const ul = document.getElementById('listaAlertas');
-  if (!alertas || !alertas.length) { ul.innerHTML = '<li>🎉 Nenhum alerta no momento.</li>'; return; }
-  ul.innerHTML = alertas.map(a => {
-    let cls='', titulo=a.tipo;
-    if (a.tipo==='Vencido') cls='err';
-    else if (a.tipo==='Vencimento Próximo' && Number(a.dias)<=7) { cls='warn'; titulo='Atenção! Vencimento em 7 dias'; }
-    return `<li class="${cls}"><b>${titulo}</b><br>${a.descricao}<br><small>${a.detalhe || ''}</small></li>`;
-  }).join('');
-}
-function renderMovs(movs) {
-  const tbody = document.getElementById('corpoMov');
-  if (!movs || !movs.length) { tbody.innerHTML = '<tr><td colspan="6">Nenhuma movimentação encontrada.</td></tr>'; return; }
-  tbody.innerHTML = movs.map(m => `<tr><td>${m.dataHora}</td><td class="pill ${m.tipo==='Entrada'?'entrada':'saida'}">${m.tipo}</td><td>${m.item}</td><td>${m.lote || ''}</td><td>${m.validade || ''}</td><td>${m.qtd}</td></tr>`).join('');
+async function apiGetObter() {
+  const url = `${WEB_APP_URL}?action=obter&token=${encodeURIComponent(API_TOKEN)}`;
+  const res = await fetch(url);
+  return res.json();
 }
 
-/* ========= Scanner ========= */
-async function preRequestPermission() {
-  const diag = document.getElementById('diag'); diag.style.display='block'; diag.textContent='';
-  try {
-    if (navigator.permissions?.query) {
-      const p = await navigator.permissions.query({ name: 'camera' });
-      diag.textContent = 'Permissão de câmera (estado atual): ' + p.state;
-      if (p.state === 'denied') {
-        diag.textContent += '\n⚠️ Libere a câmera no cadeado da barra de endereço para ESTE site e recarregue.';
-        return false;
-      }
-    }
-  } catch(_) {}
+async function apiPostRegistrar(tipo, qrCodeCompleto, quantidade) {
+  return apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
+}
 
+async function apiPostSalvarFoto(imagemBase64) {
+  const nomeArquivo = `foto_${new Date().toISOString()}.jpg`;
+  return apiPost({ action: 'salvarFoto', imagemBase64, nomeArquivo });
+}
+
+/* ========= LÓGICA DA CÂMERA DE FOTO ========= */
+const videoElFoto = document.getElementById('camera-preview');
+const canvasElFoto = document.getElementById('camera-canvas');
+const btnIniciarCameraFoto = document.getElementById('btnIniciarCameraFoto');
+const btnTirarFoto = document.getElementById('btnTirarFoto');
+const statusFoto = document.getElementById('statusFoto');
+
+async function iniciarCameraFoto() {
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-    s.getTracks().forEach(t => t.stop());
-    diag.textContent += (diag.textContent ? '\n' : '') + 'Pré-permissão OK.';
-    return true;
+    statusFoto.textContent = 'Iniciando câmera...';
+    statusFoto.className = 'status';
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    videoElFoto.srcObject = stream;
+    videoElFoto.style.display = 'block';
+    trackFoto = stream.getVideoTracks()[0];
+    btnTirarFoto.disabled = false;
+    btnIniciarCameraFoto.disabled = true;
+    statusFoto.textContent = 'Câmera pronta.';
+    statusFoto.className = 'status ok';
   } catch (err) {
-    diag.textContent += (diag.textContent ? '\n' : '') + 'Falha getUserMedia: ' + (err.name || '') + ' - ' + (err.message || err);
-    if (String(err.message || '').toLowerCase().includes('permission') || err.name==='NotAllowedError') {
-      diag.textContent += '\n⚠️ Vá no cadeado > Permissões do site > Câmera: Permitir. Depois recarregue.';
-    }
-    return false;
+    statusFoto.textContent = `Erro ao acessar câmera: ${err.message}`;
+    statusFoto.className = 'status err';
   }
 }
 
-async function startScanner() {
-  if (html5QrCode) return;
-  const status = document.getElementById('statusGlobal');
-  const btnStart = document.getElementById('btnStart');
-  const btnStop  = document.getElementById('btnStop');
+async function tirarFotoESalvar() {
+  if (!trackFoto) return;
+  statusFoto.textContent = 'Capturando e enviando...';
+  statusFoto.className = 'status';
+
+  const context = canvasElFoto.getContext('2d');
+  canvasElFoto.width = videoElFoto.videoWidth;
+  canvasElFoto.height = videoElFoto.videoHeight;
+  context.drawImage(videoElFoto, 0, 0, canvasElFoto.width, canvasElFoto.height);
+
+  const imagemBase64 = canvasElFoto.toDataURL('image/jpeg', 0.9); // 90% de qualidade
+
   try {
-    const ok = await preRequestPermission();
-    if (!ok) { status.textContent = 'Permissão de câmera negada/bloqueada.'; status.className='status err'; return; }
-
-    html5QrCode = new Html5Qrcode('reader');
-
-    const cameras = await Html5Qrcode.getCameras();
-    if (!cameras?.length) { status.textContent='⚠️ Nenhuma câmera encontrada.'; status.className='status err'; return; }
-    let cameraId = cameras[0].id;
-    const preferBack = cameras.find(c => (c.label||'').toLowerCase().includes('back') || (c.label||'').toLowerCase().includes('rear') || (c.label||'').toLowerCase().includes('trase'));
-    if (preferBack) cameraId = preferBack.id;
-
-    const cfg = {
-      fps: 24,
-      qrbox: { width: 320, height: 320 },
-      aspectRatio: 1.0,
-      videoConstraints: { facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' },
-      formatsToSupport: (window.Html5QrcodeSupportedFormats?.DATA_MATRIX)
-        ? [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ]
-        : undefined
-    };
-
-    await html5QrCode.start(cameraId, cfg, onScanSuccess, () => {});
-    // track p/ zoom/lanterna
-    const videoEl = document.querySelector('#reader video');
-    currentTrack = videoEl?.srcObject?.getVideoTracks?.()[0] || null;
-
-    // Zoom
-    const caps = currentTrack?.getCapabilities?.() || {};
-    const zoomSlider = document.getElementById('zoomSlider');
-    if (caps.zoom) {
-      zoomSlider.disabled = false;
-      zoomSlider.min  = caps.zoom.min ?? 1;
-      zoomSlider.max  = Math.min(caps.zoom.max ?? 10, 10);
-      zoomSlider.step = 0.1;
-      zoomSlider.value = zoomSlider.min;
-      zoomSlider.oninput = async function() {
-        try { await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(this.value) }] }); } catch(_){}
-      };
-    } else {
-      zoomSlider.disabled = true;
-    }
-
-    // Lanterna
-    const btnTorch = document.getElementById('btnTorch');
-    btnTorch.style.display = caps.torch ? '' : 'none';
-    btnTorch.onclick = toggleTorch;
-
-    status.textContent = 'Scanner pronto.'; status.className='status ok';
-    btnStart.disabled = true; btnStop.disabled = false;
-  } catch (err) {
-    document.getElementById('diag').style.display='block';
-    document.getElementById('diag').textContent += '\nErro ao iniciar câmera: ' + (err?.message || String(err));
-    status.textContent = 'Erro ao iniciar câmera'; status.className='status err';
-  }
-}
-
-async function stopScanner() {
-  const btnStart = document.getElementById('btnStart');
-  const btnStop  = document.getElementById('btnStop');
-  try {
-    if (html5QrCode) { await html5QrCode.stop(); await html5QrCode.clear(); }
-  } catch(_) {}
-  html5QrCode = null; currentTrack = null; torchOn = false;
-  btnStart.disabled = false; btnStop.disabled = true;
-}
-
-async function toggleTorch() {
-  if (!currentTrack) return;
-  const caps = currentTrack.getCapabilities?.() || {};
-  if (!caps.torch) { alert('Lanterna não suportada neste dispositivo.'); return; }
-  torchOn = !torchOn;
-  try { await currentTrack.applyConstraints({ advanced: [{ torch: torchOn }] }); } catch (_) { torchOn = !torchOn; }
-}
-
-function onScanSuccess(decodedText) {
-  if (ultimoCodigo) return;
-  ultimoCodigo = decodedText;
-  const p = document.getElementById('ultimoCodigo');
-  p.textContent = '✔️ Código: ' + decodedText.substring(0, 80) + (decodedText.length > 80 ? '…' : '');
-  p.className = 'status ok';
-  if (navigator.vibrate) navigator.vibrate(150);
-
-  // Alerta se vencido
-  try {
-    const parts = (decodedText || '').split(';');
-    const raw = parts[3] || '';
-    const dt = parseDateFlexible(raw);
-    if (dt && diffDiasHoje(dt) <= 0) {
-      const sr = document.getElementById('statusRegistro');
-      sr.textContent = '⚠️ TINTA VENCIDA! Validade: ' + formatBR(dt);
-      sr.className = 'status err';
-      if (navigator.vibrate) navigator.vibrate([100,50,200]);
-    }
-  } catch(_) {}
-
-  // Evita leituras múltiplas; reiniciamos após registrar
-  stopScanner();
-}
-
-/* ========= Fluxo de dados ========= */
-async function carregarTudo() {
-  const s = document.getElementById('statusGlobal');
-  s.textContent = 'Carregando dados…'; s.className = 'status';
-  try {
-    const res = await apiGetObter();
+    const res = await apiPostSalvarFoto(imagemBase64);
     if (res.status === 'sucesso') {
-      renderEstoque(res.dados.estoque);
-      renderAlertas(res.dados.alertas);
-      renderMovs(res.dados.movimentacoes);
-      s.textContent = 'Pronto.'; s.className = 'status ok';
+      statusFoto.innerHTML = `✅ ${res.mensagem} <a href="${res.url}" target="_blank">Ver foto</a>`;
+      statusFoto.className = 'status ok';
     } else {
-      s.textContent = 'Erro ao carregar: ' + (res.mensagem || ''); s.className = 'status err';
+      throw new Error(res.mensagem);
     }
   } catch (err) {
-    s.textContent = 'Falha na API: ' + (err?.message || String(err)); s.className = 'status err';
-  }
-}
-async function enviar(tipo) {
-  const sr = document.getElementById('statusRegistro');
-  const qtd = Number(document.getElementById('qtd').value || 0);
-  if (!ultimoCodigo || !qtd || qtd <= 0) {
-    sr.textContent = 'Leia um código e informe a quantidade.'; sr.className = 'status err'; return;
-  }
-  sr.textContent = 'Registrando...'; sr.className = 'status';
-  try {
-    const res = await apiPostRegistrar(tipo, ultimoCodigo, qtd);
-    if (res.status === 'sucesso') {
-      sr.textContent = res.mensagem; sr.className = 'status ok';
-      ultimoCodigo = null; document.getElementById('qtd').value = '';
-      await carregarTudo();
-      startScanner();
-    } else {
-      sr.textContent = res.mensagem || 'Falha ao registrar.'; sr.className = 'status err';
-    }
-  } catch (err) {
-    sr.textContent = 'Erro na API: ' + (err?.message || String(err)); sr.className = 'status err';
+    statusFoto.textContent = `Falha ao salvar foto: ${err.message}`;
+    statusFoto.className = 'status err';
+  } finally {
+    // Para a câmera após tirar a foto para economizar bateria
+    trackFoto.stop();
+    videoElFoto.style.display = 'none';
+    btnTirarFoto.disabled = true;
+    btnIniciarCameraFoto.disabled = false;
   }
 }
 
-/* ========= Listeners / Init ========= */
+/* ========= SEU CÓDIGO EXISTENTE (Scanner, Render, etc.) ========= */
+// Cole aqui todo o seu código JavaScript original, começando de:
+// function parseDateFlexible(value) { ... }
+// até
+// async function enviar(tipo) { ... }
+// FAÇA UMA PEQUENA MUDANÇA:
+// Na função onScanSuccess, mude a variável 'ultimoCodigo' para 'ultimoCodigoLido'
+// Na função enviar, mude a variável 'ultimoCodigo' para 'ultimoCodigoLido'
+
+/* ========= LISTENERS / INIT ========= */
+// Adicione os novos listeners para a câmera de foto
+btnIniciarCameraFoto.addEventListener('click', iniciarCameraFoto);
+btnTirarFoto.addEventListener('click', tirarFotoESalvar);
+
+// Seus listeners existentes
 document.getElementById('btnStart').addEventListener('click', startScanner);
 document.getElementById('btnStop').addEventListener('click', stopScanner);
 document.getElementById('btnEntrada').addEventListener('click', () => enviar('Entrada'));
 document.getElementById('btnSaida').addEventListener('click', () => enviar('Saída'));
 window.addEventListener('load', carregarTudo);
-</script>
 
+</script>
 </body>
 </html>
