@@ -1,162 +1,382 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scanner Data Matrix PRO</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão de Estoque Pro – Scanner</title>
+
+<link rel="preconnect" href="https://unpkg.com">
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body {
-  font-family: Arial;
-  text-align:center;
-  background:#f2f2f2;
-}
-
-#reader {
-  width:100%;
-  max-width:500px;
-  margin:auto;
-}
-
-.controls {
-  margin-top:10px;
-}
-
-button {
-  padding:8px 12px;
-  margin:5px;
-  border:none;
-  border-radius:6px;
-  font-size:14px;
-  cursor:pointer;
-}
-
-input[type=range] {
-  width:200px;
-}
-
-#result {
-  margin-top:15px;
-  font-size:18px;
-  font-weight:bold;
-}
+  body { font-family: Arial, system-ui; margin:0; background:#f5f6f8; }
+  .container { max-width: 860px; margin: 0 auto; padding: 16px; }
+  .card { background:#fff; border:1px solid #e3e6eb; border-radius:12px; padding:20px; margin:16px 0; }
+  h1,h2 { margin:0 0 12px 0; }
+  #reader { width:100%; max-width:520px; margin: 0 auto; }
+  .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:8px; flex-wrap:wrap; }
+  input[type=number] { padding:10px; border:1px solid #d0d7de; border-radius:6px; width:160px; }
+  button { padding:12px 16px; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
+  .btn { background:#0d6efd; color:#fff; }
+  .btn.alt { background:#dc3545; }
+  .badge { display:inline-block; padding:6px 10px; background:#eef6ff; color:#0d6efd; border-radius:20px; font-size:12px; }
+  .status { margin-top:12px; font-weight:600; }
+  .ok { color:#198754; }
+  .err { color:#dc3545; }
+  .warn { color:#664d03; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:10px; border-bottom:1px solid #e3e6eb; text-align:left; }
+  .pill { font-weight:700; }
+  .entrada { color:#198754; }
+  .saida { color:#dc3545; }
 </style>
 </head>
 <body>
+<div class="container">
 
-<h2>Scanner Data Matrix Industrial PRO</h2>
+  <div class="card">
+    <h1>Gestão de Estoque Pro <span class="badge">Scanner</span></h1>
+    <p id="statusGlobal" class="status">Carregando dados…</p>
+  </div>
 
-<div id="reader"></div>
+  <div class="card">
+    <h2>Leitor Data Matrix / QR</h2>
+    <div id="reader"></div>
 
-<div class="controls">
-  <button onclick="startScanner()">Iniciar</button>
-  <button onclick="stopScanner()">Parar</button>
-  <button onclick="toggleFlash()">Lanterna</button>
+    <div class="controls">
+      <label>Zoom: <input type="range" id="zoomSlider" min="1" max="10" step="0.1" value="1"></label>
+      <button id="btnTorch" class="btn" onclick="toggleTorch()">🔦 Lanterna</button>
+    </div>
+
+    <p id="ultimoCodigo" class="status">Aguardando leitura…</p>
+
+    <div class="controls">
+      <input type="number" id="qtd" placeholder="Quantidade" min="1">
+      <button class="btn" onclick="enviar('Entrada')">Registrar Entrada</button>
+      <button class="btn alt" onclick="enviar('Saída')">Registrar Saída</button>
+    </div>
+    <p id="statusRegistro" class="status"></p>
+  </div>
+
+  <div class="card">
+    <h2>Alertas</h2>
+    <ul id="listaAlertas"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Estoque</h2>
+    <input type="text" id="buscaEstoque" placeholder="Buscar…" oninput="filtrarTabela(this,'tblEstoque')">
+    <table id="tblEstoque">
+      <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
+      <tbody id="corpoEstoque"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Últimas Movimentações</h2>
+    <input type="text" id="buscaMov" placeholder="Buscar…" oninput="filtrarTabela(this,'tblMov')">
+    <table id="tblMov">
+      <thead><tr><th>Data/Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
+      <tbody id="corpoMov"></tbody>
+    </table>
+  </div>
+
 </div>
-
-<div class="controls">
-  Zoom:
-  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
-</div>
-
-<div id="result">Aguardando leitura...</div>
-
-<script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
+/** ========= CONFIG ========= **/
+const WEB_APP_URL = 'https://script.google.com/macros/s/SEU_ID/exec'; // <-- COLOQUE A URL DO WEB APP
+const API_TOKEN   = 'COLOQUE_UM_TOKEN_FORTE_AQUI'; // <-- O MESMO TOKEN do backend
 
-let html5QrCode;
-let currentTrack;
-let flashOn = false;
+let html5QrCode = null;
+let ultimoCodigo = null;
+let currentTrack = null;
+let torchOn = false;
 
-async function startScanner() {
-
-  html5QrCode = new Html5Qrcode("reader");
-
-  const cameras = await Html5Qrcode.getCameras();
-  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
-
-  const config = {
-    fps: 30,
-    qrbox: { width: 350, height: 350 },
-    aspectRatio: 1.0,
-    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
-    videoConstraints: {
-      facingMode: "environment",
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
-      focusMode: "continuous"
-    }
-  };
-
-  await html5QrCode.start(
-    cameraId,
-    config,
-    onScanSuccess
-  );
-
-  const videoElem = document.querySelector("video");
-  currentTrack = videoElem.srcObject.getVideoTracks()[0];
-
-  applyInitialConstraints();
-}
-
-function onScanSuccess(decodedText) {
-  document.getElementById("result").innerText =
-    "Detectado: " + decodedText;
-}
-
-function stopScanner() {
-  if (html5QrCode) {
-    html5QrCode.stop();
+/** ========= Utils ========= **/
+function parseDateFlexible(value) {
+  if (!value) return null;
+  if (value instanceof Date && !isNaN(value)) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
   }
+  const s = String(value).trim();
+  if (!s) return null;
+  let m = s.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  return null;
 }
-
-async function applyInitialConstraints() {
-  const capabilities = currentTrack.getCapabilities();
-
-  let constraints = {};
-
-  if (capabilities.focusMode) {
-    constraints.advanced = [{ focusMode: "continuous" }];
-  }
-
-  if (capabilities.zoom) {
-    document.getElementById("zoomSlider").max = capabilities.zoom.max;
-    document.getElementById("zoomSlider").min = capabilities.zoom.min;
-  }
-
-  await currentTrack.applyConstraints(constraints);
+function diffDiasHoje(date) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const dt = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.round((dt - hoje)/(1000*60*60*24));
 }
-
-async function setZoom(value) {
-  if (!currentTrack) return;
-
-  const capabilities = currentTrack.getCapabilities();
-  if (capabilities.zoom) {
-    await currentTrack.applyConstraints({
-      advanced: [{ zoom: parseFloat(value) }]
-    });
-  }
+function formatBR(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '';
+  const d = String(date.getDate()).padStart(2,'0');
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const y = String(date.getFullYear());
+  return `${d}/${m}/${y}`;
 }
-
-async function toggleFlash() {
-  if (!currentTrack) return;
-
-  const capabilities = currentTrack.getCapabilities();
-
-  if (!capabilities.torch) {
-    alert("Lanterna não suportada neste dispositivo.");
-    return;
-  }
-
-  flashOn = !flashOn;
-
-  await currentTrack.applyConstraints({
-    advanced: [{ torch: flashOn }]
+function filtrarTabela(input, tblId) {
+  const filtro = (input.value || '').toUpperCase();
+  const linhas = document.querySelectorAll(`#${tblId} tbody tr`);
+  [...linhas].forEach(tr => {
+    const txt = tr.textContent.toUpperCase();
+    tr.style.display = txt.includes(filtro) ? '' : 'none';
   });
 }
 
+/** ========= Backend calls ========= **/
+async function apiGetObter() {
+  const res = await fetch(`${WEB_APP_URL}?action=obter`, {
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer ' + API_TOKEN
+    }
+  });
+  return res.json();
+}
+
+async function apiPostRegistrar(tipo, qrCodeCompleto, quantidade) {
+  const res = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + API_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ action: 'registrar', tipo, qrCodeCompleto, quantidade })
+  });
+  return res.json();
+}
+
+async function apiPostEmailVencidas() {
+  const res = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + API_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ action: 'emailVencidas' })
+  });
+  return res.json();
+}
+
+/** ========= UI Renders ========= **/
+function renderEstoque(lista) {
+  const tbody = document.getElementById('corpoEstoque');
+  if (!lista || !lista.length) {
+    tbody.innerHTML = '<tr><td colspan="4">Nenhum item encontrado.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = lista.map(i => 
+    `<tr><td>${i.item}</td><td>${i.lote || ''}</td><td>${i.validade || ''}</td><td><b>${i.total}</b></td></tr>`
+  ).join('');
+}
+
+function renderAlertas(alertas) {
+  const ul = document.getElementById('listaAlertas');
+  if (!alertas || !alertas.length) {
+    ul.innerHTML = '<li>🎉 Nenhum alerta no momento.</li>';
+    return;
+  }
+  ul.innerHTML = alertas.map(a => {
+    let cls = ''; let titulo = a.tipo; 
+    if (a.tipo === 'Vencido') cls = 'err';
+    else if (a.tipo === 'Vencimento Próximo' && Number(a.dias) <= 7) { cls = 'warn'; titulo = 'Atenção! Vencimento em 7 dias'; }
+    return `<li class="${cls}"><b>${titulo}</b><br>${a.descricao}<br><small>${a.detalhe || ''}</small></li>`;
+  }).join('');
+}
+
+function renderMovs(movs) {
+  const tbody = document.getElementById('corpoMov');
+  if (!movs || !movs.length) {
+    tbody.innerHTML = '<tr><td colspan="6">Nenhuma movimentação encontrada.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = movs.map(m => 
+    `<tr>
+      <td>${m.dataHora}</td>
+      <td class="pill ${m.tipo === 'Entrada' ? 'entrada' : 'saida'}">${m.tipo}</td>
+      <td>${m.item}</td>
+      <td>${m.lote || ''}</td>
+      <td>${m.validade || ''}</td>
+      <td>${m.qtd}</td>
+    </tr>`
+  ).join('');
+}
+
+/** ========= Scanner ========= **/
+async function startScanner() {
+  if (html5QrCode) return;
+  const status = document.getElementById('statusGlobal');
+  try {
+    html5QrCode = new Html5Qrcode('reader');
+
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras || !cameras.length) {
+      status.textContent = '⚠️ Nenhuma câmera encontrada.';
+      return;
+    }
+    let cameraId = cameras[0].id;
+    const preferBack = cameras.find(c => (c.label || '').toLowerCase().includes('back') || (c.label || '').toLowerCase().includes('rear'));
+    if (preferBack) cameraId = preferBack.id;
+
+    const config = {
+      fps: 24,
+      qrbox: { width: 320, height: 320 },
+      aspectRatio: 1.0,
+      formatsToSupport: (window.Html5QrcodeSupportedFormats && Html5QrcodeSupportedFormats.DATA_MATRIX)
+        ? [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ]
+        : undefined,
+      videoConstraints: {
+        facingMode: 'environment',
+        width: { ideal: 1920 },
+        height:{ ideal: 1080 },
+        focusMode: 'continuous'
+      }
+    };
+
+    await html5QrCode.start(cameraId, config, onScanSuccess, () => {});
+
+    // track para zoom/lanterna
+    const videoEl = document.querySelector('#reader video');
+    currentTrack = videoEl?.srcObject?.getVideoTracks?.()[0] || null;
+
+    // configurar zoom se suportado
+    const caps = currentTrack?.getCapabilities?.() || {};
+    const zoomSlider = document.getElementById('zoomSlider');
+    if (caps.zoom) {
+      zoomSlider.min = caps.zoom.min ?? 1;
+      zoomSlider.max = Math.min(caps.zoom.max ?? 10, 10);
+      zoomSlider.step = 0.1;
+      zoomSlider.value = zoomSlider.min;
+      zoomSlider.oninput = async function() {
+        try { await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(this.value) }] }); } catch(_){}
+      };
+    } else {
+      zoomSlider.disabled = true;
+    }
+
+    // botão lanterna
+    document.getElementById('btnTorch').style.display = caps.torch ? '' : 'none';
+
+    status.textContent = 'Scanner pronto.';
+    status.className = 'status ok';
+  } catch (err) {
+    status.textContent = 'Erro ao iniciar câmera: ' + (err?.message || String(err));
+    status.className = 'status err';
+  }
+}
+
+async function stopScanner() {
+  try {
+    if (html5QrCode) {
+      await html5QrCode.stop();
+      await html5QrCode.clear();
+    }
+  } catch (_) {}
+  html5QrCode = null; currentTrack = null; torchOn = false;
+}
+
+async function toggleTorch() {
+  if (!currentTrack) return;
+  const caps = currentTrack.getCapabilities?.() || {};
+  if (!caps.torch) { alert('Lanterna não suportada neste dispositivo.'); return; }
+  torchOn = !torchOn;
+  try { await currentTrack.applyConstraints({ advanced: [{ torch: torchOn }] }); } catch (_) { torchOn = !torchOn; }
+}
+
+function onScanSuccess(decodedText) {
+  if (ultimoCodigo) return; // evita múltiplas leituras em loop
+
+  ultimoCodigo = decodedText;
+  const p = document.getElementById('ultimoCodigo');
+  p.textContent = '✔️ Código: ' + decodedText.substring(0, 80) + (decodedText.length > 80 ? '…' : '');
+  p.className = 'status ok';
+  if (navigator.vibrate) navigator.vibrate(150);
+
+  // aviso de validade vencida (se parte[3] for a data)
+  try {
+    const parts = (decodedText || '').split(';');
+    const raw = parts[3] || '';
+    const dt = parseDateFlexible(raw);
+    if (dt) {
+      const dias = diffDiasHoje(dt);
+      if (dias <= 0) {
+        const sr = document.getElementById('statusRegistro');
+        sr.textContent = '⚠️ TINTA VENCIDA! Validade: ' + formatBR(dt);
+        sr.className = 'status err';
+        if (navigator.vibrate) navigator.vibrate([100,50,200]);
+      }
+    }
+  } catch(_) {}
+
+  // Para evitar leituras repetidas, paramos o scanner. Ele será reiniciado após registrar.
+  stopScanner();
+}
+
+/** ========= Ações ========= **/
+async function carregarTudo() {
+  const s = document.getElementById('statusGlobal');
+  s.textContent = 'Carregando dados…';
+  s.className = 'status';
+
+  try {
+    const res = await apiGetObter();
+    if (res.status === 'sucesso') {
+      renderEstoque(res.dados.estoque);
+      renderAlertas(res.dados.alertas);
+      renderMovs(res.dados.movimentacoes);
+      s.textContent = 'Pronto.';
+      s.className = 'status ok';
+    } else {
+      s.textContent = 'Erro ao carregar: ' + res.mensagem;
+      s.className = 'status err';
+    }
+  } catch (err) {
+    s.textContent = 'Falha na API: ' + (err?.message || String(err));
+    s.className = 'status err';
+  }
+}
+
+async function enviar(tipo) {
+  const sr = document.getElementById('statusRegistro');
+  const qtd = Number(document.getElementById('qtd').value || 0);
+  if (!ultimoCodigo || !qtd || qtd <= 0) {
+    sr.textContent = 'Leia um código e informe a quantidade.';
+    sr.className = 'status err';
+    return;
+  }
+  sr.textContent = 'Registrando...'; sr.className = 'status';
+
+  try {
+    const res = await apiPostRegistrar(tipo, ultimoCodigo, qtd);
+    if (res.status === 'sucesso') {
+      sr.textContent = res.mensagem; sr.className = 'status ok';
+      // Reset e recarrega
+      ultimoCodigo = null;
+      document.getElementById('qtd').value = '';
+      await carregarTudo();
+      // Reinicia scanner
+      startScanner();
+    } else {
+      sr.textContent = res.mensagem; sr.className = 'status err';
+    }
+  } catch (err) {
+    sr.textContent = 'Erro na API: ' + (err?.message || String(err));
+    sr.className = 'status err';
+  }
+}
+
+/** ========= Init ========= **/
+window.addEventListener('load', async () => {
+  await carregarTudo();
+  await startScanner();
+});
 </script>
 
 </body>
