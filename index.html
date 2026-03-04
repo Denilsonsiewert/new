@@ -547,7 +547,10 @@
         qrbox: { width: 250, height: 250 },
         rememberLastUsedCamera: true,
         showTorchButtonIfSupported: false,
-        aspectRatio: 1.0
+        aspectRatio: 1.0,
+        videoConstraints: {
+          facingMode: 'environment'
+        }
       };
 
       if (deviceId) config.videoConstraints = { deviceId: { exact: deviceId } };
@@ -558,7 +561,13 @@
         config,
         (decodedText) => onScanSuccess(decodedText),
         (err) => { /* silencioso */ }
-      ).catch(err => console.error('Erro ao iniciar scanner:', err));
+      ).catch(err => {
+        console.error('Erro ao iniciar scanner:', err);
+        // Tenta novamente sem deviceId
+        if (deviceId) {
+          setTimeout(() => startScannerWithDevice(null), 1000);
+        }
+      });
     }
 
     function stopScanner() {
@@ -816,8 +825,20 @@
 
     window.onload = () => {
       initCamera();
-      carregarTodosOsDados();
+      // Aguarda um pouco para garantir que o DOM está pronto
+      setTimeout(() => {
+        carregarTodosOsDados();
+      }, 100);
     };
+
+    // Inicia câmera quando a página de registrar fica ativa
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (document.getElementById('page-registrar').classList.contains('active')) {
+          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+        }
+      }, 500);
+    });
   </script>
 </body>
 </html>
