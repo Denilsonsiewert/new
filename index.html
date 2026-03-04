@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão de Estoque Pro – Scanner</title>
 
-<!-- Biblioteca do leitor -->
-<script src="https://unpkg.com/html5-qrcode"></script>
+<!-- Biblioteca do leitor (CORRETA) -->
+<script src="https://unpkg.com/html5-qrcode" defer></script>
 
 <style>
   :root { --b:#0d6efd; --ok:#198754; --err:#dc3545; --warn:#664d03; }
@@ -123,6 +123,7 @@ function filtrarTabela(input, tblId) {
 /* ========= API ========= */
 async function apiGetObter() {
   const url = `${WEB_APP_URL}?action=obter&token=${encodeURIComponent(API_TOKEN)}`;
+  console.log('GET->', url);
   const res = await fetch(url, { method: 'GET' });
   return res.json();
 }
