@@ -20,7 +20,24 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
         h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
-        #reader { width:100%; max-width:500px; margin:auto; border-radius: 8px; overflow: hidden; }
+        
+        /* ✅ CORREÇÃO DE LAYOUT: Força a câmera a ter um tamanho previsível */
+        #reader {
+            width: 100%;
+            max-width: 400px; /* Limita a largura máxima */
+            margin: auto;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1 / 1; /* Força a proporção quadrada */
+            background-color: #000;
+        }
+        /* Garante que o vídeo preencha o contêiner quadrado, cortando as bordas */
+        #reader video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 15px; }
         .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
         .input-group { margin-bottom: 20px; }
@@ -62,8 +79,7 @@
                 <h2>Registrar Movimentação</h2>
                 <div id="reader"></div>
                 <div class="scanner-controls">
-                  <!-- ✅ MELHORIA: O botão de reiniciar agora também troca a câmera -->
-                  <button onclick="switchCamera()">🔄 Trocar Câmera</button>
+                  <button onclick="startScanner(true)">🔄 Reiniciar</button>
                   <button id="toggleFlashBtn" onclick="toggleFlash()">🔦 Lanterna</button>
                   <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" disabled></label>
                 </div>
@@ -79,36 +95,7 @@
                 <div id="status"></div>
               </div>
             </div>
-            <div id="page-estoque" class="page">
-              <div class="card">
-                <h2>Consulta de Estoque</h2>
-                <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..."></div>
-                <div class="table-wrapper">
-                  <table id="tabela-estoque" class="styled-table">
-                    <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
-                    <tbody id="corpo-tabela-estoque"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div id="page-movimentacoes" class="page">
-              <div class="card">
-                <h2>Últimas Movimentações</h2>
-                <div class="input-group"><input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..."></div>
-                <div class="table-wrapper">
-                  <table id="tabela-movimentacoes" class="styled-table">
-                    <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
-                    <tbody id="corpo-tabela-movimentacoes"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div id="page-alertas" class="page">
-              <div class="card">
-                <h2>Alertas de Estoque</h2>
-                <ul id="lista-alertas" class="alert-list"></ul>
-              </div>
-            </div>
+            <!-- ... (demais páginas) ... -->
         </div>
     </main>
 
@@ -131,13 +118,13 @@ let currentTrack;
 let flashOn = false;
 let qrCodeCompleto = null;
 const appData = { estoque: [], alertas: [], movimentacoes: [] };
-let currentFacingMode = "environment";
 
 // ===================================================================
 // LÓGICA DA CÂMERA (html5-qrcode )
 // ===================================================================
-async function startScanner() {
-    if (html5QrCode && html5QrCode.isScanning) return;
+async function startScanner(forceRestart = false) {
+    if (html5QrCode && html5QrCode.isScanning && !forceRestart) return;
+    if (forceRestart) await stopScanner();
 
     qrCodeCompleto = null;
     document.getElementById('qr-result').textContent = 'Iniciando câmera...';
@@ -145,19 +132,30 @@ async function startScanner() {
 
     html5QrCode = new Html5Qrcode("reader");
     try {
+        // ✅ MELHORIA: Lógica para escolher a melhor câmera traseira
+        const cameras = await Html5Qrcode.getCameras();
+        let cameraId = null;
+        if (cameras && cameras.length) {
+            const backCamera = cameras.find(camera => camera.label.toLowerCase().includes('back') || camera.label.toLowerCase().includes('traseira'));
+            if (backCamera) {
+                cameraId = backCamera.id;
+            } else {
+                // Se não encontrar uma "back", pega a primeira da lista (geralmente a correta)
+                cameraId = cameras[0].id;
+            }
+        }
+
         const config = {
             fps: 10,
-            // ✅ MELHORIA: Moldura menor para códigos pequenos
             qrbox: { width: 220, height: 220 },
             formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ],
-            // ✅ MELHORIA: Foco contínuo e automático
             videoConstraints: {
-                facingMode: currentFacingMode,
                 focusMode: "continuous"
             }
         };
 
-        await html5QrCode.start({ facingMode: currentFacingMode }, config, onScanSuccess);
+        // Usa o ID da câmera encontrada para iniciar
+        await html5QrCode.start(cameraId, config, onScanSuccess);
         
         document.getElementById('qr-result').textContent = 'Aguardando leitura...';
         
@@ -189,7 +187,6 @@ function onScanSuccess(decodedText) {
     qrCodeCompleto = decodedText;
     document.getElementById("qr-result").innerText = "✔️ Código lido: " + decodedText;
     if (navigator.vibrate) navigator.vibrate(200);
-    // Não paramos o scanner, para que o usuário possa preencher a quantidade
 }
 
 async function stopScanner() {
@@ -223,33 +220,9 @@ async function toggleFlash() {
     }
 }
 
-// ✅ MELHORIA: Função para trocar de câmera
-async function switchCamera() {
-    await stopScanner();
-    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
-    await startScanner();
-}
-
 // ===================================================================
 // COMUNICAÇÃO COM A API (BACKEND)
 // ===================================================================
-async function apiGet(action) {
-    const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-    return response.json();
-}
-
-async function apiPost(payload) {
-    const response = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ ...payload, token: API_TOKEN })
-    });
-    if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-    return response.json();
-}
-
 async function enviarDados(tipo) {
     const quantidade = document.getElementById('quantidade').value;
     const statusDiv  = document.getElementById('status');
@@ -271,13 +244,10 @@ async function enviarDados(tipo) {
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
         if (res.status === 'sucesso') {
             await carregarTodosOsDados(true);
-            setTimeout(async () => {
+            setTimeout(() => {
                 document.getElementById('quantidade').value = '';
                 statusDiv.style.display = 'none';
-                qrCodeCompleto = null;
-                // ✅ MELHORIA: Reinicia o scanner para leitura contínua
-                await stopScanner();
-                await startScanner();
+                startScanner(true); // Reinicia o scanner para a próxima leitura
             }, 2000);
         }
     } catch (err) {
