@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Gestão de Estoque Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Biblioteca da câmera -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107; --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d; --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08 ); --altura-nav: 70px; }
@@ -63,8 +62,7 @@
                 <h2>Registrar Movimentação</h2>
                 <div id="reader"></div>
                 <div class="scanner-controls">
-                  <button onclick="startScanner()">▶️ Iniciar</button>
-                  <button onclick="stopScanner()">⏹️ Parar</button>
+                  <button onclick="startScanner()">▶️ Reiniciar Câmera</button>
                   <button onclick="toggleFlash()">🔦 Lanterna</button>
                   <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)"></label>
                 </div>
@@ -137,24 +135,32 @@ const appData = { estoque: [], alertas: [], movimentacoes: [] };
 // LÓGICA DA CÂMERA (html5-qrcode )
 // ===================================================================
 async function startScanner() {
+    if (html5QrCode && html5QrCode.isScanning) return; // Já está escaneando
+
     qrCodeCompleto = null;
-    document.getElementById('qr-result').textContent = 'Aguardando leitura...';
+    document.getElementById('qr-result').textContent = 'Iniciando câmera...';
     document.getElementById('status').style.display = 'none';
 
     html5QrCode = new Html5Qrcode("reader");
     try {
-        const cameras = await Html5Qrcode.getCameras();
-        if (!cameras || cameras.length === 0) throw new Error("Nenhuma câmera encontrada.");
-        
-        const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
-
         const config = {
-            fps: 20,
+            fps: 15, // Reduzir FPS economiza bateria
             qrbox: { width: 280, height: 280 },
             formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ],
+            // ✅ NOVO: Configurações de vídeo para câmera traseira e autofoco
+            videoConstraints: {
+                facingMode: "environment", // Pede a câmera traseira
+                focusMode: "continuous"    // Pede autofoco contínuo
+            }
         };
 
-        await html5QrCode.start(cameraId, config, onScanSuccess);
+        await html5QrCode.start(
+            { facingMode: "environment" }, // Pede a câmera traseira diretamente
+            config, 
+            onScanSuccess
+        );
+        
+        document.getElementById('qr-result').textContent = 'Aguardando leitura...';
         
         const videoElem = document.getElementById('reader').querySelector("video");
         currentTrack = videoElem.srcObject.getVideoTracks()[0];
@@ -184,7 +190,7 @@ async function stopScanner() {
             await html5QrCode.stop();
         }
     } catch (err) {
-        console.error("Falha ao parar o scanner.", err);
+        // Não se preocupe com erros ao parar, geralmente são inofensivos
     }
 }
 
@@ -343,8 +349,13 @@ function mostrarPagina(pageId) {
     document.getElementById('page-' + pageId).classList.add('active');
     document.getElementById('nav-' + pageId).classList.add('active');
     
-    if (pageId !== 'registrar') {
+    if (pageId === 'registrar') {
+        // ✅ NOVO: Inicia a câmera automaticamente ao entrar na aba
+        startScanner();
+    } else {
+        // Garante que a câmera pare ao sair da página de registro
         stopScanner();
+        // Renderiza os dados da aba clicada
         if (pageId === 'estoque') renderizarEstoque();
         if (pageId === 'alertas') renderizarAlertas();
         if (pageId === 'movimentacoes') renderizarMovimentacoes();
