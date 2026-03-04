@@ -1,66 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scanner Data Matrix PRO</title>
-
-<style>
-body {
-  font-family: Arial;
-  text-align:center;
-  background:#f2f2f2;
-}
-
-#reader {
-  width:100%;
-  max-width:500px;
-  margin:auto;
-}
-
-.controls {
-  margin-top:10px;
-}
-
-button {
-  padding:8px 12px;
-  margin:5px;
-  border:none;
-  border-radius:6px;
-  font-size:14px;
-  cursor:pointer;
-}
-
-input[type=range] {
-  width:200px;
-}
-
-#result {
-  margin-top:15px;
-  font-size:18px;
-  font-weight:bold;
-}
-</style>
-</head>
-<body>
-
-<h2>Scanner Data Matrix Industrial PRO</h2>
-
-<div id="reader"></div>
-
-<div class="controls">
-  <button onclick="startScanner()">Iniciar</button>
-  <button onclick="stopScanner()">Parar</button>
-  <button onclick="toggleFlash()">Lanterna</button>
-</div>
-
-<div class="controls">
-  Zoom:
-  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
-</div>
-
-<div id="result">Aguardando leitura...</div>
-
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
@@ -68,23 +5,28 @@ input[type=range] {
 let html5QrCode;
 let currentTrack;
 let flashOn = false;
+let lastResult = "";
+let lastScanTime = 0;
 
 async function startScanner() {
 
   html5QrCode = new Html5Qrcode("reader");
 
   const cameras = await Html5Qrcode.getCameras();
-  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
+  const cameraId =
+    cameras.find(c => c.label.toLowerCase().includes("back"))?.id
+    || cameras[0].id;
 
   const config = {
-    fps: 30,
-    qrbox: { width: 350, height: 350 },
+    fps: 40, // mais rápido
+    qrbox: { width: 250, height: 250 }, // menor = mais rápido
     aspectRatio: 1.0,
+    disableFlip: true,
     formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
     videoConstraints: {
       facingMode: "environment",
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
+      width: { ideal: 1280 },   // ⚡ mais rápido que 1920
+      height: { ideal: 720 },
       focusMode: "continuous"
     }
   };
@@ -98,10 +40,21 @@ async function startScanner() {
   const videoElem = document.querySelector("video");
   currentTrack = videoElem.srcObject.getVideoTracks()[0];
 
-  applyInitialConstraints();
+  applyAdvancedFocus();
 }
 
 function onScanSuccess(decodedText) {
+
+  const now = Date.now();
+
+  // Evita leitura repetida muito rápida
+  if (decodedText === lastResult && now - lastScanTime < 1000) {
+    return;
+  }
+
+  lastResult = decodedText;
+  lastScanTime = now;
+
   document.getElementById("result").innerText =
     "Detectado: " + decodedText;
 }
@@ -112,21 +65,40 @@ function stopScanner() {
   }
 }
 
-async function applyInitialConstraints() {
+async function applyAdvancedFocus() {
+
+  if (!currentTrack) return;
+
   const capabilities = currentTrack.getCapabilities();
 
-  let constraints = {};
+  let constraints = { advanced: [] };
 
+  // 🔥 Foco contínuo
   if (capabilities.focusMode) {
-    constraints.advanced = [{ focusMode: "continuous" }];
+    constraints.advanced.push({ focusMode: "continuous" });
   }
 
+  // 🔥 Força foco manual para infinito (alguns celulares focam melhor assim)
+  if (capabilities.focusDistance) {
+    constraints.advanced.push({
+      focusDistance: capabilities.focusDistance.max
+    });
+  }
+
+  // 🔥 Ajuste automático de exposição
+  if (capabilities.exposureMode) {
+    constraints.advanced.push({ exposureMode: "continuous" });
+  }
+
+  if (constraints.advanced.length > 0) {
+    await currentTrack.applyConstraints(constraints);
+  }
+
+  // Ajusta limites do zoom
   if (capabilities.zoom) {
     document.getElementById("zoomSlider").max = capabilities.zoom.max;
     document.getElementById("zoomSlider").min = capabilities.zoom.min;
   }
-
-  await currentTrack.applyConstraints(constraints);
 }
 
 async function setZoom(value) {
@@ -158,6 +130,3 @@ async function toggleFlash() {
 }
 
 </script>
-
-</body>
-</html>
