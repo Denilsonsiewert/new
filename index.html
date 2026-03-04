@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Gestão de Estoque Pro</title>
 
-  <!-- Fontes e biblioteca do leitor (corretas) -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <!-- Fontes e biblioteca do leitor (CORRETAS) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
@@ -54,21 +54,20 @@
       background: #000;
       transition: border-color .25s ease, box-shadow .25s ease;
     }
-    /* ✅ Fica verde somente quando um código é lido */
+    /* ✅ Verde somente quando um código é lido */
     #reader.scanned {
       border-color: var(--verde);
       box-shadow: 0 0 0 2px rgba(40,167,69,0.15), 0 8px 24px rgba(40,167,69,0.20);
     }
     #reader video, #reader canvas { border-radius: inherit; }
 
-    /* Badge do Modo Macro */
+    /* Badge do Modo Macro (sempre on) */
     .macro-badge {
       position: absolute; top: 12px; left: 14px;
       background: linear-gradient(135deg, rgba(13,110,253,0.95), rgba(13,110,253,0.70));
-      color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; z-index: 21; user-select: none; display: none;
+      color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; z-index: 21; user-select: none;
       box-shadow: 0 4px 10px rgba(13,110,253,0.25);
     }
-    .macro-badge.on { display: inline-block; }
 
     /* Botão lanterna — ícone “glass/neo” */
     .icon-btn {
@@ -84,11 +83,9 @@
     }
     .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.3); }
     .icon-btn:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
-
-    /* SVG do ícone de lanterna */
     .icon-btn svg { width: 20px; height: 20px; }
 
-    /* Slider de zoom sobreposto na base da câmera — glass */
+    /* Slider de zoom (overlay) */
     .zoom-slider-bar {
       position: absolute; left: 50%; transform: translateX(-50%);
       bottom: 12px; width: 90%; padding: 10px 12px; z-index: 21;
@@ -130,7 +127,6 @@
     }
 
     .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 14px; }
-    .btn-macro.on { background-color: #0b5ed7; box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
 
     .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
     .input-group { margin-bottom: 20px; }
@@ -176,16 +172,14 @@
         <div class="card">
           <h2>Registrar Movimentação</h2>
 
-          <!-- ===== Módulo da câmera com visual melhorado ===== -->
+          <!-- ===== Módulo da câmera ===== -->
           <div id="reader-container" class="camera-module">
             <div id="reader"></div>
 
-            <!-- Badge Modo Macro -->
+            <!-- Badge MACRO sempre visível (macro sempre ativo) -->
             <div id="macroBadge" class="macro-badge">MACRO</div>
 
-            <!-- Botão lanterna (ícone em SVG) -->
-            <button id="btnFlashFloating" class="icon-btn" onclick="toggleFlash()" title="Lanterna" aria-label="Lanterna">
-              <!-- SVG de lanterna -->
+            <!-- Botão lanterna (íashFloating" class="icon-btn" onclick="toggleFlash()" title="Lanterna" aria-label="Lanterna">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6 2h12l-2 4H8L6 2z"></path>
                 <path d="M10 8h4v9a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V8z"></path>
@@ -204,10 +198,8 @@
             <div id="tapDot" class="tap-focus-dot"></div>
           </div>
 
-          <!-- Controles (sem botão Reiniciar e sem Lanterna duplicada) -->
-          <div class="scanner-controls">
-            <button id="btnMacro" class="btn-macro" onclick="toggleMacroMode()">🔍 Modo Macro: OFF</button>
-          </div>
+          <!-- Controles (sem botão de Modo Macro) -->
+          <div class="scanner-controls"><!-- intencionalmente vazio --></div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
 
@@ -281,10 +273,12 @@
     let flashOn = false;
     let qrCodeCompleto = null;
     let focusIntervalId = null;
-    let isMacroMode = false;           // 🔍 Macro ON/OFF
     let scannerActive = false;         // evita múltiplas instâncias
     let rearCameras = [];              // lista de câmeras conhecidas
     let currentRearIndex = 0;
+
+    // Macro sempre ativo
+    const isMacroMode = true;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
@@ -325,16 +319,16 @@
 
       const qrEl = document.getElementById('qr-result');
       const readerEl = document.getElementById('reader');
-      readerEl.classList.remove('scanned'); // 🔄 remove a borda verde ao iniciar
+      readerEl.classList.remove('scanned'); // remove a borda verde ao iniciar
       qrEl.textContent = 'Iniciando câmera...';
       document.getElementById('status').style.display = 'none';
 
       html5QrCode = new Html5Qrcode("reader");
 
-      // Área/qualidade
-      const qrBoxSize   = isMacroMode ? 150 : 200;
-      const idealWidth  = isMacroMode ? 1920 : 1280;
-      const idealHeight = isMacroMode ? 1080 : 720;
+      // Área/qualidade (Macro on)
+      const qrBoxSize   = 150;
+      const idealWidth  = 1920;
+      const idealHeight = 1080;
 
       const config = {
         fps: 30,
@@ -399,9 +393,8 @@
           setupAutofocusLoop();
           setupImageCapture();
           setupZoomOverlay();
-          if (isMacroMode) await applyMacroStartTweaks();
+          await applyMacroStartTweaks();
           attachTapToFocus(videoElem);
-          updateMacroUI();
           return;
         } catch (err) {
           lastErr = err;
@@ -452,7 +445,7 @@
       if (!currentTrack?.applyConstraints) return;
       (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
       clearInterval(focusIntervalId);
-      const intervalMs = isMacroMode ? 500 : 900;
+      const intervalMs = 500; // macro
       focusIntervalId = setInterval(() => {
         currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
       }, intervalMs);
@@ -574,27 +567,6 @@
     }
 
     // ===================================================================
-    // 🔍 MODO MACRO (toggle)
-    // ===================================================================
-    function toggleMacroMode() {
-      isMacroMode = !isMacroMode;
-      updateMacroUI();
-     rIndex]?.id || null);
-    }
-
-    function updateMacroUI() {
-      const btn = document.getElementById('btnMacro');
-      const badge = document.getElementById('macroBadge');
-      if (isMacroMode) {
-        btn.classList.add('on'); btn.textContent = '🔍 Modo Macro: ON';
-        badge.classList.add('on');
-      } else {
-        btn.classList.remove('on'); btn.textContent = '🔍 Modo Macro: OFF';
-        badge.classList.remove('on');
-      }
-    }
-
-    // ===================================================================
     // COMUNICAÇÃO COM A API (BACKEND)
     // ===================================================================
     async function apiGet(action) {
@@ -642,7 +614,7 @@
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
           document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
-          document.getElementById('reader').classList.remove('scanned'); // volta borda ao padrão
+          document.getElementById('reader').classList.remove('scanned');
           statusDiv.style.display = 'none';
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 900);
