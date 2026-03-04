@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -8,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107; --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d; --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08 ); --altura-nav: 70px; }
+        :root { --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107; --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d; --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08  ); --altura-nav: 70px; }
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
         .app-main { flex-grow: 1; overflow-y: auto; padding: 25px; padding-bottom: calc(var(--altura-nav) + 25px); display: flex; justify-content: center; }
         .content-wrapper { width: 100%; max-width: 800px; }
@@ -52,7 +51,7 @@
 </head>
 <body>
     <div id="loading-overlay" class="loading-overlay">
-        <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1 )" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
+        <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1  )" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
         <span>Carregando dados...</span>
     </div>
 
@@ -136,7 +135,7 @@ const appData = { estoque: [], alertas: [], movimentacoes: [] };
 // LÓGICA DA CÂMERA (html5-qrcode )
 // ===================================================================
 async function startScanner() {
-    if (html5QrCode && html5QrCode.isScanning) return; // Já está escaneando
+    if (html5QrCode && html5QrCode.isScanning) return;
 
     qrCodeCompleto = null;
     document.getElementById('qr-result').textContent = 'Iniciando câmera...';
@@ -145,10 +144,10 @@ async function startScanner() {
     html5QrCode = new Html5Qrcode("reader");
     try {
         const config = {
-            fps: 15, // Reduzir FPS economiza bateria
+            fps: 15,
             qrbox: { width: 280, height: 280 },
             formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ],
-            // ✅ NOVO: Configurações de vídeo para câmera traseira e autofoco
+            // ✅ MELHORIA: Configurações de vídeo para câmera traseira e autofoco
             videoConstraints: {
                 facingMode: "environment", // Pede a câmera traseira
                 focusMode: "continuous"    // Pede autofoco contínuo
@@ -156,21 +155,27 @@ async function startScanner() {
         };
 
         await html5QrCode.start(
-            { facingMode: "environment" }, // Pede a câmera traseira diretamente
+            { facingMode: "environment" }, // Garante a câmera traseira
             config, 
             onScanSuccess
         );
         
         document.getElementById('qr-result').textContent = 'Aguardando leitura...';
         
+        // Armazena a trilha de vídeo para controles de zoom e lanterna
         const videoElem = document.getElementById('reader').querySelector("video");
-        currentTrack = videoElem.srcObject.getVideoTracks()[0];
-        
-        const capabilities = currentTrack.getCapabilities();
-        const zoomSlider = document.getElementById("zoomSlider");
-        if (capabilities.zoom) {
-            zoomSlider.max = capabilities.zoom.max;
-            zoomSlider.min = capabilities.zoom.min;
+        if (videoElem && videoElem.srcObject) {
+            currentTrack = videoElem.srcObject.getVideoTracks()[0];
+            
+            const capabilities = currentTrack.getCapabilities();
+            const zoomSlider = document.getElementById("zoomSlider");
+            if (capabilities.zoom) {
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.min = capabilities.zoom.min;
+                zoomSlider.disabled = false;
+            } else {
+                zoomSlider.disabled = true;
+            }
         }
     } catch (err) {
         document.getElementById('qr-result').textContent = `Erro ao iniciar câmera: ${err.message}`;
@@ -190,23 +195,34 @@ async function stopScanner() {
         if (html5QrCode && html5QrCode.isScanning) {
             await html5QrCode.stop();
         }
+        currentTrack = null; // Limpa a trilha de vídeo
     } catch (err) {
-        // Não se preocupe com erros ao parar, geralmente são inofensivos
+        // Erros ao parar geralmente são inofensivos
     }
 }
 
 async function setZoom(value) {
     if (!currentTrack || !currentTrack.getCapabilities().zoom) return;
-    await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+    try {
+        await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+    } catch (err) {
+        console.error("Erro ao aplicar zoom:", err);
+    }
 }
 
 async function toggleFlash() {
+    // ✅ MELHORIA: Verifica se a lanterna é suportada ANTES de tentar usar
     if (!currentTrack || !currentTrack.getCapabilities().torch) {
-        alert("Lanterna não suportada neste dispositivo.");
+        alert("Lanterna não suportada neste dispositivo ou navegador.");
         return;
     }
-    flashOn = !flashOn;
-    await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+    try {
+        flashOn = !flashOn;
+        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+    } catch (err) {
+        console.error("Erro ao controlar a lanterna:", err);
+        alert("Não foi possível acionar a lanterna.");
+    }
 }
 
 // ===================================================================
@@ -351,7 +367,7 @@ function mostrarPagina(pageId) {
     document.getElementById('nav-' + pageId).classList.add('active');
     
     if (pageId === 'registrar') {
-        // ✅ NOVO: Inicia a câmera automaticamente ao entrar na aba
+        // ✅ MELHORIA: Inicia a câmera automaticamente ao entrar na aba
         startScanner();
     } else {
         // Garante que a câmera pare ao sair da página de registro
