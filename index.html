@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Gestão de Estoque Pro</title>
+
+    <!-- Fontes e leitura de Data Matrix/QR -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
+
     <style>
-        :root {
-            --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107;
-            --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d;
-            --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px;
-        }
+        :root { --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107; --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d; --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px; }
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
         .app-main { flex-grow: 1; overflow-y: auto; padding: 25px; padding-bottom: calc(var(--altura-nav) + 25px); display: flex; justify-content: center; }
         .content-wrapper { width: 100%; max-width: 800px; }
@@ -27,7 +26,7 @@
 
         /* Área do leitor + botões flutuantes */
         #reader-container { position: relative; width: 100%; max-width: 500px; margin: auto; }
-        #reader { width: 100%; max-width: 500px; margin: auto; border-radius: 12px; overflow: hidden; }
+        #reader { width:100%; max-width:500px; margin:auto; border-radius: 12px; overflow: hidden; }
         .floating-btn {
             position: absolute;
             right: 10px;
@@ -45,7 +44,7 @@
         #btnZoomInFloating { bottom: 70px; }
         #btnZoomOutFloating { bottom: 10px; }
 
-        .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; }
+        .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 15px; }
         .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
         .input-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
@@ -54,7 +53,6 @@
         button { background-color: var(--cor-primaria); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
         button.saida { background-color: var(--cor-perigo); }
         button:disabled { background-color: #adb5bd; cursor: not-allowed; }
-
         #status { margin-top: 20px; font-weight: 500; padding: 12px; border-radius: 8px; display: none; }
         .status-sucesso { color: var(--cor-sucesso); background-color: #d1e7dd; display: block; }
         .status-erro { color: var(--cor-perigo); background-color: #f8d7da; display: block; }
@@ -97,8 +95,11 @@
                     <div id="btnZoomOutFloating" class="floating-btn" onclick="zoomMinus()" title="Afastar">➖</div>
                 </div>
 
+                <!-- Controles originais mantidos -->
                 <div class="scanner-controls">
                   <button onclick="startScanner()">▶️ Reiniciar Câmera</button>
+                  <button onclick="toggleFlash()">🔦 Lanterna</button>
+                  <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)"></label>
                 </div>
 
                 <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
@@ -164,7 +165,7 @@
 // CONFIGURAÇÃO E ESTADO GLOBAL
 // ===================================================================
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
-const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
+const API_TOKEN = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
 let html5QrCode;
 let currentTrack;
@@ -174,74 +175,71 @@ let focusIntervalId = null;
 const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
 // ===================================================================
-// LÓGICA DA CÂMERA (html5-qrcode)
+// LÓGICA DA CÂMERA (html5-qrcode) — Melhorias mantendo tudo original
 // ===================================================================
 async function startScanner() {
+    if (html5QrCode && html5QrCode._isScanning) return; // evita múltiplas
+    await stopScanner(true);
+
+    qrCodeCompleto = null;
+    document.getElementById('qr-result').textContent = 'Iniciando câmera...';
+    document.getElementById('status').style.display = 'none';
+
+    html5QrCode = new Html5Qrcode("reader");
     try {
-        // Evita múltiplas instâncias
-        if (html5QrCode && html5QrCode._isScanning) return;
-
-        // Se já existe e estava parado, garante liberar recursos
-        await stopScanner(true);
-
-        qrCodeCompleto = null;
-        setStatusRead('Iniciando câmera...');
-        hideStatus();
-
-        html5QrCode = new Html5Qrcode("reader");
-
-        // Configuração focada em velocidade + precisão para Data Matrix pequeno
         const config = {
-            fps: 30,
-            qrbox: { width: 220, height: 220 },
+            fps: 30, // mais rápido
+            qrbox: { width: 220, height: 220 }, // foco mais preciso
             disableFlip: true,
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.DATA_MATRIX,
                 Html5QrcodeSupportedFormats.QR_CODE
             ],
-            experimentalFeatures: {
-                // Usa BarcodeDetector nativo se disponível (mais rápido)
-                useBarCodeDetectorIfSupported: true
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            // Mantém pedido de foco contínuo
+            videoConstraints: {
+                facingMode: "environment",
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
             }
         };
 
-        // Resolução ideal: HD (ajuda código pequeno 1,5 x 1,5 cm)
-        const cameraConstraints = {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-        };
-
         await html5QrCode.start(
-            cameraConstraints,
+            { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
             config,
             onScanSuccess
         );
 
-        setStatusRead('Aguardando leitura...');
+        document.getElementById('qr-result').textContent = 'Aguardando leitura...';
 
-        // Obtém trilha para aplicar foco/zoom/lanterna
         const videoElem = document.getElementById('reader').querySelector("video");
         if (!videoElem) return;
 
-        currentTrack = videoElem.srcObject && videoElem.srcObject.getVideoTracks
-            ? videoElem.srcObject.getVideoTracks()[0]
-            : null;
+        currentTrack = videoElem.srcObject?.getVideoTracks?.()[0];
 
-        // ⚡ Aplica foco contínuo pressionando o hardware periodicamente (melhora em Androids)
-        if (currentTrack) {
-            try {
-                await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-            } catch (_) { /* nem todos suportam */ }
+        // Ajusta range do slider conforme capacidade real do dispositivo
+        try {
+            const capabilities = currentTrack?.getCapabilities ? currentTrack.getCapabilities() : {};
+            const zoomSlider = document.getElementById("zoomSlider");
+            if (capabilities?.zoom) {
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.min = capabilities.zoom.min;
+                // se existir valor atual, sincroniza o slider
+                const settings = currentTrack.getSettings?.() || {};
+                if (typeof settings.zoom === 'number') zoomSlider.value = settings.zoom;
+            }
+        } catch {}
 
+        // Força autofoco contínuo periodicamente (Androids ficam melhores assim)
+        if (currentTrack?.applyConstraints) {
+            try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {}
             clearInterval(focusIntervalId);
             focusIntervalId = setInterval(() => {
-                if (!currentTrack) return;
-                currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
             }, 800);
         }
     } catch (err) {
-        setStatusRead(`Erro ao iniciar câmera: ${err.message}`);
+        document.getElementById('qr-result').textContent = `Erro ao iniciar câmera: ${err.message}`;
     }
 }
 
@@ -255,56 +253,48 @@ function onScanSuccess(decodedText) {
 
 async function stopScanner(silent = false) {
     try {
-        if (focusIntervalId) {
-            clearInterval(focusIntervalId);
-            focusIntervalId = null;
-        }
+        if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
         if (html5QrCode) {
-            // A API possui .stop() e .clear()
-            await html5QrCode.stop().catch(() => {});
-            await html5QrCode.clear().catch(() => {});
+            await html5QrCode.stop().catch(()=>{});
+            await html5QrCode.clear().catch(()=>{});
         }
-    } catch (_) {
-        // falhas ao parar são ignoráveis
-    } finally {
+    } catch {}
+    finally {
         currentTrack = null;
-        if (!silent) {
-            // opcional: manter mensagem atual
-        }
+        if (!silent) { /* mantém mensagem atual */ }
     }
 }
 
-// ====== Zoom via botões flutuantes ======
-function getZoomSupport() {
-    if (!currentTrack || !currentTrack.getCapabilities) return null;
-    try { return currentTrack.getCapabilities().zoom ? currentTrack.getCapabilities() : null; }
-    catch { return null; }
+async function setZoom(value) {
+    if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
+    await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] }).catch(()=>{});
 }
-function getZoomSettings() {
-    if (!currentTrack || !currentTrack.getSettings) return null;
-    try { return currentTrack.getSettings(); }
-    catch { return null; }
-}
-function zoomPlus() {
-    const caps = getZoomSupport();
-    const sett = getZoomSettings();
-    if (!caps || !sett) return;
 
-    const step = Math.max( (caps.zoom.step || 0.1), 0.25 );
-    const novo = Math.min((sett.zoom || caps.zoom.min || 1) + step, caps.zoom.max);
+// Botões flutuantes (zoom granular)
+function zoomPlus() {
+    if (!currentTrack) return;
+    const caps = currentTrack.getCapabilities?.();
+    const set = currentTrack.getSettings?.() || {};
+    if (!caps?.zoom) return;
+    const step = Math.max(caps.zoom.step || 0.1, 0.25);
+    const novo = Math.min((set.zoom || caps.zoom.min || 1) + step, caps.zoom.max);
     currentTrack.applyConstraints({ advanced: [{ zoom: novo }] }).catch(()=>{});
+    // sincroniza slider se existir
+    const slider = document.getElementById('zoomSlider');
+    if (slider) slider.value = novo;
 }
 function zoomMinus() {
-    const caps = getZoomSupport();
-    const sett = getZoomSettings();
-    if (!caps || !sett) return;
-
-    const step = Math.max( (caps.zoom.step || 0.1), 0.25 );
-    const novo = Math.max((sett.zoom || caps.zoom.max || 1) - step, caps.zoom.min);
+    if (!currentTrack) return;
+    const caps = currentTrack.getCapabilities?.();
+    const set = currentTrack.getSettings?.() || {};
+    if (!caps?.zoom) return;
+    const step = Math.max(caps.zoom.step || 0.1, 0.25);
+    const novo = Math.max((set.zoom || caps.zoom.max || 1) - step, caps.zoom.min);
     currentTrack.applyConstraints({ advanced: [{ zoom: novo }] }).catch(()=>{});
+    const slider = document.getElementById('zoomSlider');
+    if (slider) slider.value = novo;
 }
 
-// ====== Lanterna ======
 async function toggleFlash() {
     if (!currentTrack || !currentTrack.getCapabilities) {
         alert("Lanterna não suportada neste dispositivo.");
@@ -316,32 +306,13 @@ async function toggleFlash() {
         return;
     }
     flashOn = !flashOn;
-    try {
-        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
-    } catch (_) {
+    await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
         alert("Falha ao controlar a lanterna neste dispositivo.");
-    }
-}
-
-// Helpers UI do leitor
-function setStatusRead(text) {
-    document.getElementById('qr-result').textContent = text || '';
-}
-function showStatus(msg, type = 'info') {
-    const el = document.getElementById('status');
-    el.innerText = msg;
-    el.className = type === 'sucesso' ? 'status-sucesso' :
-                   type === 'erro'    ? 'status-erro'    :
-                                        'status-info';
-    el.style.display = 'block';
-}
-function hideStatus() {
-    const el = document.getElementById('status');
-    el.style.display = 'none';
+    });
 }
 
 // ===================================================================
-// COMUNICAÇÃO COM A API (BACKEND)
+// COMUNICAÇÃO COM A API (BACKEND) — Mantida
 // ===================================================================
 async function apiGet(action) {
     const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
@@ -371,22 +342,26 @@ async function enviarDados(tipo) {
     }
     document.getElementById('btnEntrada').disabled = true;
     document.getElementById('btnSaida').disabled   = true;
-    showStatus('Registrando...', 'info');
+    statusDiv.innerText = 'Registrando...';
+    statusDiv.className = 'status-info';
+    statusDiv.style.display = 'block';
 
     try {
         const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
-        showStatus(res.mensagem, res.status === 'sucesso' ? 'sucesso' : 'erro');
+        statusDiv.innerText = res.mensagem;
+        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
         if (res.status === 'sucesso') {
             await carregarTodosOsDados(true);
             setTimeout(() => {
                 document.getElementById('quantidade').value = '';
-                hideStatus();
+                statusDiv.style.display = 'none';
                 qrCodeCompleto = null;
-                setStatusRead('Aponte a câmera para o Data Matrix');
+                document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
             }, 1500);
         }
     } catch (err) {
-        showStatus('Erro de comunicação: ' + err.message, 'erro');
+        statusDiv.innerText = 'Erro de comunicação: ' + err.message;
+        statusDiv.className = 'status-erro';
     } finally {
         document.getElementById('btnEntrada').disabled = false;
         document.getElementById('btnSaida').disabled   = false;
@@ -394,11 +369,13 @@ async function enviarDados(tipo) {
 }
 
 // ===================================================================
-// CARREGAMENTO DE DADOS E RENDERIZAÇÃO
+// CARREGAMENTO DE DADOS E RENDERIZAÇÃO — Mantidos
 // ===================================================================
 async function carregarTodosOsDados(isUpdate = false) {
     const overlay = document.getElementById('loading-overlay');
-    if (!isUpdate) overlay.style.display = 'flex';
+    if (!isUpdate) {
+        overlay.style.display = 'flex';
+    }
     try {
         const res = await apiGet('obter');
         if (res.status === 'sucesso') {
@@ -415,7 +392,9 @@ async function carregarTodosOsDados(isUpdate = false) {
     } catch (err) {
         overlay.querySelector('span').textContent = 'Erro ao carregar dados: ' + err.message;
     } finally {
-        if (!isUpdate) overlay.style.display = 'none';
+        if (!isUpdate) {
+            overlay.style.display = 'none';
+        }
     }
 }
 
@@ -465,7 +444,7 @@ function filtrarTabela(idTabela, input) {
 }
 
 // ===================================================================
-// NAVEGAÇÃO E INICIALIZAÇÃO
+// NAVEGAÇÃO E INICIALIZAÇÃO — Mantidos
 // ===================================================================
 function mostrarPagina(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -474,7 +453,7 @@ function mostrarPagina(pageId) {
     document.getElementById('nav-' + pageId).classList.add('active');
     
     if (pageId === 'registrar') {
-        startScanner(); // inicia a câmera automaticamente
+        startScanner(); // inicia a câmera automaticamente ao entrar
     } else {
         stopScanner();
         if (pageId === 'estoque') renderizarEstoque();
