@@ -39,7 +39,6 @@ input[type=range] {
   margin-top:15px;
   font-size:18px;
   font-weight:bold;
-  color:#333;
 }
 </style>
 </head>
@@ -57,125 +56,83 @@ input[type=range] {
 
 <div class="controls">
   Zoom:
-  <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1"
-         onchange="setZoom(this.value)">
+  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
 </div>
 
 <div id="result">Aguardando leitura...</div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
 
-let html5QrCode = null;
-let currentTrack = null;
+let html5QrCode;
+let currentTrack;
 let flashOn = false;
-let lastResult = "";
-let lastScanTime = 0;
 
 async function startScanner() {
 
-  try {
+  html5QrCode = new Html5Qrcode("reader");
 
-    html5QrCode = new Html5Qrcode("reader");
+  const cameras = await Html5Qrcode.getCameras();
+  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
 
-    const cameras = await Html5Qrcode.getCameras();
-
-    if (!cameras || cameras.length === 0) {
-      alert("Nenhuma câmera encontrada.");
-      return;
+  const config = {
+    fps: 30,
+    qrbox: { width: 350, height: 350 },
+    aspectRatio: 1.0,
+    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
+    videoConstraints: {
+      facingMode: "environment",
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      focusMode: "continuous"
     }
+  };
 
-    const cameraId =
-      cameras.find(c => c.label.toLowerCase().includes("back"))?.id
-      || cameras[0].id;
+  await html5QrCode.start(
+    cameraId,
+    config,
+    onScanSuccess
+  );
 
-    const config = {
-      fps: 35,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0,
-      disableFlip: true,
-      formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ]
-    };
+  const videoElem = document.querySelector("video");
+  currentTrack = videoElem.srcObject.getVideoTracks()[0];
 
-    await html5QrCode.start(
-      cameraId,
-      config,
-      onScanSuccess,
-      onScanFailure
-    );
-
-    const videoElem = document.querySelector("#reader video");
-
-    if (videoElem && videoElem.srcObject) {
-      currentTrack = videoElem.srcObject.getVideoTracks()[0];
-      applyFocusAndZoom();
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Erro ao iniciar câmera: " + err);
-  }
+  applyInitialConstraints();
 }
 
 function onScanSuccess(decodedText) {
-
-  const now = Date.now();
-
-  if (decodedText === lastResult && now - lastScanTime < 1000) {
-    return;
-  }
-
-  lastResult = decodedText;
-  lastScanTime = now;
-
   document.getElementById("result").innerText =
     "Detectado: " + decodedText;
 }
 
-function onScanFailure(error) {
-  // silencioso para não travar
-}
-
-async function stopScanner() {
+function stopScanner() {
   if (html5QrCode) {
-    await html5QrCode.stop();
-    html5QrCode = null;
+    html5QrCode.stop();
   }
 }
 
-async function applyFocusAndZoom() {
-
-  if (!currentTrack) return;
-
+async function applyInitialConstraints() {
   const capabilities = currentTrack.getCapabilities();
 
-  let constraints = { advanced: [] };
+  let constraints = {};
 
   if (capabilities.focusMode) {
-    constraints.advanced.push({ focusMode: "continuous" });
-  }
-
-  if (capabilities.exposureMode) {
-    constraints.advanced.push({ exposureMode: "continuous" });
-  }
-
-  if (constraints.advanced.length > 0) {
-    await currentTrack.applyConstraints(constraints);
+    constraints.advanced = [{ focusMode: "continuous" }];
   }
 
   if (capabilities.zoom) {
     document.getElementById("zoomSlider").max = capabilities.zoom.max;
     document.getElementById("zoomSlider").min = capabilities.zoom.min;
   }
+
+  await currentTrack.applyConstraints(constraints);
 }
 
 async function setZoom(value) {
-
   if (!currentTrack) return;
 
   const capabilities = currentTrack.getCapabilities();
-
   if (capabilities.zoom) {
     await currentTrack.applyConstraints({
       advanced: [{ zoom: parseFloat(value) }]
@@ -184,7 +141,6 @@ async function setZoom(value) {
 }
 
 async function toggleFlash() {
-
   if (!currentTrack) return;
 
   const capabilities = currentTrack.getCapabilities();
