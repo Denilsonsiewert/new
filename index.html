@@ -3,30 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data Matrix Rápido</title>
+<title>Scanner Data Matrix PRO</title>
 
 <style>
-body { font-family: Arial; text-align:center; background:#f4f4f4; }
-#reader { width:100%; max-width:500px; margin:auto; }
-button { padding:8px 12px; margin:5px; border:none; border-radius:6px; }
-#result { margin-top:10px; font-size:18px; font-weight:bold; }
+body {
+  font-family: Arial;
+  text-align:center;
+  background:#f2f2f2;
+}
+
+#reader {
+  width:100%;
+  max-width:500px;
+  margin:auto;
+}
+
+.controls {
+  margin-top:10px;
+}
+
+button {
+  padding:8px 12px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+input[type=range] {
+  width:200px;
+}
+
+#result {
+  margin-top:15px;
+  font-size:18px;
+  font-weight:bold;
+}
 </style>
 </head>
 <body>
 
-<h2>Scanner Data Matrix - Rápido</h2>
+<h2>Scanner Data Matrix Industrial PRO</h2>
 
 <div id="reader"></div>
 
-<button onclick="start()">Iniciar</button>
-<button onclick="stop()">Parar</button>
-<button onclick="toggleFlash()">Lanterna</button>
+<div class="controls">
+  <button onclick="startScanner()">Iniciar</button>
+  <button onclick="stopScanner()">Parar</button>
+  <button onclick="toggleFlash()">Lanterna</button>
+</div>
 
-<br>
-Zoom:
-<input type="range" id="zoom" min="1" max="3" step="0.1" value="1" onchange="setZoom(this.value)">
+<div class="controls">
+  Zoom:
+  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
+</div>
 
-<div id="result">Aguardando...</div>
+<div id="result">Aguardando leitura...</div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -36,74 +69,86 @@ let html5QrCode;
 let currentTrack;
 let flashOn = false;
 
-async function start() {
+async function startScanner() {
 
   html5QrCode = new Html5Qrcode("reader");
 
   const cameras = await Html5Qrcode.getCameras();
-  const backCam = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
+  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
 
   const config = {
-    fps: 30, // mais rápido
-    qrbox: 300,
+    fps: 30,
+    qrbox: { width: 350, height: 350 },
     aspectRatio: 1.0,
     formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
     videoConstraints: {
       facingMode: "environment",
-      width: { ideal: 1280 }, // 1920 pode deixar lento
-      height: { ideal: 720 },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
       focusMode: "continuous"
     }
   };
 
   await html5QrCode.start(
-    backCam.id,
+    cameraId,
     config,
-    onSuccess
+    onScanSuccess
   );
 
-  const video = document.querySelector("video");
-  currentTrack = video.srcObject.getVideoTracks()[0];
+  const videoElem = document.querySelector("video");
+  currentTrack = videoElem.srcObject.getVideoTracks()[0];
 
-  applyFocus();
+  applyInitialConstraints();
 }
 
-function onSuccess(decodedText) {
+function onScanSuccess(decodedText) {
   document.getElementById("result").innerText =
     "Detectado: " + decodedText;
 }
 
-function stop() {
-  if(html5QrCode) html5QrCode.stop();
+function stopScanner() {
+  if (html5QrCode) {
+    html5QrCode.stop();
+  }
 }
 
-async function applyFocus() {
-  const cap = currentTrack.getCapabilities();
+async function applyInitialConstraints() {
+  const capabilities = currentTrack.getCapabilities();
 
-  if(cap.focusMode){
+  let constraints = {};
+
+  if (capabilities.focusMode) {
+    constraints.advanced = [{ focusMode: "continuous" }];
+  }
+
+  if (capabilities.zoom) {
+    document.getElementById("zoomSlider").max = capabilities.zoom.max;
+    document.getElementById("zoomSlider").min = capabilities.zoom.min;
+  }
+
+  await currentTrack.applyConstraints(constraints);
+}
+
+async function setZoom(value) {
+  if (!currentTrack) return;
+
+  const capabilities = currentTrack.getCapabilities();
+  if (capabilities.zoom) {
     await currentTrack.applyConstraints({
-      advanced: [{ focusMode: "continuous" }]
+      advanced: [{ zoom: parseFloat(value) }]
     });
   }
-
-  if(cap.zoom){
-    document.getElementById("zoom").max = cap.zoom.max;
-    document.getElementById("zoom").min = cap.zoom.min;
-  }
 }
 
-async function setZoom(val) {
-  const cap = currentTrack.getCapabilities();
-  if(cap.zoom){
-    await currentTrack.applyConstraints({
-      advanced: [{ zoom: parseFloat(val) }]
-    });
-  }
-}
+async function toggleFlash() {
+  if (!currentTrack) return;
 
-async function toggleFlash(){
-  const cap = currentTrack.getCapabilities();
-  if(!cap.torch) return alert("Lanterna não suportada");
+  const capabilities = currentTrack.getCapabilities();
+
+  if (!capabilities.torch) {
+    alert("Lanterna não suportada neste dispositivo.");
+    return;
+  }
 
   flashOn = !flashOn;
 
@@ -113,5 +158,6 @@ async function toggleFlash(){
 }
 
 </script>
+
 </body>
 </html>
