@@ -3,34 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Bibliotecas Data Matrix</title>
+<title>Teste Avançado - Data Matrix</title>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   text-align: center;
-  background: #f4f4f4;
-}
-
-h2 {
-  margin-top: 10px;
+  background: #f2f2f2;
 }
 
 button {
-  padding: 10px 15px;
+  padding: 10px;
   margin: 5px;
-  font-size: 16px;
   border: none;
   border-radius: 5px;
+  font-size: 14px;
   cursor: pointer;
 }
 
-.btn1 { background: #2196F3; color: white; }
-.btn2 { background: #4CAF50; color: white; }
-.btn3 { background: #FF9800; color: white; }
-.stop { background: #f44336; color: white; }
-
-#reader, #video {
+#video, #reader {
   width: 100%;
   max-width: 500px;
   margin-top: 10px;
@@ -38,22 +29,26 @@ button {
 
 #result {
   font-size: 18px;
-  margin-top: 10px;
+  margin-top: 15px;
   font-weight: bold;
+  color: #333;
 }
 </style>
 </head>
 <body>
 
-<h2>Teste de Scanner - Data Matrix</h2>
+<h2>Comparador de Bibliotecas - Data Matrix</h2>
 
-<button class="btn1" onclick="startZXing()">Biblioteca 1 - ZXing</button>
-<button class="btn2" onclick="startHtml5()">Biblioteca 2 - html5-qrcode</button>
-<button class="btn3" onclick="startDynamsoft()">Biblioteca 3 - Dynamsoft</button>
-<button class="stop" onclick="stopScanner()">Parar Scanner</button>
+<button onclick="startZXing()">1 - ZXing</button>
+<button onclick="startHtml5()">2 - html5-qrcode</button>
+<button onclick="startQuagga()">3 - Quagga2</button>
+<button onclick="uploadImage()">4 - jsDataMatrix (Imagem)</button>
+<button onclick="stopAll()">Parar</button>
 
 <div id="reader"></div>
 <video id="video" autoplay playsinline></video>
+<input type="file" id="fileInput" style="display:none">
+
 <div id="result">Resultado aparecerá aqui...</div>
 
 <!-- ZXing -->
@@ -62,28 +57,34 @@ button {
 <!-- html5-qrcode -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
-<!-- Dynamsoft -->
-<script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@latest/dist/dbr.js"></script>
+<!-- Quagga -->
+<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
+<!-- jsdatamatrix -->
+<script src="https://unpkg.com/jsdatamatrix/dist/index.min.js"></script>
 
 <script>
 
-let currentScanner = null;
-let codeReader = null;
-let html5Qr = null;
+let zxingReader;
+let html5Qr;
+let quaggaRunning = false;
 
-function stopScanner() {
+/* ========================= */
+function stopAll() {
+
   document.getElementById("result").innerText = "Scanner parado.";
-  
-  if (codeReader) {
-    codeReader.reset();
+
+  if (zxingReader) {
+    zxingReader.reset();
   }
 
   if (html5Qr) {
     html5Qr.stop().catch(()=>{});
   }
 
-  if (currentScanner) {
-    currentScanner.destroyContext();
+  if (quaggaRunning) {
+    Quagga.stop();
+    quaggaRunning = false;
   }
 
   let video = document.getElementById("video");
@@ -91,34 +92,32 @@ function stopScanner() {
     video.srcObject.getTracks().forEach(track => track.stop());
     video.srcObject = null;
   }
+
+  document.getElementById("reader").innerHTML = "";
 }
 
-/* =======================
-   BIBLIOTECA 1 - ZXing
-=======================*/
+/* ========================= */
+/* 1️⃣ ZXing */
 function startZXing() {
 
-  stopScanner();
+  stopAll();
   document.getElementById("result").innerText = "Iniciando ZXing...";
 
-  codeReader = new ZXing.BrowserMultiFormatReader();
+  zxingReader = new ZXing.BrowserMultiFormatReader();
 
-  codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+  zxingReader.decodeFromVideoDevice(null, 'video', (result, err) => {
     if (result) {
       document.getElementById("result").innerText = "ZXing: " + result.text;
     }
   });
 }
 
-/* =======================
-   BIBLIOTECA 2 - html5-qrcode
-=======================*/
+/* ========================= */
+/* 2️⃣ html5-qrcode */
 function startHtml5() {
 
-  stopScanner();
+  stopAll();
   document.getElementById("video").style.display = "none";
-  document.getElementById("reader").innerHTML = "";
-
   html5Qr = new Html5Qrcode("reader");
 
   html5Qr.start(
@@ -130,29 +129,67 @@ function startHtml5() {
   );
 }
 
-/* =======================
-   BIBLIOTECA 3 - Dynamsoft
-=======================*/
-async function startDynamsoft() {
+/* ========================= */
+/* 3️⃣ Quagga */
+function startQuagga() {
 
-  stopScanner();
-  document.getElementById("result").innerText = "Iniciando Dynamsoft...";
+  stopAll();
+  document.getElementById("result").innerText = "Iniciando Quagga...";
 
-  Dynamsoft.DBR.BarcodeReader.license = "YOUR-TRIAL-LICENSE-KEY";
-
-  currentScanner = await Dynamsoft.DBR.BarcodeScanner.createInstance();
-
-  await currentScanner.setUIElement(document.body);
-
-  currentScanner.onFrameRead = results => {
-    if (results.length > 0) {
-      document.getElementById("result").innerText =
-        "Dynamsoft: " + results[0].barcodeText;
+  Quagga.init({
+    inputStream: {
+      type: "LiveStream",
+      constraints: { facingMode: "environment" }
+    },
+    decoder: {
+      readers: ["datamatrix_reader"]
     }
+  }, function(err) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    Quagga.start();
+    quaggaRunning = true;
+  });
+
+  Quagga.onDetected(data => {
+    document.getElementById("result").innerText =
+      "Quagga: " + data.codeResult.code;
+  });
+}
+
+/* ========================= */
+/* 4️⃣ jsDataMatrix (Imagem) */
+function uploadImage() {
+
+  stopAll();
+  document.getElementById("fileInput").click();
+}
+
+document.getElementById("fileInput").addEventListener("change", function(e){
+
+  const file = e.target.files[0];
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+
+  img.onload = function() {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    const result = jsdatamatrix.decode(imageData);
+
+    document.getElementById("result").innerText =
+      "Imagem: " + (result || "Não detectado");
   };
 
-  currentScanner.open();
-}
+});
 
 </script>
 
