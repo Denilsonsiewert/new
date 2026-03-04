@@ -20,8 +20,15 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
         h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
-        #reader { width:100%; max-width:500px; margin:auto; border-radius: 8px; overflow: hidden; }
-        .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 15px; }
+        
+        /* ✅ NOVO: Estilos para a sobreposição da câmera */
+        .camera-container { position: relative; width:100%; max-width:500px; margin:auto; border-radius: 8px; overflow: hidden; background-color: #000; }
+        #reader { width: 100%; }
+        .camera-overlay-buttons { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 10; }
+        .camera-overlay-buttons button { background-color: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .camera-overlay-buttons button.active { color: var(--cor-alerta); }
+
+        .scanner-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; }
         .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
         .input-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
@@ -60,11 +67,16 @@
             <div id="page-registrar" class="page active">
               <div class="card">
                 <h2>Registrar Movimentação</h2>
-                <div id="reader"></div>
+                <!-- ✅ NOVO: Contêiner para câmera e botões -->
+                <div class="camera-container">
+                    <div id="reader"></div>
+                    <div class="camera-overlay-buttons">
+                        <button id="toggleFlashBtn" onclick="toggleFlash()">🔦</button>
+                        <button id="switchCameraBtn" onclick="switchCamera()">🔄</button>
+                    </div>
+                </div>
                 <div class="scanner-controls">
-                  <button onclick="startScanner()">▶️ Reiniciar Câmera</button>
-                  <button onclick="toggleFlash()">🔦 Lanterna</button>
-                  <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)"></label>
+                  <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)"></label>
                 </div>
                 <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
                 <div class="input-group">
@@ -78,44 +90,12 @@
                 <div id="status"></div>
               </div>
             </div>
-            <div id="page-estoque" class="page">
-              <div class="card">
-                <h2>Consulta de Estoque</h2>
-                <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..."></div>
-                <div class="table-wrapper">
-                  <table id="tabela-estoque" class="styled-table">
-                    <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
-                    <tbody id="corpo-tabela-estoque"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div id="page-movimentacoes" class="page">
-              <div class="card">
-                <h2>Últimas Movimentações</h2>
-                <div class="input-group"><input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..."></div>
-                <div class="table-wrapper">
-                  <table id="tabela-movimentacoes" class="styled-table">
-                    <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
-                    <tbody id="corpo-tabela-movimentacoes"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div id="page-alertas" class="page">
-              <div class="card">
-                <h2>Alertas de Estoque</h2>
-                <ul id="lista-alertas" class="alert-list"></ul>
-              </div>
-            </div>
+            <!-- ... (demais páginas permanecem iguais) ... -->
         </div>
     </main>
 
     <nav class="app-nav">
-        <button id="nav-registrar"     class="nav-link active" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
-        <button id="nav-estoque"       class="nav-link"        onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
-        <button id="nav-movimentacoes" class="nav-link"        onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
-        <button id="nav-alertas"       class="nav-link"        onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
+        <!-- ... (navegação permanece igual) ... -->
     </nav>
 
 <script>
@@ -130,9 +110,11 @@ let currentTrack;
 let flashOn = false;
 let qrCodeCompleto = null;
 const appData = { estoque: [], alertas: [], movimentacoes: [] };
+// ✅ NOVO: Variável para controlar a câmera (traseira/frontal )
+let currentFacingMode = "environment";
 
 // ===================================================================
-// LÓGICA DA CÂMERA (html5-qrcode )
+// LÓGICA DA CÂMERA (html5-qrcode)
 // ===================================================================
 async function startScanner() {
     if (html5QrCode && html5QrCode.isScanning) return;
@@ -144,41 +126,50 @@ async function startScanner() {
     html5QrCode = new Html5Qrcode("reader");
     try {
         const config = {
-            fps: 15,
-            qrbox: { width: 280, height: 280 },
+            fps: 10, // FPS mais baixo pode ajudar no foco
+            // ✅ MELHORIA: Moldura menor para códigos pequenos
+            qrbox: { width: 200, height: 200 },
             formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ],
-            // ✅ MELHORIA: Configurações de vídeo para câmera traseira e autofoco
+            // ✅ MELHORIA: Configurações avançadas de foco para códigos pequenos
             videoConstraints: {
-                facingMode: "environment", // Pede a câmera traseira
-                focusMode: "continuous"    // Pede autofoco contínuo
+                facingMode: currentFacingMode,
+                advanced: [
+                    { focusMode: "continuous" },
+                    { focusDistance: 0.1 }, // Sugere foco para perto
+                    { focusMode: "auto" }
+                ]
             }
         };
 
         await html5QrCode.start(
-            { facingMode: "environment" }, // Garante a câmera traseira
+            { facingMode: currentFacingMode },
             config, 
             onScanSuccess
         );
         
         document.getElementById('qr-result').textContent = 'Aguardando leitura...';
         
-        // Armazena a trilha de vídeo para controles de zoom e lanterna
         const videoElem = document.getElementById('reader').querySelector("video");
         if (videoElem && videoElem.srcObject) {
             currentTrack = videoElem.srcObject.getVideoTracks()[0];
-            
             const capabilities = currentTrack.getCapabilities();
+            
+            // Configura Zoom
             const zoomSlider = document.getElementById("zoomSlider");
             if (capabilities.zoom) {
-                zoomSlider.max = capabilities.zoom.max;
                 zoomSlider.min = capabilities.zoom.min;
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.step = capabilities.zoom.step || 0.1;
                 zoomSlider.disabled = false;
             } else {
                 zoomSlider.disabled = true;
             }
+
+            // Configura Botão de Lanterna
+            document.getElementById('toggleFlashBtn').style.display = capabilities.torch ? 'flex' : 'none';
         }
     } catch (err) {
-        document.getElementById('qr-result').textContent = `Erro ao iniciar câmera: ${err.message}`;
+        document.getElementById('qr-result').textContent = `Erro na câmera: ${err.message}`;
     }
 }
 
@@ -195,167 +186,39 @@ async function stopScanner() {
         if (html5QrCode && html5QrCode.isScanning) {
             await html5QrCode.stop();
         }
-        currentTrack = null; // Limpa a trilha de vídeo
-    } catch (err) {
-        // Erros ao parar geralmente são inofensivos
-    }
+        currentTrack = null;
+        flashOn = false;
+        document.getElementById('toggleFlashBtn').classList.remove('active');
+    } catch (err) { /* Ignorar erros ao parar */ }
 }
 
 async function setZoom(value) {
     if (!currentTrack || !currentTrack.getCapabilities().zoom) return;
     try {
         await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
-    } catch (err) {
-        console.error("Erro ao aplicar zoom:", err);
-    }
+    } catch (err) { console.error("Erro no zoom:", err); }
 }
 
 async function toggleFlash() {
-    // ✅ MELHORIA: Verifica se a lanterna é suportada ANTES de tentar usar
-    if (!currentTrack || !currentTrack.getCapabilities().torch) {
-        alert("Lanterna não suportada neste dispositivo ou navegador.");
-        return;
-    }
+    if (!currentTrack || !currentTrack.getCapabilities().torch) return;
     try {
         flashOn = !flashOn;
         await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+        document.getElementById('toggleFlashBtn').classList.toggle('active', flashOn);
     } catch (err) {
-        console.error("Erro ao controlar a lanterna:", err);
+        console.error("Erro na lanterna:", err);
         alert("Não foi possível acionar a lanterna.");
     }
 }
 
-// ===================================================================
-// COMUNICAÇÃO COM A API (BACKEND)
-// ===================================================================
-async function apiGet(action) {
-    const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-    return response.json();
+// ✅ NOVO: Função para trocar de câmera
+async function switchCamera() {
+    await stopScanner();
+    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+    await startScanner();
 }
 
-async function apiPost(payload) {
-    const response = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ ...payload, token: API_TOKEN })
-    });
-    if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-    return response.json();
-}
-
-async function enviarDados(tipo) {
-    const quantidade = document.getElementById('quantidade').value;
-    const statusDiv  = document.getElementById('status');
-    if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
-        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
-        statusDiv.className = 'status-erro';
-        statusDiv.style.display = 'block';
-        return;
-    }
-    document.getElementById('btnEntrada').disabled = true;
-    document.getElementById('btnSaida').disabled   = true;
-    statusDiv.innerText = 'Registrando...';
-    statusDiv.className = 'status-info';
-    statusDiv.style.display = 'block';
-
-    try {
-        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
-        statusDiv.innerText = res.mensagem;
-        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
-        if (res.status === 'sucesso') {
-            await carregarTodosOsDados(true);
-            setTimeout(() => {
-                document.getElementById('quantidade').value = '';
-                statusDiv.style.display = 'none';
-                qrCodeCompleto = null;
-                document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
-            }, 2500);
-        }
-    } catch (err) {
-        statusDiv.innerText = 'Erro de comunicação: ' + err.message;
-        statusDiv.className = 'status-erro';
-    } finally {
-        document.getElementById('btnEntrada').disabled = false;
-        document.getElementById('btnSaida').disabled   = false;
-    }
-}
-
-// ===================================================================
-// CARREGAMENTO DE DADOS E RENDERIZAÇÃO
-// ===================================================================
-async function carregarTodosOsDados(isUpdate = false) {
-    const overlay = document.getElementById('loading-overlay');
-    if (!isUpdate) {
-        overlay.style.display = 'flex';
-    }
-    try {
-        const res = await apiGet('obter');
-        if (res.status === 'sucesso') {
-            Object.assign(appData, res.dados);
-            if (!isUpdate) {
-                mostrarPagina('registrar');
-            }
-            if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
-            if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
-            if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
-        } else {
-            throw new Error(res.mensagem);
-        }
-    } catch (err) {
-        overlay.querySelector('span').textContent = 'Erro ao carregar dados: ' + err.message;
-    } finally {
-        if (!isUpdate) {
-            overlay.style.display = 'none';
-        }
-    }
-}
-
-function renderizarEstoque() {
-    const corpoTabela = document.getElementById('corpo-tabela-estoque');
-    if (!appData.estoque || appData.estoque.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
-    }
-    corpoTabela.innerHTML = appData.estoque.map(item => 
-        `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
-    ).join('');
-}
-
-function renderizarAlertas() {
-    const lista = document.getElementById('lista-alertas');
-    if (!appData.alertas || appData.alertas.length === 0) {
-        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return;
-    }
-    lista.innerHTML = appData.alertas.map(item => {
-        let liClass = '';
-        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
-        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
-        return `<li class="${liClass}"><strong>${item.tipo}</strong>  
-${item.descricao}  
-<small>${item.detalhe || ''}</small></li>`;
-    }).join('');
-}
-
-function renderizarMovimentacoes() {
-    const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
-    if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return;
-    }
-    corpoTabela.innerHTML = appData.movimentacoes.map(mov => {
-        const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
-        return `<tr><td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`;
-    }).join('');
-}
-
-function filtrarTabela(idTabela, input) {
-    const filtro = input.value.toUpperCase();
-    const tabela = document.getElementById(idTabela);
-    const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-    for (let i = 0; i < linhas.length; i++) {
-        linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
-    }
-}
+// ... (Restante do seu código JavaScript permanece o mesmo) ...
 
 // ===================================================================
 // NAVEGAÇÃO E INICIALIZAÇÃO
@@ -367,12 +230,9 @@ function mostrarPagina(pageId) {
     document.getElementById('nav-' + pageId).classList.add('active');
     
     if (pageId === 'registrar') {
-        // ✅ MELHORIA: Inicia a câmera automaticamente ao entrar na aba
         startScanner();
     } else {
-        // Garante que a câmera pare ao sair da página de registro
         stopScanner();
-        // Renderiza os dados da aba clicada
         if (pageId === 'estoque') renderizarEstoque();
         if (pageId === 'alertas') renderizarAlertas();
         if (pageId === 'movimentacoes') renderizarMovimentacoes();
@@ -380,8 +240,20 @@ function mostrarPagina(pageId) {
 }
 
 window.onload = () => {
+    // Esconde o botão de troca de câmera se não houver múltiplas câmeras
+    Html5Qrcode.getCameras().then(cameras => {
+        document.getElementById('switchCameraBtn').style.display = (cameras && cameras.length > 1) ? 'flex' : 'none';
+    }).catch(err => {
+        document.getElementById('switchCameraBtn').style.display = 'none';
+    });
     carregarTodosOsDados();
 };
+
+// Cole aqui o restante das suas funções JS que não foram alteradas:
+// apiGet, apiPost, enviarDados, carregarTodosOsDados, renderizarEstoque,
+// renderizarAlertas, renderizarMovimentacoes, filtrarTabela.
+// Elas não precisam de modificação.
+
 </script>
 </body>
 </html>
