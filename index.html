@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão de Estoque Pro – Scanner</title>
 
-<!-- Biblioteca do leitor (html5-qrcode) -->
+<!-- Biblioteca do leitor -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
@@ -130,8 +130,7 @@ async function apiPostRegistrar(tipo, qrCodeCompleto, quantidade) {
   const payload = { action: 'registrar', token: API_TOKEN, tipo, qrCodeCompleto, quantidade };
   const res = await fetch(WEB_APP_URL, {
     method: 'POST',
-    // text/plain evita preflight CORS
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight
     body: JSON.stringify(payload)
   });
   return res.json();
@@ -161,8 +160,7 @@ function renderMovs(movs) {
 
 /* ========= Scanner ========= */
 async function preRequestPermission() {
-  const diag = document.getElementById('diag'); diag.style.display='block';
-  // Status (quando suportado)
+  const diag = document.getElementById('diag'); diag.style.display='block'; diag.textContent='';
   try {
     if (navigator.permissions?.query) {
       const p = await navigator.permissions.query({ name: 'camera' });
@@ -177,10 +175,10 @@ async function preRequestPermission() {
   try {
     const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     s.getTracks().forEach(t => t.stop());
-    diag.textContent += '\nPré-permissão OK.';
+    diag.textContent += (diag.textContent ? '\n' : '') + 'Pré-permissão OK.';
     return true;
   } catch (err) {
-    diag.textContent += '\nFalha getUserMedia: ' + (err.name || '') + ' - ' + (err.message || err);
+    diag.textContent += (diag.textContent ? '\n' : '') + 'Falha getUserMedia: ' + (err.name || '') + ' - ' + (err.message || err);
     if (String(err.message || '').toLowerCase().includes('permission') || err.name==='NotAllowedError') {
       diag.textContent += '\n⚠️ Vá no cadeado > Permissões do site > Câmera: Permitir. Depois recarregue.';
     }
@@ -194,7 +192,6 @@ async function startScanner() {
   const btnStart = document.getElementById('btnStart');
   const btnStop  = document.getElementById('btnStop');
   try {
-    // Gesto do usuário + pré-permissão
     const ok = await preRequestPermission();
     if (!ok) { status.textContent = 'Permissão de câmera negada/bloqueada.'; status.className='status err'; return; }
 
@@ -277,27 +274,24 @@ function onScanSuccess(decodedText) {
   p.className = 'status ok';
   if (navigator.vibrate) navigator.vibrate(150);
 
-  // Alerta de vencimento local
+  // Alerta se vencido
   try {
     const parts = (decodedText || '').split(';');
     const raw = parts[3] || '';
     const dt = parseDateFlexible(raw);
-    if (dt) {
-      const dias = diffDiasHoje(dt);
-      if (dias <= 0) {
-        const sr = document.getElementById('statusRegistro');
-        sr.textContent = '⚠️ TINTA VENCIDA! Validade: ' + formatBR(dt);
-        sr.className = 'status err';
-        if (navigator.vibrate) navigator.vibrate([100,50,200]);
-      }
+    if (dt && diffDiasHoje(dt) <= 0) {
+      const sr = document.getElementById('statusRegistro');
+      sr.textContent = '⚠️ TINTA VENCIDA! Validade: ' + formatBR(dt);
+      sr.className = 'status err';
+      if (navigator.vibrate) navigator.vibrate([100,50,200]);
     }
   } catch(_) {}
 
-  // Evita leituras repetidas; para scanner até registrar
+  // Evita leituras múltiplas; reiniciamos após registrar
   stopScanner();
 }
 
-/* ========= Ações ========= */
+/* ========= Fluxo de dados ========= */
 async function carregarTudo() {
   const s = document.getElementById('statusGlobal');
   s.textContent = 'Carregando dados…'; s.className = 'status';
@@ -315,7 +309,6 @@ async function carregarTudo() {
     s.textContent = 'Falha na API: ' + (err?.message || String(err)); s.className = 'status err';
   }
 }
-
 async function enviar(tipo) {
   const sr = document.getElementById('statusRegistro');
   const qtd = Number(document.getElementById('qtd').value || 0);
@@ -323,14 +316,12 @@ async function enviar(tipo) {
     sr.textContent = 'Leia um código e informe a quantidade.'; sr.className = 'status err'; return;
   }
   sr.textContent = 'Registrando...'; sr.className = 'status';
-
   try {
     const res = await apiPostRegistrar(tipo, ultimoCodigo, qtd);
     if (res.status === 'sucesso') {
       sr.textContent = res.mensagem; sr.className = 'status ok';
       ultimoCodigo = null; document.getElementById('qtd').value = '';
       await carregarTudo();
-      // reinicia scanner
       startScanner();
     } else {
       sr.textContent = res.mensagem || 'Falha ao registrar.'; sr.className = 'status err';
@@ -340,13 +331,11 @@ async function enviar(tipo) {
   }
 }
 
-/* ========= Listeners ========= */
+/* ========= Listeners / Init ========= */
 document.getElementById('btnStart').addEventListener('click', startScanner);
 document.getElementById('btnStop').addEventListener('click', stopScanner);
 document.getElementById('btnEntrada').addEventListener('click', () => enviar('Entrada'));
 document.getElementById('btnSaida').addEventListener('click', () => enviar('Saída'));
-
-/* ========= Init ========= */
 window.addEventListener('load', carregarTudo);
 </script>
 
