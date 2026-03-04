@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Gestão de Estoque Pro</title>
 
-  <!-- Fontes e lib do leitor (corrigido) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Fontes e biblioteca do leitor (corretas) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
@@ -168,7 +168,7 @@
       <div id="page-estoque" class="page">
         <div class="card">
           <h2>Consulta de Estoque</h2>
-          <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
+        <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
           <div class="table-wrapper">
             <table id="tabela-estoque" class="styled-table">
               <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
@@ -223,10 +223,21 @@
     let focusIntervalId = null;
     let isMacroMode = false;           // 🔍 Macro ON/OFF
     let scannerActive = false;         // evita múltiplas instâncias
-    let rearCameras = [];              // lista de deviceId das traseiras
+    let rearCameras = [];              // lista de câmeras traseiras (id/label)
     let currentRearIndex = 0;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
+
+    // ===================================================================
+    // ERROS: normalização para evitar "undefined"
+    // ===================================================================
+    function normalizeError(err) {
+      if (!err) return 'Erro desconhecido.';
+      if (typeof err === 'string') return err;
+      if (err.message) return err.message;
+      if (err.name || err.code) return `${err.name || ''} ${err.code || ''}`.trim();
+      try { return JSON.stringify(err); } catch { return String(err); }
+    }
 
     // ===================================================================
     // ÁUDIO: Beep ao ler (Web Audio API)
@@ -252,74 +263,103 @@
       if (scannerActive) return;
       await stopScanner(true);
 
-      qrCodeCompleto = null;
-      document.getElementById('qr-result').textContent = 'Iniciando câmera...';
+      const qrEl = document.getElementById('qr-result');
+      qrEl.textContent = 'Iniciando câmera...';
       document.getElementById('status').style.display = 'none';
 
       html5QrCode = new Html5Qrcode("reader");
+
+      // Área/qualidade
+      const qrBoxSize   = isMacroMode ? 150 : 200;
+      const idealWidth  = isMacroMode ? 1920 : 1280;
+      const idealHeight = isMacroMode ? 1080 : 720;
+
+      const config = {
+        fps: 30,
+        qrbox: { width: qrBoxSize, height: qrBoxSize },
+        disableFlip: true,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      };
+
+      // Estratégia de tentativa múltipla
+      const attempts = [];
+
+      // 0) Se já recebi um deviceId específico, tentar primeiro
+      if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
+
       try {
-        const qrBoxSize   = isMacroMode ? 150 : 200;   // janela menor ajuda a focar rápido
-        const idealWidth  = isMacroMode ? 1920 : 1280;
-        const idealHeight = isMacroMode ? 1080 : 720;
+        // 1) Descobrir câmeras traseiras pelo Html5Qrcode.getCameras()
+        const cameras = await Html5Qrcode.getCameras();
+        // filtra evidente traseira
+        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
+        const candidates = rear.length ? rear : cameras; // fallback se sem label
+        rearCameras = candidates;
+        if (rearCameras.length > 0 && !deviceId) {
+          currentRearIndex = 0;
+          attempts.push({ type: 'cameraId', value: rearCameras[currentRearIndex].id });
+        }
+      } catch (e) {
+        console.warn('[Câmera] getCameras falhou/sem perm:', e);
+      }
 
-        const config = {
-          fps: 30,
-          qrbox: { width: qrBoxSize, height: qrBoxSize },
-          disableFlip: true,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.DATA_MATRIX,
-            Html5QrcodeSupportedFormats.QR_CODE
-          ],
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-        };
+      // 2) Fallbacks por constraints (para Samsung mais teimosos)
+      attempts.push(
+        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: idealWidth }, height: { ideal: idealHeight } } },
+        { type: 'constraints', value: { facingMode: "environment", width: { ideal: idealWidth }, height: { ideal: idealHeight } } },
+        { type: 'constraints', value: { width: { ideal: idealWidth }, height: { ideal: idealHeight } } } // último recurso (checaremos se é frontal e rejeitaremos)
+      );
 
-        // Se deviceId traseiro foi escolhido, usa ele; senão, tenta "environment"
-        const cameraConstraints = deviceId
-          ? { deviceId: { exact: deviceId }, width: { ideal: idealWidth }, height: { ideal: idealHeight } }
-          : { facingMode: { exact: "environment" }, width: { ideal: idealWidth }, height: { ideal: idealHeight } };
+      let lastErr = null;
+      for (const a of attempts) {
+        try {
+          await html5QrCode.start(a.value, config, onScanSuccess);
+          // Sucesso — pós-start
+          scannerActive = true;
+          qrEl.textContent = 'Aguardando leitura...';
 
-        await html5QrCode.start(cameraConstraints, config, onScanSuccess);
-        scannerActive = true;
-        document.getElementById('qr-result').textContent = 'Aguardando leitura...';
+          const videoElem = document.getElementById('reader').querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
-        // Obtém trilha para foco/zoom/lanterna
-        const videoElem = document.getElementById('reader').querySelector("video");
-        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-
-        // Aplica foco contínuo + reforço periódico
-        setupAutofocusLoop();
-
-        // Prepara ImageCapture para tap-to-focus (se suportado)
-        setupImageCapture();
-
-        // Slider de zoom conforme capacidades
-        setupZoomOverlay();
-
-        // Macro: zoom inicial inteligente (80% do máximo)
-        if (isMacroMode) {
+          // Se por acaso abriu a frontal, rejeita e tenta outra (não usar frontal)
           try {
-            const caps = currentTrack?.getCapabilities?.();
-            if (caps?.zoom) {
-              const alvo = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.max * 0.8));
-              await currentTrack.applyConstraints({ advanced: [{ zoom: alvo }] });
-              const slider = document.getElementById('zoomSliderOverlay');
-              if (slider) slider.value = alvo;
+            const s = currentTrack?.getSettings?.() || {};
+            if (/user|front/i.test(s.facingMode || '')) {
+              console.warn('[Câmera] Abriu frontal por engano, trocando...');
+              await stopScanner(true);
+              if (rearCameras?.length) {
+                await startScannerWithDevice(rearCameras[0].id);
+                return;
+              }
+              // Se não temos lista, tenta environment simples
+              await startScannerWithDevice(null);
+              return;
             }
           } catch {}
+
+          setupAutofocusLoop();
+          setupImageCapture();
+          setupZoomOverlay();
+          if (isMacroMode) await applyMacroStartTweaks();
+          attachTapToFocus(videoElem);
+          updateMacroUI();
+          return;
+        } catch (err) {
+          lastErr = err;
+          console.warn('[Câmera] tentativa falhou:', a.type, a.value, err);
+          // limpa antes da próxima tentativa
+          try { await html5QrCode.stop(); } catch {}
+          try { await html5QrCode.clear(); } catch {}
         }
-
-        // Popula lista de câmeras traseiras (uma vez após permissão)
-        await ensureRearCameraList();
-
-        // Liga o tap-to-focus na área do vídeo
-        attachTapToFocus(videoElem);
-
-        // Atualiza UI do Macro
-        updateMacroUI();
-
-      } catch (err) {
-        document.getElementById('qr-result').textContent = `Erro ao iniciar câmera: ${err.message}`;
       }
+
+      // Se todas falharam
+      const msg = normalizeError(lastErr);
+      console.error('[Câmera] Falhou iniciar:', lastErr);
+      qrEl.textContent = `Erro ao iniciar câmera: ${msg}`;
     }
 
     function onScanSuccess(decodedText) {
@@ -352,7 +392,6 @@
 
     function setupAutofocusLoop() {
       if (!currentTrack?.applyConstraints) return;
-      // Tenta foco contínuo + reforço periódico (intervalo menor no Macro)
       (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
       clearInterval(focusIntervalId);
       const intervalMs = isMacroMode ? 500 : 900;
@@ -361,11 +400,22 @@
       }, intervalMs);
     }
 
+    async function applyMacroStartTweaks() {
+      try {
+        const caps = currentTrack?.getCapabilities?.();
+        if (caps?.zoom) {
+          const alvo = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.max * 0.8));
+          await currentTrack.applyConstraints({ advanced: [{ zoom: alvo }] });
+          const slider = document.getElementById('zoomSliderOverlay');
+          if (slider) slider.value = alvo;
+        }
+      } catch {}
+    }
+
     function setupImageCapture() {
       try {
         if (!('ImageCapture' in window) || !currentTrack) return;
         imageCapture = new ImageCapture(currentTrack);
-        // Opcional: pede foco contínuo via ImageCapture quando suportado
         imageCapture.getPhotoCapabilities?.().then(caps => {
           if (caps?.focusMode && caps.focusMode !== 'none') {
             imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
@@ -374,33 +424,29 @@
       } catch { imageCapture = null; }
     }
 
-    // ===== Tap-to-focus: toca na imagem para focar naquele ponto (quando suportado) =====
+    // ===== Tap-to-focus: toque na imagem para focar naquele ponto (quando suportado) =====
     function attachTapToFocus(videoElem) {
       const container = document.getElementById('reader-container');
       const dot = document.getElementById('tapDot');
       container.onclick = async (ev) => {
         if (!videoElem) return;
 
-        // Calcula ponto normalizado [0..1]
         const rect = videoElem.getBoundingClientRect();
         const x = (ev.clientX - rect.left) / rect.width;
         const y = (ev.clientY - rect.top) / rect.height;
 
-        // Mostra ponto visual
+        // Indicador visual
         dot.style.left = `${ev.clientX - rect.left}px`;
         dot.style.top  = `${ev.clientY - rect.top}px`;
         dot.style.display = 'block';
         setTimeout(()=> dot.style.display='none', 700);
 
-        // Tenta pointsOfInterest (quando suportado)
         try {
           if (imageCapture?.setOptions) {
             await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
-            // “pinga” o AF single-shot em seguida
             await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
             setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 250);
           } else {
-            // Fallback: micro-ajuste de zoom para “acordar” o AF em alguns Samsung
             quickRefocusByMicroZoom();
           }
         } catch {
@@ -472,40 +518,33 @@
     // ===== Alternar entre câmeras traseiras (nunca usa frontal) =====
     async function ensureRearCameraList() {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        // Seleciona somente videoinput e evita front/user/frontal
-        rearCameras = devices
-          .filter(d => d.kind === 'videoinput')
-          .filter(d => {
-            const lbl = (d.label || '').toLowerCase();
-            // inclui se parecer traseira (back, rear, environment, traseira)
-            const looksRear = /back|rear|environment|traseir/.test(lbl);
-            const looksFront = /front|frontal|user/.test(lbl);
-            return looksRear && !looksFront;
-          });
-
-        // Fallback: se os labels vierem vazios (Android antes de permissão), pega todos e confia no facingMode atual
-        if (rearCameras.length === 0) {
-          rearCameras = devices.filter(d => d.kind === 'videoinput');
-        }
-
-        // Garante um index válido
+        const cams = await Html5Qrcode.getCameras();
+        const rear = cams.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
+        rearCameras = rear.length ? rear : cams;
         if (currentRearIndex >= rearCameras.length) currentRearIndex = 0;
-      } catch {}
+      } catch (e) {
+        console.warn('[Câmera] getCameras erro:', e);
+      }
     }
 
     async function switchRearCamera() {
-      if (rearCameras.length <= 1) return; // não há outra traseira
+      await ensureRearCameraList();
+      if (!rearCameras || rearCameras.length <= 1) return;
       currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
-      const candidate = rearCameras[currentRearIndex];
-      // Protege contra acionar frontal por engano (labels inconsistentes)
-      if (candidate && !/front|frontal|user/i.test(candidate.label || '')) {
-        await startScannerWithDevice(candidate.deviceId);
+      const c = rearCameras[currentRearIndex];
+      // Evita frontal quando o label estiver claro
+      if (c && !/front|frontal|user/i.test(c.label || '')) {
+        await startScannerWithDevice(c.id);
       } else {
-        // Se cair numa frontal por rótulo ruim, avança mais uma
-        currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
-        const cand2 = rearCameras[currentRearIndex];
-        if (cand2) await startScannerWithDevice(cand2.deviceId);
+        // avança até achar uma traseira
+        for (let i = 0; i < rearCameras.length; i++) {
+          currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
+          const c2 = rearCameras[currentRearIndex];
+          if (c2 && !/front|frontal|user/i.test(c2.label || '')) {
+            await startScannerWithDevice(c2.id);
+            break;
+          }
+        }
       }
     }
 
@@ -515,7 +554,7 @@
     function toggleMacroMode() {
       isMacroMode = !isMacroMode;
       updateMacroUI();
-      startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
+      startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
     }
 
     function updateMacroUI() {
@@ -579,18 +618,18 @@
           qrCodeCompleto = null;
           document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
           statusDiv.style.display = 'none';
-          startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
+          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 900);
 
         await carregarTodosOsDados(true);
 
       } catch (err) {
-        statusDiv.innerText = 'Erro de comunicação: ' + err.message;
+        statusDiv.innerText = 'Erro de comunicação: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
         // Em erro, também reinicia para manter fluxo
         setTimeout(() => {
           statusDiv.style.display = 'none';
-          startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
+          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 1200);
       } finally {
         document.getElementById('btnEntrada').disabled = false;
@@ -616,7 +655,7 @@
           throw new Error(res.mensagem);
         }
       } catch (err) {
-        overlay.querySelector('span').textContent = 'Erro ao carregar dados: ' + err.message;
+        overlay.querySelector('span').textContent = 'Erro ao carregar dados: ' + normalizeError(err);
       } finally {
         if (!isUpdate) overlay.style.display = 'none';
       }
@@ -677,7 +716,7 @@ ${item.descricao}
       document.getElementById('nav-' + pageId).classList.add('active');
 
       if (pageId === 'registrar') {
-        startScannerWithDevice(rearCameras[currentRearIndex]?.deviceId || null);
+        startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
       } else {
         stopScanner();
         if (pageId === 'estoque') renderizarEstoque();
