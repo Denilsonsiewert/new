@@ -20,14 +20,11 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
         h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
-        
-        /* ✅ NOVO: Estilos para a sobreposição da câmera */
         .camera-container { position: relative; width:100%; max-width:500px; margin:auto; border-radius: 8px; overflow: hidden; background-color: #000; }
         #reader { width: 100%; }
         .camera-overlay-buttons { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 10; }
-        .camera-overlay-buttons button { background-color: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .camera-overlay-buttons button { background-color: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
         .camera-overlay-buttons button.active { color: var(--cor-alerta); }
-
         .scanner-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; }
         .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
         .input-group { margin-bottom: 20px; }
@@ -64,19 +61,18 @@
 
     <main class="app-main">
         <div class="content-wrapper">
-            <div id="page-registrar" class="page active">
+            <div id="page-registrar" class="page">
               <div class="card">
                 <h2>Registrar Movimentação</h2>
-                <!-- ✅ NOVO: Contêiner para câmera e botões -->
                 <div class="camera-container">
                     <div id="reader"></div>
                     <div class="camera-overlay-buttons">
-                        <button id="toggleFlashBtn" onclick="toggleFlash()">🔦</button>
-                        <button id="switchCameraBtn" onclick="switchCamera()">🔄</button>
+                        <button id="toggleFlashBtn" onclick="toggleFlash()" style="display: none;">🔦</button>
+                        <button id="switchCameraBtn" onclick="switchCamera()" style="display: none;">🔄</button>
                     </div>
                 </div>
                 <div class="scanner-controls">
-                  <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)"></label>
+                  <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" disabled></label>
                 </div>
                 <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
                 <div class="input-group">
@@ -90,12 +86,44 @@
                 <div id="status"></div>
               </div>
             </div>
-            <!-- ... (demais páginas permanecem iguais) ... -->
+            <div id="page-estoque" class="page">
+              <div class="card">
+                <h2>Consulta de Estoque</h2>
+                <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..."></div>
+                <div class="table-wrapper">
+                  <table id="tabela-estoque" class="styled-table">
+                    <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
+                    <tbody id="corpo-tabela-estoque"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div id="page-movimentacoes" class="page">
+              <div class="card">
+                <h2>Últimas Movimentações</h2>
+                <div class="input-group"><input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..."></div>
+                <div class="table-wrapper">
+                  <table id="tabela-movimentacoes" class="styled-table">
+                    <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
+                    <tbody id="corpo-tabela-movimentacoes"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div id="page-alertas" class="page">
+              <div class="card">
+                <h2>Alertas de Estoque</h2>
+                <ul id="lista-alertas" class="alert-list"></ul>
+              </div>
+            </div>
         </div>
     </main>
 
     <nav class="app-nav">
-        <!-- ... (navegação permanece igual) ... -->
+        <button id="nav-registrar"     class="nav-link" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
+        <button id="nav-estoque"       class="nav-link" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
+        <button id="nav-movimentacoes" class="nav-link" onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
+        <button id="nav-alertas"       class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
     </nav>
 
 <script>
@@ -110,11 +138,10 @@ let currentTrack;
 let flashOn = false;
 let qrCodeCompleto = null;
 const appData = { estoque: [], alertas: [], movimentacoes: [] };
-// ✅ NOVO: Variável para controlar a câmera (traseira/frontal )
 let currentFacingMode = "environment";
 
 // ===================================================================
-// LÓGICA DA CÂMERA (html5-qrcode)
+// LÓGICA DA CÂMERA (html5-qrcode )
 // ===================================================================
 async function startScanner() {
     if (html5QrCode && html5QrCode.isScanning) return;
@@ -125,27 +152,30 @@ async function startScanner() {
 
     html5QrCode = new Html5Qrcode("reader");
     try {
+        // ✅ CORREÇÃO: Lógica dos botões movida para cá
+        // Mostra/esconde o botão de troca de câmera
+        Html5Qrcode.getCameras().then(cameras => {
+            document.getElementById('switchCameraBtn').style.display = (cameras && cameras.length > 1) ? 'flex' : 'none';
+        }).catch(err => {
+            console.warn("Não foi possível enumerar câmeras, escondendo botão de troca.", err);
+            document.getElementById('switchCameraBtn').style.display = 'none';
+        });
+
         const config = {
-            fps: 10, // FPS mais baixo pode ajudar no foco
-            // ✅ MELHORIA: Moldura menor para códigos pequenos
+            fps: 10,
             qrbox: { width: 200, height: 200 },
             formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ],
-            // ✅ MELHORIA: Configurações avançadas de foco para códigos pequenos
             videoConstraints: {
                 facingMode: currentFacingMode,
                 advanced: [
                     { focusMode: "continuous" },
-                    { focusDistance: 0.1 }, // Sugere foco para perto
+                    { focusDistance: 0.1 },
                     { focusMode: "auto" }
                 ]
             }
         };
 
-        await html5QrCode.start(
-            { facingMode: currentFacingMode },
-            config, 
-            onScanSuccess
-        );
+        await html5QrCode.start({ facingMode: currentFacingMode }, config, onScanSuccess);
         
         document.getElementById('qr-result').textContent = 'Aguardando leitura...';
         
@@ -154,7 +184,6 @@ async function startScanner() {
             currentTrack = videoElem.srcObject.getVideoTracks()[0];
             const capabilities = currentTrack.getCapabilities();
             
-            // Configura Zoom
             const zoomSlider = document.getElementById("zoomSlider");
             if (capabilities.zoom) {
                 zoomSlider.min = capabilities.zoom.min;
@@ -165,11 +194,11 @@ async function startScanner() {
                 zoomSlider.disabled = true;
             }
 
-            // Configura Botão de Lanterna
             document.getElementById('toggleFlashBtn').style.display = capabilities.torch ? 'flex' : 'none';
         }
     } catch (err) {
         document.getElementById('qr-result').textContent = `Erro na câmera: ${err.message}`;
+        console.error("Erro detalhado ao iniciar a câmera:", err);
     }
 }
 
@@ -188,7 +217,8 @@ async function stopScanner() {
         }
         currentTrack = null;
         flashOn = false;
-        document.getElementById('toggleFlashBtn').classList.remove('active');
+        const flashBtn = document.getElementById('toggleFlashBtn');
+        if (flashBtn) flashBtn.classList.remove('active');
     } catch (err) { /* Ignorar erros ao parar */ }
 }
 
@@ -211,14 +241,149 @@ async function toggleFlash() {
     }
 }
 
-// ✅ NOVO: Função para trocar de câmera
 async function switchCamera() {
     await stopScanner();
     currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
     await startScanner();
 }
 
-// ... (Restante do seu código JavaScript permanece o mesmo) ...
+// ===================================================================
+// COMUNICAÇÃO COM A API (BACKEND)
+// ===================================================================
+async function apiGet(action) {
+    const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+    return response.json();
+}
+
+async function apiPost(payload) {
+    const response = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ ...payload, token: API_TOKEN })
+    });
+    if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+    return response.json();
+}
+
+async function enviarDados(tipo) {
+    const quantidade = document.getElementById('quantidade').value;
+    const statusDiv  = document.getElementById('status');
+    if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
+        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
+        statusDiv.className = 'status-erro';
+        statusDiv.style.display = 'block';
+        return;
+    }
+    document.getElementById('btnEntrada').disabled = true;
+    document.getElementById('btnSaida').disabled   = true;
+    statusDiv.innerText = 'Registrando...';
+    statusDiv.className = 'status-info';
+    statusDiv.style.display = 'block';
+
+    try {
+        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
+        statusDiv.innerText = res.mensagem;
+        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
+        if (res.status === 'sucesso') {
+            await carregarTodosOsDados(true);
+            setTimeout(() => {
+                document.getElementById('quantidade').value = '';
+                statusDiv.style.display = 'none';
+                qrCodeCompleto = null;
+                document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
+            }, 2500);
+        }
+    } catch (err) {
+        statusDiv.innerText = 'Erro de comunicação: ' + err.message;
+        statusDiv.className = 'status-erro';
+    } finally {
+        document.getElementById('btnEntrada').disabled = false;
+        document.getElementById('btnSaida').disabled   = false;
+    }
+}
+
+// ===================================================================
+// CARREGAMENTO DE DADOS E RENDERIZAÇÃO
+// ===================================================================
+async function carregarTodosOsDados(isUpdate = false) {
+    const overlay = document.getElementById('loading-overlay');
+    if (!isUpdate) {
+        overlay.style.display = 'flex';
+    }
+    try {
+        const res = await apiGet('obter');
+        if (res.status === 'sucesso') {
+            Object.assign(appData, res.dados);
+            if (!isUpdate) {
+                // ✅ CORREÇÃO: Inicia na página de estoque por padrão
+                mostrarPagina('estoque');
+                document.getElementById('nav-estoque').classList.add('active');
+            }
+            // Atualiza os dados das páginas ativas
+            if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
+            if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
+            if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
+        } else {
+            throw new Error(res.mensagem);
+        }
+    } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+        overlay.querySelector('span').textContent = 'Erro ao carregar dados: ' + err.message;
+        // Não esconde o overlay em caso de erro para que o usuário veja a mensagem
+    } finally {
+        // Esconde o overlay apenas se não for uma atualização e não houver erro
+        if (!isUpdate && overlay.querySelector('span').textContent === 'Carregando dados...') {
+            overlay.style.display = 'none';
+        }
+    }
+}
+
+function renderizarEstoque() {
+    const corpoTabela = document.getElementById('corpo-tabela-estoque');
+    if (!appData.estoque || appData.estoque.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
+    }
+    corpoTabela.innerHTML = appData.estoque.map(item => 
+        `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
+    ).join('');
+}
+
+function renderizarAlertas() {
+    const lista = document.getElementById('lista-alertas');
+    if (!appData.alertas || appData.alertas.length === 0) {
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return;
+    }
+    lista.innerHTML = appData.alertas.map(item => {
+        let liClass = '';
+        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
+        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
+        return `<li class="${liClass}"><strong>${item.tipo}</strong>  
+${item.descricao}  
+<small>${item.detalhe || ''}</small></li>`;
+    }).join('');
+}
+
+function renderizarMovimentacoes() {
+    const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
+    if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return;
+    }
+    corpoTabela.innerHTML = appData.movimentacoes.map(mov => {
+        const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
+        return `<tr><td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`;
+    }).join('');
+}
+
+function filtrarTabela(idTabela, input) {
+    const filtro = input.value.toUpperCase();
+    const tabela = document.getElementById(idTabela);
+    const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    for (let i = 0; i < linhas.length; i++) {
+        linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
+    }
+}
 
 // ===================================================================
 // NAVEGAÇÃO E INICIALIZAÇÃO
@@ -233,27 +398,16 @@ function mostrarPagina(pageId) {
         startScanner();
     } else {
         stopScanner();
-        if (pageId === 'estoque') renderizarEstoque();
-        if (pageId === 'alertas') renderizarAlertas();
-        if (pageId === 'movimentacoes') renderizarMovimentacoes();
+        if (pageId === 'estoque' && appData.estoque.length > 0) renderizarEstoque();
+        if (pageId === 'alertas' && appData.alertas.length > 0) renderizarAlertas();
+        if (pageId === 'movimentacoes' && appData.movimentacoes.length > 0) renderizarMovimentacoes();
     }
 }
 
+// ✅ CORREÇÃO: Inicialização limpa
 window.onload = () => {
-    // Esconde o botão de troca de câmera se não houver múltiplas câmeras
-    Html5Qrcode.getCameras().then(cameras => {
-        document.getElementById('switchCameraBtn').style.display = (cameras && cameras.length > 1) ? 'flex' : 'none';
-    }).catch(err => {
-        document.getElementById('switchCameraBtn').style.display = 'none';
-    });
     carregarTodosOsDados();
 };
-
-// Cole aqui o restante das suas funções JS que não foram alteradas:
-// apiGet, apiPost, enviarDados, carregarTodosOsDados, renderizarEstoque,
-// renderizarAlertas, renderizarMovimentacoes, filtrarTabela.
-// Elas não precisam de modificação.
-
 </script>
 </body>
 </html>
