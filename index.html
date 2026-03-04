@@ -6,7 +6,7 @@
   <title>Gestão de Estoque Pro</title>
 
   <!-- Fontes e biblioteca do leitor (corretas) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
@@ -14,7 +14,8 @@
       --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107;
       --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d;
       --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px;
-      --verde: #28a745;
+      --verde: #28a745; --cinza-escuro: #1f2937;
+      --glass-bg: rgba(255,255,255,0.08); --glass-brd: rgba(255,255,255,0.25);
     }
 
     body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
@@ -32,51 +33,100 @@
     .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
     h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
 
-    /* ===== Área do leitor ===== */
+    /* ===== Módulo da Câmera (mais bonito) ===== */
     #reader-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
+    .camera-module {
+      position: relative;
+      border-radius: 16px;
+      padding: 10px; /* moldura */
+      background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.12) 100%);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.10);
+      border: 1px solid rgba(255,255,255,0.35);
+      backdrop-filter: blur(6px);
+    }
+
+    /* Área do vídeo */
     #reader {
       width: 100%;
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
-      border: 3px solid var(--verde);               /* ✅ borda verde */
-      box-shadow: 0 0 0 2px rgba(40,167,69,0.15);   /* leve glow */
+      border: 2px solid var(--cinza-escuro); /* padrão discreto */
       background: #000;
+      transition: border-color .25s ease, box-shadow .25s ease;
+    }
+    /* ✅ Fica verde somente quando um código é lido */
+    #reader.scanned {
+      border-color: var(--verde);
+      box-shadow: 0 0 0 2px rgba(40,167,69,0.15), 0 8px 24px rgba(40,167,69,0.20);
     }
     #reader video, #reader canvas { border-radius: inherit; }
 
-    /* Botões flutuantes na câmera */
-    .floating-btn {
-      position: absolute; background: rgba(0,0,0,0.55); color: #fff;
-      padding: 10px 12px; border-radius: 50%; font-size: 1.10rem;
-      cursor: pointer; z-index: 21; user-select: none; backdrop-filter: blur(4px);
-    }
-    #btnFlashFloating { right: 10px; top: 10px; }
-    #btnSwitchCamera { right: 54px; top: 10px; }  /* 📷⇄ alternar traseiras */
-
     /* Badge do Modo Macro */
     .macro-badge {
-      position: absolute; top: 10px; left: 10px;
-      background: rgba(13,110,253,0.9); color: #fff;
-      padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; z-index: 21; user-select: none; display: none;
+      position: absolute; top: 12px; left: 14px;
+      background: linear-gradient(135deg, rgba(13,110,253,0.95), rgba(13,110,253,0.70));
+      color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; z-index: 21; user-select: none; display: none;
+      box-shadow: 0 4px 10px rgba(13,110,253,0.25);
     }
     .macro-badge.on { display: inline-block; }
 
-    /* Slider de zoom sobreposto na base da câmera */
+    /* Botão lanterna — ícone “glass/neo” */
+    .icon-btn {
+      position: absolute; right: 14px; top: 12px; z-index: 21;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+      border: 1px solid var(--glass-brd);
+      color: #fff; cursor: pointer; user-select: none;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: transform .12s ease, box-shadow .2s ease, background .2s ease;
+      backdrop-filter: blur(6px);
+    }
+    .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.3); }
+    .icon-btn:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+
+    /* SVG do ícone de lanterna */
+    .icon-btn svg { width: 20px; height: 20px; }
+
+    /* Slider de zoom sobreposto na base da câmera — glass */
     .zoom-slider-bar {
       position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: 10px; width: 86%; padding: 8px 10px;
-      background: rgba(0,0,0,0.5); border-radius: 12px;
-      z-index: 21; display: flex; align-items: center; gap: 10px;
-      color: #fff; font-size: .9rem; user-select: none;
+      bottom: 12px; width: 90%; padding: 10px 12px; z-index: 21;
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px; color: #fff; font-size: .9rem; user-select: none;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+      backdrop-filter: blur(6px);
     }
-    .zoom-slider-bar input[type="range"] { width: 100%; }
-    .zoom-slider-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--cor-primaria); cursor: pointer; }
-    .zoom-slider-bar input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: rgba(255,255,255,0.5); border-radius: 6px; }
+    .zoom-slider-bar .zoom-icon { font-size: 1rem; opacity: .9; }
+
+    .zoom-slider-bar input[type="range"] { width: 100%; appearance: none; height: 4px; background: rgba(255,255,255,0.35); border-radius: 8px; outline: none; }
+    .zoom-slider-bar input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff 0%, #cfe2ff 50%, #0d6efd 100%);
+      border: 1px solid rgba(255,255,255,.6);
+      box-shadow: 0 2px 6px rgba(13,110,253,0.45), inset 0 1px 0 rgba(255,255,255,0.7);
+      cursor: pointer;
+    }
+    .zoom-slider-bar input[type="range"]::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff 0%, #cfe2ff 50%, #0d6efd 100%);
+      border: 1px solid rgba(255,255,255,.6);
+      box-shadow: 0 2px 6px rgba(13,110,253,0.45), inset 0 1px 0 rgba(255,255,255,0.7);
+      cursor: pointer;
+    }
 
     /* Tap-to-focus indicador (pontinho) */
     .tap-focus-dot {
-      position: absolute; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%;
+      position: absolute; width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%;
       transform: translate(-50%,-50%); pointer-events: none; z-index: 22; display: none;
+      box-shadow: 0 0 12px rgba(255,255,255,0.6);
+      animation: ping 0.7s ease-out forwards;
+    }
+    @keyframes ping {
+      0% { transform: translate(-50%,-50%) scale(0.9); opacity: 1; }
+      100% { transform: translate(-50%,-50%) scale(1.15); opacity: 0; }
     }
 
     .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 14px; }
@@ -126,18 +176,28 @@
         <div class="card">
           <h2>Registrar Movimentação</h2>
 
-          <!-- Leitor + elementos sobrepostos -->
-          <div id="reader-container">
+          <!-- ===== Módulo da câmera com visual melhorado ===== -->
+          <div id="reader-container" class="camera-module">
             <div id="reader"></div>
+
+            <!-- Badge Modo Macro -->
             <div id="macroBadge" class="macro-badge">MACRO</div>
 
-            <div id="btnFlashFloating" class="floating-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
-            <div id="btnSwitchCamera" class="floating-btn" onclick="switchRearCamera()" title="Alternar câmera traseira">📷⇄</div>
+            <!-- Botão lanterna (ícone em SVG) -->
+            <button id="btnFlashFloating" class="icon-btn" onclick="toggleFlash()" title="Lanterna" aria-label="Lanterna">
+              <!-- SVG de lanterna -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2h12l-2 4H8L6 2z"></path>
+                <path d="M10 8h4v9a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V8z"></path>
+                <path d="M12 13v2"></path>
+              </svg>
+            </button>
 
-            <!-- Slider de zoom na parte inferior da câmera -->
+            <!-- Slider de zoom (overlay) -->
             <div id="zoomBar" class="zoom-slider-bar" style="display:none;">
-              <span>🔍</span>
+              <span class="zoom-icon">−</span>
               <input type="range" id="zoomSliderOverlay" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+              <span class="zoom-icon">＋</span>
             </div>
 
             <!-- Pontinho do tap-to-focus -->
@@ -168,7 +228,7 @@
       <div id="page-estoque" class="page">
         <div class="card">
           <h2>Consulta de Estoque</h2>
-        <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
+          <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
           <div class="table-wrapper">
             <table id="tabela-estoque" class="styled-table">
               <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
@@ -223,13 +283,13 @@
     let focusIntervalId = null;
     let isMacroMode = false;           // 🔍 Macro ON/OFF
     let scannerActive = false;         // evita múltiplas instâncias
-    let rearCameras = [];              // lista de câmeras traseiras (id/label)
+    let rearCameras = [];              // lista de câmeras conhecidas
     let currentRearIndex = 0;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
     // ===================================================================
-    // ERROS: normalização para evitar "undefined"
+    // ERROS: normalização (evita "undefined")
     // ===================================================================
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
@@ -264,6 +324,8 @@
       await stopScanner(true);
 
       const qrEl = document.getElementById('qr-result');
+      const readerEl = document.getElementById('reader');
+      readerEl.classList.remove('scanned'); // 🔄 remove a borda verde ao iniciar
       qrEl.textContent = 'Iniciando câmera...';
       document.getElementById('status').style.display = 'none';
 
@@ -287,14 +349,10 @@
 
       // Estratégia de tentativa múltipla
       const attempts = [];
-
-      // 0) Se já recebi um deviceId específico, tentar primeiro
       if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
 
       try {
-        // 1) Descobrir câmeras traseiras pelo Html5Qrcode.getCameras()
         const cameras = await Html5Qrcode.getCameras();
-        // filtra evidente traseira
         const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
         const candidates = rear.length ? rear : cameras; // fallback se sem label
         rearCameras = candidates;
@@ -306,11 +364,10 @@
         console.warn('[Câmera] getCameras falhou/sem perm:', e);
       }
 
-      // 2) Fallbacks por constraints (para Samsung mais teimosos)
       attempts.push(
         { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: idealWidth }, height: { ideal: idealHeight } } },
         { type: 'constraints', value: { facingMode: "environment", width: { ideal: idealWidth }, height: { ideal: idealHeight } } },
-        { type: 'constraints', value: { width: { ideal: idealWidth }, height: { ideal: idealHeight } } } // último recurso (checaremos se é frontal e rejeitaremos)
+        { type: 'constraints', value: { width: { ideal: idealWidth }, height: { ideal: idealHeight } } }
       );
 
       let lastErr = null;
@@ -324,7 +381,7 @@
           const videoElem = document.getElementById('reader').querySelector("video");
           currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
-          // Se por acaso abriu a frontal, rejeita e tenta outra (não usar frontal)
+          // Evita frontal
           try {
             const s = currentTrack?.getSettings?.() || {};
             if (/user|front/i.test(s.facingMode || '')) {
@@ -334,7 +391,6 @@
                 await startScannerWithDevice(rearCameras[0].id);
                 return;
               }
-              // Se não temos lista, tenta environment simples
               await startScannerWithDevice(null);
               return;
             }
@@ -350,13 +406,11 @@
         } catch (err) {
           lastErr = err;
           console.warn('[Câmera] tentativa falhou:', a.type, a.value, err);
-          // limpa antes da próxima tentativa
           try { await html5QrCode.stop(); } catch {}
           try { await html5QrCode.clear(); } catch {}
         }
       }
 
-      // Se todas falharam
       const msg = normalizeError(lastErr);
       console.error('[Câmera] Falhou iniciar:', lastErr);
       qrEl.textContent = `Erro ao iniciar câmera: ${msg}`;
@@ -365,6 +419,10 @@
     function onScanSuccess(decodedText) {
       if (qrCodeCompleto) return;
       qrCodeCompleto = decodedText;
+
+      // ✅ Borda verde no momento da leitura
+      const readerEl = document.getElementById('reader');
+      readerEl.classList.add('scanned');
 
       // ✅ bipe + vibração
       beep(120, 1100, 0.3);
@@ -515,46 +573,13 @@
       });
     }
 
-    // ===== Alternar entre câmeras traseiras (nunca usa frontal) =====
-    async function ensureRearCameraList() {
-      try {
-        const cams = await Html5Qrcode.getCameras();
-        const rear = cams.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-        rearCameras = rear.length ? rear : cams;
-        if (currentRearIndex >= rearCameras.length) currentRearIndex = 0;
-      } catch (e) {
-        console.warn('[Câmera] getCameras erro:', e);
-      }
-    }
-
-    async function switchRearCamera() {
-      await ensureRearCameraList();
-      if (!rearCameras || rearCameras.length <= 1) return;
-      currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
-      const c = rearCameras[currentRearIndex];
-      // Evita frontal quando o label estiver claro
-      if (c && !/front|frontal|user/i.test(c.label || '')) {
-        await startScannerWithDevice(c.id);
-      } else {
-        // avança até achar uma traseira
-        for (let i = 0; i < rearCameras.length; i++) {
-          currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
-          const c2 = rearCameras[currentRearIndex];
-          if (c2 && !/front|frontal|user/i.test(c2.label || '')) {
-            await startScannerWithDevice(c2.id);
-            break;
-          }
-        }
-      }
-    }
-
     // ===================================================================
     // 🔍 MODO MACRO (toggle)
     // ===================================================================
     function toggleMacroMode() {
       isMacroMode = !isMacroMode;
       updateMacroUI();
-      startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+     rIndex]?.id || null);
     }
 
     function updateMacroUI() {
@@ -617,6 +642,7 @@
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
           document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
+          document.getElementById('reader').classList.remove('scanned'); // volta borda ao padrão
           statusDiv.style.display = 'none';
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 900);
@@ -629,6 +655,7 @@
         // Em erro, também reinicia para manter fluxo
         setTimeout(() => {
           statusDiv.style.display = 'none';
+          document.getElementById('reader').classList.remove('scanned');
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 1200);
       } finally {
