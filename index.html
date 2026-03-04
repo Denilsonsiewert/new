@@ -6,7 +6,8 @@
   <title>Gestão de Estoque Pro</title>
 
   <!-- ✅ IMPORTS CORRETOS -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
 
   <style>
     :root {
@@ -32,7 +33,7 @@
     .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
     h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
 
-    /* ===== Módulo da Câmera (visual) ===== */
+    /* ===== Módulo da Câmera ===== */
     #reader-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
     .camera-module {
       position: relative;
@@ -42,6 +43,7 @@
       box-shadow: 0 12px 30px rgba(0,0,0,0.10);
       border: 1px solid rgba(255,255,255,0.35);
       backdrop-filter: blur(6px);
+      z-index: 10; /* base do módulo */
     }
 
     #reader {
@@ -51,6 +53,8 @@
       border: 2px solid var(--cinza-escuro); /* padrão discreto */
       background: #000;
       transition: border-color .25s ease, box-shadow .25s ease;
+      z-index: 11; /* vídeo acima da moldura */
+      position: relative;
     }
     /* ✅ Verde somente quando um código é lido */
     #reader.scanned {
@@ -63,36 +67,44 @@
     .macro-badge {
       position: absolute; top: 12px; left: 14px;
       background: linear-gradient(135deg, rgba(13,110,253,0.95), rgba(13,110,253,0.70));
-      color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; z-index: 21; user-select: none;
+      color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700;
       box-shadow: 0 4px 10px rgba(13,110,253,0.25);
+      z-index: 30;
+      user-select: none;
     }
 
     /* Botão lanterna “glass/neo” */
     .icon-btn {
-      position: absolute; right: 14px; top: 12px; z-index: 21;
+      position: absolute; right: 14px; top: 12px;
       display: inline-flex; align-items: center; justify-content: center;
       width: 40px; height: 40px; border-radius: 12px;
       background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
       border: 1px solid var(--glass-brd);
       color: #fff; cursor: pointer; user-select: none;
       box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
-      transition: transform .12s ease, box-shadow .2s ease, background .2s ease;
+      transition: transform .12s ease, box-shadow .2s ease, background .2s ease, filter .2s ease;
       backdrop-filter: blur(6px);
+      z-index: 40; /* acima do vídeo e slider */
+      pointer-events: auto;
     }
     .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.3); }
     .icon-btn:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
     .icon-btn svg { width: 20px; height: 20px; }
+    /* Estado ON do flash: dá um brilho sutil */
+    .icon-btn.on { filter: drop-shadow(0 0 6px rgba(255,215,0,0.6)); }
 
     /* Slider de zoom (overlay) */
     .zoom-slider-bar {
       position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: 12px; width: 90%; padding: 10px 12px; z-index: 21;
+      bottom: 12px; width: 90%; padding: 10px 12px;
       display: flex; align-items: center; gap: 10px;
       background: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
       border: 1px solid rgba(255,255,255,0.18);
       border-radius: 12px; color: #fff; font-size: .9rem; user-select: none;
       box-shadow: 0 8px 28px rgba(0,0,0,0.25);
       backdrop-filter: blur(6px);
+      z-index: 35;
+      pointer-events: auto;
     }
     .zoom-slider-bar .zoom-icon { font-size: 1rem; opacity: .9; }
 
@@ -115,11 +127,11 @@
     /* Tap-to-focus indicador (pontinho) */
     .tap-focus-dot {
       position: absolute; width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%;
-      transform: translate(-50%,-50%); pointer-events: none; z-index: 22; display: none;
+      transform: translate(-50%,-50%); pointer-events: none; z-index: 45; display: none;
       box-shadow: 0 0 12px rgba(255,255,255,0.6);
       animation: ping 0.7s ease-out forwards;
     }
-    @keyframes ping {
+     @keyframes ping {
       0% { transform: translate(-50%,-50%) scale(0.9); opacity: 1; }
       100% { transform: translate(-50%,-50%) scale(1.15); opacity: 0; }
     }
@@ -197,8 +209,7 @@
             <div id="tapDot" class="tap-focus-dot"></div>
           </div>
 
-          <!-- Controles (sem botão macro/troca) -->
-          <div class="scanner-controls"><!-- intencionalmente vazio --></div>
+          <div class="scanner-controls"><!-- sem botões extras --></div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
 
@@ -259,13 +270,8 @@
     <button id="nav-alertas"       class="nav-link"        onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
   </nav>
 
-  <!-- ✅ Biblioteca do leitor (coloque ANTES do seu script) -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
-
   <script>
-    // ===================================================================
-    // TRATAMENTO GLOBAL DE ERROS (mostra no overlay, evita “eterno carregando”)
-    // ===================================================================
+    // ===== Tratamento global de erro p/ evitar “carregando...” infinito =====
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
@@ -288,9 +294,7 @@
       console.error('PROMISE REJEITADA:', e.reason);
     });
 
-    // ===================================================================
-    // CONFIG GERAL
-    // ===================================================================
+    // ===== Config geral/API =====
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
@@ -309,9 +313,7 @@
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
-    // ===================================================================
-    // ÁUDIO: Beep ao ler
-    // ===================================================================
+    // ===== Áudio: Beep =====
     function beep(duration = 120, frequency = 1100, volume = 0.3) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -326,9 +328,7 @@
       } catch {}
     }
 
-    // ===================================================================
-    // LEITOR: Start robusto (só traseira)
-    // ===================================================================
+    // ===== Leitor: Start robusto =====
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
@@ -392,6 +392,7 @@
           const videoElem = document.getElementById('reader').querySelector("video");
           currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
+          // Evita frontal
           try {
             const s = currentTrack?.getSettings?.() || {};
             if (/user|front/i.test(s.facingMode || '')) {
@@ -409,7 +410,7 @@
           setupAutofocusLoop();
           setupImageCapture();
           setupZoomOverlay();
-          await applyMacroStartTweaks();
+          await applyMacroStartTweaks();   // 🔧 zoom inicial agora mais suave (65% máx)
           attachTapToFocus(videoElem);
           return;
         } catch (err) {
@@ -458,14 +459,15 @@
       clearInterval(focusIntervalId);
       focusIntervalId = setInterval(() => {
         currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-      }, 500); // macro
+      }, 500);
     }
 
     async function applyMacroStartTweaks() {
       try {
         const caps = currentTrack?.getCapabilities?.();
         if (caps?.zoom) {
-          const alvo = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.max * 0.8));
+          /* 🔧 Antes: 0.8 * max. Agora: 0.65 * max (zoom inicial mais suave) */
+          const alvo = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.max * 0.65));
           await currentTrack.applyConstraints({ advanced: [{ zoom: alvo }] });
           const slider = document.getElementById('zoomSliderOverlay');
           if (slider) slider.value = alvo;
@@ -557,6 +559,7 @@
     }
 
     async function toggleFlash() {
+      const btn = document.getElementById('btnFlashFloating');
       if (!currentTrack || !currentTrack.getCapabilities) {
         alert("Lanterna não suportada neste dispositivo.");
         return;
@@ -567,14 +570,16 @@
         return;
       }
       flashOn = !flashOn;
-      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
+      try {
+        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+        // feedback visual do botão
+        if (flashOn) btn.classList.add('on'); else btn.classList.remove('on');
+      } catch {
         alert("Falha ao controlar a lanterna neste dispositivo.");
-      });
+      }
     }
 
-    // ===================================================================
-    // API (Apps Script)
-    // ===================================================================
+    // ===== API =====
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
       const resp = await fetch(url);
@@ -585,16 +590,14 @@
     async function apiPost(payload) {
       const resp = await fetch(WEB_APP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // mantendo o formato que evita preflight
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ ...payload, token: API_TOKEN })
       });
       if (!resp.ok) throw new Error(`Erro de rede: ${resp.status} ${resp.statusText}`);
       return resp.json();
     }
 
-    // ===================================================================
-    // Fluxo: ler ➜ informar quantidade ➜ Entrada/Saída ➜ reinicia câmera
-    // ===================================================================
+    // ===== Fluxo: ler ➜ registrar ➜ reiniciar câmera =====
     async function enviarDados(tipo) {
       const quantidade = document.getElementById('quantidade').value;
       const statusDiv  = document.getElementById('status');
@@ -640,9 +643,7 @@
       }
     }
 
-    // ===================================================================
-    // Dados / Render
-    // ===================================================================
+    // ===== Dados/Render =====
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = document.getElementById('loading-overlay');
       if (!isUpdate) overlay.style.display = 'flex';
@@ -668,7 +669,7 @@
       const corpoTabela = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque || appData.estoque.length === 0) {
         corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
-        }
+      }
       corpoTabela.innerHTML = appData.estoque.map(item =>
         `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
       ).join('');
@@ -709,9 +710,7 @@ ${item.descricao}
       }
     }
 
-    // ===================================================================
-    // Navegação / boot
-    // ===================================================================
+    // ===== Navegação/boot =====
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
