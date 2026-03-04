@@ -3,161 +3,161 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scanner Data Matrix PRO</title>
+<title>Scanner Data Matrix ULTRA</title>
 
 <style>
-body {
-  font-family: Arial;
-  text-align:center;
-  background:#f2f2f2;
-}
-
-#reader {
-  width:100%;
-  max-width:500px;
-  margin:auto;
-}
-
-.controls {
-  margin-top:10px;
-}
-
-button {
-  padding:8px 12px;
-  margin:5px;
-  border:none;
-  border-radius:6px;
-  font-size:14px;
-  cursor:pointer;
-}
-
-input[type=range] {
-  width:200px;
-}
-
-#result {
-  margin-top:15px;
-  font-size:18px;
-  font-weight:bold;
-}
+body { font-family: Arial; text-align:center; background:#111; color:white; }
+video, canvas { width:100%; max-width:500px; margin:auto; display:block; }
+button { padding:8px 12px; margin:5px; border:none; border-radius:6px; }
+#result { margin-top:10px; font-size:18px; font-weight:bold; }
 </style>
 </head>
 <body>
 
-<h2>Scanner Data Matrix Industrial PRO</h2>
+<h2>Scanner Data Matrix ULTRA Industrial</h2>
 
-<div id="reader"></div>
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas" style="display:none;"></canvas>
 
-<div class="controls">
-  <button onclick="startScanner()">Iniciar</button>
-  <button onclick="stopScanner()">Parar</button>
+<div>
+  <button onclick="start()">Iniciar</button>
+  <button onclick="stop()">Parar</button>
   <button onclick="toggleFlash()">Lanterna</button>
 </div>
 
-<div class="controls">
-  Zoom:
-  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
-</div>
-
-<div id="result">Aguardando leitura...</div>
+<div id="result">Aguardando...</div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
 
-let html5QrCode;
-let currentTrack;
+let stream, track;
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let scanning = false;
 let flashOn = false;
+let autoZoomLevel = 1;
 
-async function startScanner() {
+async function start() {
 
-  html5QrCode = new Html5Qrcode("reader");
-
-  const cameras = await Html5Qrcode.getCameras();
-  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
-
-  const config = {
-    fps: 30,
-    qrbox: { width: 350, height: 350 },
-    aspectRatio: 1.0,
-    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
-    videoConstraints: {
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: {
       facingMode: "environment",
       width: { ideal: 1920 },
-      height: { ideal: 1080 },
-      focusMode: "continuous"
+      height: { ideal: 1080 }
     }
-  };
+  });
 
-  await html5QrCode.start(
-    cameraId,
-    config,
-    onScanSuccess
-  );
+  document.getElementById("video").srcObject = stream;
+  track = stream.getVideoTracks()[0];
 
-  const videoElem = document.querySelector("video");
-  currentTrack = videoElem.srcObject.getVideoTracks()[0];
+  applyAutoFocus();
+  applyAutoExposure();
 
-  applyInitialConstraints();
+  scanning = true;
+  requestAnimationFrame(processFrame);
 }
 
-function onScanSuccess(decodedText) {
-  document.getElementById("result").innerText =
-    "Detectado: " + decodedText;
-}
-
-function stopScanner() {
-  if (html5QrCode) {
-    html5QrCode.stop();
-  }
-}
-
-async function applyInitialConstraints() {
-  const capabilities = currentTrack.getCapabilities();
-
-  let constraints = {};
-
-  if (capabilities.focusMode) {
-    constraints.advanced = [{ focusMode: "continuous" }];
-  }
-
-  if (capabilities.zoom) {
-    document.getElementById("zoomSlider").max = capabilities.zoom.max;
-    document.getElementById("zoomSlider").min = capabilities.zoom.min;
-  }
-
-  await currentTrack.applyConstraints(constraints);
-}
-
-async function setZoom(value) {
-  if (!currentTrack) return;
-
-  const capabilities = currentTrack.getCapabilities();
-  if (capabilities.zoom) {
-    await currentTrack.applyConstraints({
-      advanced: [{ zoom: parseFloat(value) }]
-    });
-  }
+function stop() {
+  scanning = false;
+  if(stream) stream.getTracks().forEach(t => t.stop());
 }
 
 async function toggleFlash() {
-  if (!currentTrack) return;
+  if(!track) return;
+  const cap = track.getCapabilities();
+  if(!cap.torch) return alert("Lanterna não suportada");
+  flashOn = !flashOn;
+  await track.applyConstraints({ advanced: [{ torch: flashOn }] });
+}
 
-  const capabilities = currentTrack.getCapabilities();
+async function applyAutoFocus() {
+  const cap = track.getCapabilities();
+  if(cap.focusMode) {
+    await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+  }
+}
 
-  if (!capabilities.torch) {
-    alert("Lanterna não suportada neste dispositivo.");
-    return;
+async function applyAutoExposure() {
+  const cap = track.getCapabilities();
+  if(cap.exposureMode) {
+    await track.applyConstraints({ advanced: [{ exposureMode: "continuous" }] });
+  }
+}
+
+async function autoZoom() {
+  const cap = track.getCapabilities();
+  if(cap.zoom) {
+    autoZoomLevel += 0.2;
+    if(autoZoomLevel > cap.zoom.max) autoZoomLevel = cap.zoom.max;
+    await track.applyConstraints({ advanced: [{ zoom: autoZoomLevel }] });
+  }
+}
+
+function binarize(imageData) {
+
+  let data = imageData.data;
+  let sum = 0;
+
+  for(let i=0;i<data.length;i+=4){
+    let gray = (data[i] + data[i+1] + data[i+2]) / 3;
+    sum += gray;
   }
 
-  flashOn = !flashOn;
+  let threshold = sum / (data.length/4);
 
-  await currentTrack.applyConstraints({
-    advanced: [{ torch: flashOn }]
-  });
+  for(let i=0;i<data.length;i+=4){
+    let gray = (data[i] + data[i+1] + data[i+2]) / 3;
+    let value = gray > threshold ? 255 : 0;
+    data[i] = data[i+1] = data[i+2] = value;
+  }
+
+  return imageData;
+}
+
+async function processFrame() {
+
+  if(!scanning) return;
+
+  let video = document.getElementById("video");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  ctx.drawImage(video, 0, 0);
+
+  // Recorte central inteligente
+  let size = Math.min(canvas.width, canvas.height) * 0.6;
+  let x = (canvas.width - size)/2;
+  let y = (canvas.height - size)/2;
+
+  let imageData = ctx.getImageData(x, y, size, size);
+
+  imageData = binarize(imageData);
+
+  ctx.putImageData(imageData, x, y);
+
+  detectContrast(imageData);
+
+  requestAnimationFrame(processFrame);
+}
+
+function detectContrast(imageData){
+
+  let data = imageData.data;
+  let darkPixels = 0;
+
+  for(let i=0;i<data.length;i+=4){
+    if(data[i] < 50) darkPixels++;
+  }
+
+  let ratio = darkPixels / (data.length/4);
+
+  if(ratio > 0.3 && ratio < 0.7){
+    autoZoom();
+  }
 }
 
 </script>
-
 </body>
 </html>
