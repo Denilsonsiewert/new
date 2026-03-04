@@ -1,53 +1,127 @@
-<script src="https://unpkg.com/html5-qrcode"></script>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Data Matrix PRO</title>
+
+<style>
+body {
+  font-family: Arial;
+  text-align:center;
+  background:#f2f2f2;
+}
+
+#reader {
+  width:100%;
+  max-width:500px;
+  margin:auto;
+}
+
+.controls {
+  margin-top:10px;
+}
+
+button {
+  padding:8px 12px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+input[type=range] {
+  width:200px;
+}
+
+#result {
+  margin-top:15px;
+  font-size:18px;
+  font-weight:bold;
+  color:#333;
+}
+</style>
+</head>
+<body>
+
+<h2>Scanner Data Matrix Industrial PRO</h2>
+
+<div id="reader"></div>
+
+<div class="controls">
+  <button onclick="startScanner()">Iniciar</button>
+  <button onclick="stopScanner()">Parar</button>
+  <button onclick="toggleFlash()">Lanterna</button>
+</div>
+
+<div class="controls">
+  Zoom:
+  <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1"
+         onchange="setZoom(this.value)">
+</div>
+
+<div id="result">Aguardando leitura...</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 
 <script>
 
-let html5QrCode;
-let currentTrack;
+let html5QrCode = null;
+let currentTrack = null;
 let flashOn = false;
 let lastResult = "";
 let lastScanTime = 0;
 
 async function startScanner() {
 
-  html5QrCode = new Html5Qrcode("reader");
+  try {
 
-  const cameras = await Html5Qrcode.getCameras();
-  const cameraId =
-    cameras.find(c => c.label.toLowerCase().includes("back"))?.id
-    || cameras[0].id;
+    html5QrCode = new Html5Qrcode("reader");
 
-  const config = {
-    fps: 40, // mais rápido
-    qrbox: { width: 250, height: 250 }, // menor = mais rápido
-    aspectRatio: 1.0,
-    disableFlip: true,
-    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
-    videoConstraints: {
-      facingMode: "environment",
-      width: { ideal: 1280 },   // ⚡ mais rápido que 1920
-      height: { ideal: 720 },
-      focusMode: "continuous"
+    const cameras = await Html5Qrcode.getCameras();
+
+    if (!cameras || cameras.length === 0) {
+      alert("Nenhuma câmera encontrada.");
+      return;
     }
-  };
 
-  await html5QrCode.start(
-    cameraId,
-    config,
-    onScanSuccess
-  );
+    const cameraId =
+      cameras.find(c => c.label.toLowerCase().includes("back"))?.id
+      || cameras[0].id;
 
-  const videoElem = document.querySelector("video");
-  currentTrack = videoElem.srcObject.getVideoTracks()[0];
+    const config = {
+      fps: 35,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0,
+      disableFlip: true,
+      formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ]
+    };
 
-  applyAdvancedFocus();
+    await html5QrCode.start(
+      cameraId,
+      config,
+      onScanSuccess,
+      onScanFailure
+    );
+
+    const videoElem = document.querySelector("#reader video");
+
+    if (videoElem && videoElem.srcObject) {
+      currentTrack = videoElem.srcObject.getVideoTracks()[0];
+      applyFocusAndZoom();
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao iniciar câmera: " + err);
+  }
 }
 
 function onScanSuccess(decodedText) {
 
   const now = Date.now();
 
-  // Evita leitura repetida muito rápida
   if (decodedText === lastResult && now - lastScanTime < 1000) {
     return;
   }
@@ -59,13 +133,18 @@ function onScanSuccess(decodedText) {
     "Detectado: " + decodedText;
 }
 
-function stopScanner() {
+function onScanFailure(error) {
+  // silencioso para não travar
+}
+
+async function stopScanner() {
   if (html5QrCode) {
-    html5QrCode.stop();
+    await html5QrCode.stop();
+    html5QrCode = null;
   }
 }
 
-async function applyAdvancedFocus() {
+async function applyFocusAndZoom() {
 
   if (!currentTrack) return;
 
@@ -73,19 +152,10 @@ async function applyAdvancedFocus() {
 
   let constraints = { advanced: [] };
 
-  // 🔥 Foco contínuo
   if (capabilities.focusMode) {
     constraints.advanced.push({ focusMode: "continuous" });
   }
 
-  // 🔥 Força foco manual para infinito (alguns celulares focam melhor assim)
-  if (capabilities.focusDistance) {
-    constraints.advanced.push({
-      focusDistance: capabilities.focusDistance.max
-    });
-  }
-
-  // 🔥 Ajuste automático de exposição
   if (capabilities.exposureMode) {
     constraints.advanced.push({ exposureMode: "continuous" });
   }
@@ -94,7 +164,6 @@ async function applyAdvancedFocus() {
     await currentTrack.applyConstraints(constraints);
   }
 
-  // Ajusta limites do zoom
   if (capabilities.zoom) {
     document.getElementById("zoomSlider").max = capabilities.zoom.max;
     document.getElementById("zoomSlider").min = capabilities.zoom.min;
@@ -102,9 +171,11 @@ async function applyAdvancedFocus() {
 }
 
 async function setZoom(value) {
+
   if (!currentTrack) return;
 
   const capabilities = currentTrack.getCapabilities();
+
   if (capabilities.zoom) {
     await currentTrack.applyConstraints({
       advanced: [{ zoom: parseFloat(value) }]
@@ -113,6 +184,7 @@ async function setZoom(value) {
 }
 
 async function toggleFlash() {
+
   if (!currentTrack) return;
 
   const capabilities = currentTrack.getCapabilities();
@@ -130,3 +202,6 @@ async function toggleFlash() {
 }
 
 </script>
+
+</body>
+</html>
