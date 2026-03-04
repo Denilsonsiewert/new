@@ -7,38 +7,54 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107; --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d; --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08 ); --altura-nav: 70px; }
-        body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
+        :root { --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107; --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d; --borda-cor: #dee2e6; --sombra: 0 4px 12px rgba(0,0,0,0.05 ); --sombra-nav: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; -webkit-tap-highlight-color: transparent; }
         .app-main { flex-grow: 1; overflow-y: auto; padding: 25px; padding-bottom: calc(var(--altura-nav) + 25px); display: flex; justify-content: center; }
         .content-wrapper { width: 100%; max-width: 800px; }
-        .app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--altura-nav); background-color: var(--cor-container); box-shadow: var(--sombra); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-link { background: none; border: none; color: var(--cor-texto-claro); font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 8px; flex-grow: 1; }
+        .app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--altura-nav); background-color: var(--cor-container); box-shadow: var(--sombra-nav); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-link { background: none; border: none; color: var(--cor-texto-claro); font-weight: 600; cursor: pointer; transition: color 0.2s ease; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 8px; flex-grow: 1; }
         .nav-link .icon { font-size: 1.5rem; }
         .nav-link.active { color: var(--cor-primaria); }
         .page { display: none; }
-        .page.active { display: block; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
+        .page.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); box-shadow: var(--sombra); }
         h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
-        #reader { width:100%; max-width:500px; margin:auto; border-radius: 8px; overflow: hidden; }
-        .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 15px; }
-        .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
+        
+        /* --- Estilos do Scanner Melhorados --- */
+        #scanner-container { position: relative; width:100%; max-width:500px; margin:auto; }
+        #reader { border-radius: 12px; overflow: hidden; border: 3px solid transparent; transition: border-color 0.5s ease; z-index: 1; }
+        #reader.success-scan { border-color: var(--cor-sucesso); }
+        #torch-button { position: absolute; top: 15px; right: 15px; z-index: 3; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.5rem; cursor: pointer; display: none; align-items: center; justify-content: center; transition: background-color 0.2s; }
+        #torch-button.active { background-color: var(--cor-alerta); color: var(--cor-texto); }
+        
+        .scanner-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 15px; margin-top: 20px; }
+        .scanner-controls label { font-weight: 600; color: var(--cor-texto-claro); display: flex; align-items: center; gap: 8px; }
+        .scanner-controls input[type=range] { flex-grow: 1; }
+        
+        /* --- Correção do Bug de Clique --- */
+        .registration-controls { position: relative; z-index: 2; }
+
+        .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 20px 0; min-height: 24px; text-align: center; word-break: break-all; }
         .input-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
-        input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--borda-cor); font-size: 1rem; box-sizing: border-box; }
+        input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--borda-cor); font-size: 1rem; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; }
+        input:focus { border-color: var(--cor-primaria); box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); outline: none; }
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        button { background-color: var(--cor-primaria); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        button { background-color: var(--cor-primaria); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
+        button:active { transform: scale(0.98); }
         button.saida { background-color: var(--cor-perigo); }
-        button:disabled { background-color: #adb5bd; cursor: not-allowed; }
+        button:disabled { background-color: #adb5bd; cursor: not-allowed; transform: none; }
         #status { margin-top: 20px; font-weight: 500; padding: 12px; border-radius: 8px; display: none; }
         .status-sucesso { color: var(--cor-sucesso); background-color: #d1e7dd; display: block; }
         .status-erro { color: var(--cor-perigo); background-color: #f8d7da; display: block; }
         .status-info { color: #0c5460; background-color: #d1ecf1; display: block; }
         .table-wrapper { overflow-x: auto; }
         .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-        .styled-table thead tr { background-color: var(--cor-primaria); color: white; text-align: left; }
-        .styled-table th, .styled-table td { padding: 12px 15px; }
+        .styled-table thead tr { background-color: #f8f9fa; color: var(--cor-texto); text-align: left; border-bottom: 2px solid var(--borda-cor); }
+        .styled-table th, .styled-table td { padding: 14px 16px; }
         .styled-table tbody tr { border-bottom: 1px solid var(--borda-cor); }
+        .styled-table tbody tr:last-of-type { border-bottom: none; }
         .styled-table .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
         .styled-table .tipo-saida { color: var(--cor-perigo); font-weight: 600; }
         .alert-list { list-style: none; padding: 0; }
@@ -60,33 +76,35 @@
             <div id="page-registrar" class="page active">
               <div class="card">
                 <h2>Registrar Movimentação</h2>
-                <div id="reader"></div>
+                <div id="scanner-container">
+                    <div id="reader"></div>
+                    <button id="torch-button" onclick="toggleFlash()">🔦</button>
+                </div>
                 <div class="scanner-controls">
-                  <button onclick="startScanner()">▶️ Reiniciar Câmera</button>
-                  <button onclick="toggleFlash()">🔦 Lanterna</button>
-                  <label>Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)"></label>
+                  <button onclick="startScanner()">🔄 Reiniciar Câmera</button>
+                  <label>🔎 Zoom: <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)"></label>
                 </div>
-                <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
-                <div class="input-group">
-                  <label for="quantidade">Quantidade</label>
-                  <input type="number" id="quantidade" placeholder="Ex: 5" min="1">
+                <div class="registration-controls">
+                    <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
+                    <div class="input-group">
+                      <label for="quantidade">Quantidade</label>
+                      <input type="number" id="quantidade" placeholder="Ex: 5" min="1">
+                    </div>
+                    <div class="button-group">
+                      <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
+                      <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
+                    </div>
+                    <div id="status"></div>
                 </div>
-                <div class="button-group">
-                  <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
-                  <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
-                </div>
-                <div id="status"></div>
               </div>
             </div>
+            <!-- Outras páginas (Estoque, Movimentações, Alertas) permanecem iguais -->
             <div id="page-estoque" class="page">
               <div class="card">
                 <h2>Consulta de Estoque</h2>
                 <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..."></div>
                 <div class="table-wrapper">
-                  <table id="tabela-estoque" class="styled-table">
-                    <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
-                    <tbody id="corpo-tabela-estoque"></tbody>
-                  </table>
+                  <table id="tabela-estoque" class="styled-table"><thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead><tbody id="corpo-tabela-estoque"></tbody></table>
                 </div>
               </div>
             </div>
@@ -95,10 +113,7 @@
                 <h2>Últimas Movimentações</h2>
                 <div class="input-group"><input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..."></div>
                 <div class="table-wrapper">
-                  <table id="tabela-movimentacoes" class="styled-table">
-                    <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
-                    <tbody id="corpo-tabela-movimentacoes"></tbody>
-                  </table>
+                  <table id="tabela-movimentacoes" class="styled-table"><thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead><tbody id="corpo-tabela-movimentacoes"></tbody></table>
                 </div>
               </div>
             </div>
@@ -127,7 +142,6 @@ const API_TOKEN = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
 let html5QrCode;
 let currentTrack;
-let flashOn = false;
 let qrCodeCompleto = null;
 const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
@@ -135,42 +149,42 @@ const appData = { estoque: [], alertas: [], movimentacoes: [] };
 // LÓGICA DA CÂMERA (html5-qrcode )
 // ===================================================================
 async function startScanner() {
-    if (html5QrCode && html5QrCode.isScanning) return; // Já está escaneando
+    if (html5QrCode && html5QrCode.isScanning) return;
 
     qrCodeCompleto = null;
     document.getElementById('qr-result').textContent = 'Iniciando câmera...';
     document.getElementById('status').style.display = 'none';
+    document.getElementById('reader').classList.remove('success-scan');
 
     html5QrCode = new Html5Qrcode("reader");
     try {
         const config = {
-            fps: 15, // Reduzir FPS economiza bateria
-            qrbox: { width: 280, height: 280 },
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
             formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE ],
-            // ✅ NOVO: Configurações de vídeo para câmera traseira e autofoco
-            videoConstraints: {
-                facingMode: "environment", // Pede a câmera traseira
-                focusMode: "continuous"    // Pede autofoco contínuo
-            }
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            videoConstraints: { facingMode: "environment" }
         };
 
-        await html5QrCode.start(
-            { facingMode: "environment" }, // Pede a câmera traseira diretamente
-            config, 
-            onScanSuccess
-        );
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
         
         document.getElementById('qr-result').textContent = 'Aguardando leitura...';
         
-        const videoElem = document.getElementById('reader').querySelector("video");
-        currentTrack = videoElem.srcObject.getVideoTracks()[0];
-        
+        currentTrack = html5QrCode.getRunningTrackCameraCapabilities();
         const capabilities = currentTrack.getCapabilities();
+        
         const zoomSlider = document.getElementById("zoomSlider");
         if (capabilities.zoom) {
             zoomSlider.max = capabilities.zoom.max;
             zoomSlider.min = capabilities.zoom.min;
+            zoomSlider.value = capabilities.zoom.min;
         }
+
+        const torchButton = document.getElementById("torch-button");
+        if (capabilities.torch) {
+            torchButton.style.display = 'flex';
+        }
+
     } catch (err) {
         document.getElementById('qr-result').textContent = `Erro ao iniciar câmera: ${err.message}`;
     }
@@ -180,6 +194,7 @@ function onScanSuccess(decodedText) {
     if (qrCodeCompleto) return;
     qrCodeCompleto = decodedText;
     document.getElementById("qr-result").innerText = "✔️ Código lido: " + decodedText;
+    document.getElementById('reader').classList.add('success-scan');
     if (navigator.vibrate) navigator.vibrate(150);
     stopScanner();
 }
@@ -189,23 +204,28 @@ async function stopScanner() {
         if (html5QrCode && html5QrCode.isScanning) {
             await html5QrCode.stop();
         }
-    } catch (err) {
-        // Não se preocupe com erros ao parar, geralmente são inofensivos
-    }
+        document.getElementById('torch-button').style.display = 'none';
+        document.getElementById('torch-button').classList.remove('active');
+    } catch (err) {}
 }
 
 async function setZoom(value) {
     if (!currentTrack || !currentTrack.getCapabilities().zoom) return;
-    await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+    try {
+        await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+    } catch(err) { console.warn("Zoom não aplicado:", err); }
 }
 
 async function toggleFlash() {
-    if (!currentTrack || !currentTrack.getCapabilities().torch) {
-        alert("Lanterna não suportada neste dispositivo.");
-        return;
+    if (!currentTrack || !currentTrack.getCapabilities().torch) return;
+    const torchButton = document.getElementById('torch-button');
+    const isTorchOn = torchButton.classList.toggle('active');
+    try {
+        await currentTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+    } catch(err) {
+        torchButton.classList.remove('active');
+        console.warn("Lanterna não aplicada:", err);
     }
-    flashOn = !flashOn;
-    await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
 }
 
 // ===================================================================
@@ -254,6 +274,7 @@ async function enviarDados(tipo) {
                 statusDiv.style.display = 'none';
                 qrCodeCompleto = null;
                 document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
+                document.getElementById('reader').classList.remove('success-scan');
             }, 2500);
         }
     } catch (err) {
@@ -350,12 +371,9 @@ function mostrarPagina(pageId) {
     document.getElementById('nav-' + pageId).classList.add('active');
     
     if (pageId === 'registrar') {
-        // ✅ NOVO: Inicia a câmera automaticamente ao entrar na aba
         startScanner();
     } else {
-        // Garante que a câmera pare ao sair da página de registro
         stopScanner();
-        // Renderiza os dados da aba clicada
         if (pageId === 'estoque') renderizarEstoque();
         if (pageId === 'alertas') renderizarAlertas();
         if (pageId === 'movimentacoes') renderizarMovimentacoes();
