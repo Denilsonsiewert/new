@@ -1,201 +1,163 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gestão de Estoque Pro – Scanner</title>
-<script src="https://unpkg.com/html5-qrcode" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Data Matrix PRO</title>
+
 <style>
-  /* Seu CSS existente está ótimo, não precisa de mudanças. Cole ele aqui. */
-  :root { --b:#0d6efd; --ok:#198754; --err:#dc3545; --warn:#664d03; }
-  body { font-family: Arial, system-ui; margin:0; background:#f5f6f8; color:#222; }
-  .container { max-width: 920px; margin: 0 auto; padding: 16px; }
-  .card { background:#fff; border:1px solid #e3e6eb; border-radius:12px; padding:20px; margin:16px 0; }
-  h1,h2 { margin:0 0 12px 0; }
-  #reader { width:100%; max-width:560px; margin: 0 auto; }
-  #camera-preview { width:100%; max-width:560px; margin:10px auto; display:none; border-radius:8px; }
-  .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:10px; flex-wrap:wrap; }
-  input[type=number], input[type=text] { padding:10px; border:1px solid #d0d7de; border-radius:6px; }
-  input[type=number] { width:160px; }
-  button { padding:12px 16px; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
-  .btn { background:var(--b ); color:#fff; }
-  .btn.alt { background:var(--err); }
-  .status { margin-top:10px; font-weight:600; }
-  .ok { color:var(--ok); }
-  .err { color:var(--err); }
-  .warn { color:var(--warn); }
-  .badge { display:inline-block; padding:6px 10px; background:#eef6ff; color:var(--b); border-radius:20px; font-size:12px; }
-  table { width:100%; border-collapse:collapse; }
-  th, td { padding:10px; border-bottom:1px solid #e3e6eb; text-align:left; }
-  .pill { font-weight:700; }
-  .entrada { color:var(--ok); }
-  .saida { color:var(--err); }
-  pre { background:#fafafa; border:1px solid #eee; border-radius:8px; padding:10px; overflow:auto; }
+body {
+  font-family: Arial;
+  text-align:center;
+  background:#f2f2f2;
+}
+
+#reader {
+  width:100%;
+  max-width:500px;
+  margin:auto;
+}
+
+.controls {
+  margin-top:10px;
+}
+
+button {
+  padding:8px 12px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+input[type=range] {
+  width:200px;
+}
+
+#result {
+  margin-top:15px;
+  font-size:18px;
+  font-weight:bold;
+}
 </style>
 </head>
 <body>
-<div class="container">
 
-  <div class="card">
-    <h1>Gestão de Estoque Pro <span class="badge">Scanner</span></h1>
-    <p id="statusGlobal" class="status">Carregando dados…</p>
-  </div>
+<h2>Scanner Data Matrix Industrial PRO</h2>
 
-  <!-- SEÇÃO DE FOTO -->
-  <div class="card">
-    <h2>Fotografar Item</h2>
-    <div class="controls">
-      <button id="btnIniciarCameraFoto" class="btn">📷 Iniciar Câmera</button>
-      <button id="btnTirarFoto" class="btn alt" disabled>📸 Tirar e Salvar Foto</button>
-    </div>
-    <video id="camera-preview" autoplay playsinline></video>
-    <canvas id="camera-canvas" style="display:none;"></canvas>
-    <p id="statusFoto" class="status"></p>
-  </div>
+<div id="reader"></div>
 
-  <!-- SEÇÃO DO SCANNER (seu código original) -->
-  <div class="card">
-    <h2>Leitor Data Matrix / QR</h2>
-    <div class="controls">
-      <button id="btnStart" class="btn">▶️ Iniciar Scanner</button>
-      <button id="btnStop" class="btn alt" disabled>⏹️ Parar</button>
-    </div>
-    <div id="reader" style="margin-top:10px;"></div>
-    <div class="controls">
-      <label>Zoom: <input type="range" id="zoomSlider" min="1" max="10" step="0.1" value="1"></label>
-      <button id="btnTorch" class="btn" style="display:none;">🔦 Lanterna</button>
-    </div>
-    <p id="ultimoCodigo" class="status">Aguardando leitura…</p>
-    <pre id="diag" style="display:none;"></pre>
-    <div class="controls" style="margin-top:14px;">
-      <input type="number" id="qtd" placeholder="Quantidade" min="1">
-      <button class="btn" id="btnEntrada">Registrar Entrada</button>
-      <button class="btn alt" id="btnSaida">Registrar Saída</button>
-    </div>
-    <p id="statusRegistro" class="status"></p>
-  </div>
-
-  <!-- Suas outras seções (Alertas, Estoque, Movimentações) permanecem aqui -->
-  <!-- ... -->
-
+<div class="controls">
+  <button onclick="startScanner()">Iniciar</button>
+  <button onclick="stopScanner()">Parar</button>
+  <button onclick="toggleFlash()">Lanterna</button>
 </div>
 
+<div class="controls">
+  Zoom:
+  <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" onchange="setZoom(this.value)">
+</div>
+
+<div id="result">Aguardando leitura...</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
 <script>
-/* ========= CONFIG ========= */
-const WEB_APP_URL = 'COLE_AQUI_A_URL_DO_SEU_APP_DA_WEB_PUBLICADO';
-const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
-// Variáveis globais para os componentes
-let html5QrCode = null;
-let ultimoCodigoLido = null;
-let trackScanner = null;
-let trackFoto = null;
-let torchOn = false;
+let html5QrCode;
+let currentTrack;
+let flashOn = false;
 
-/* ========= API (com adição da função de foto) ========= */
-async function apiPost(payload) {
-  // Função unificada para evitar pre-flight (CORS)
-  const res = await fetch(WEB_APP_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ ...payload, token: API_TOKEN })
-  });
-  return res.json();
-}
+async function startScanner() {
 
-async function apiGetObter() {
-  const url = `${WEB_APP_URL}?action=obter&token=${encodeURIComponent(API_TOKEN)}`;
-  const res = await fetch(url);
-  return res.json();
-}
+  html5QrCode = new Html5Qrcode("reader");
 
-async function apiPostRegistrar(tipo, qrCodeCompleto, quantidade) {
-  return apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
-}
+  const cameras = await Html5Qrcode.getCameras();
+  const cameraId = cameras.find(c => c.label.toLowerCase().includes("back"))?.id || cameras[0].id;
 
-async function apiPostSalvarFoto(imagemBase64) {
-  const nomeArquivo = `foto_${new Date().toISOString()}.jpg`;
-  return apiPost({ action: 'salvarFoto', imagemBase64, nomeArquivo });
-}
-
-/* ========= LÓGICA DA CÂMERA DE FOTO ========= */
-const videoElFoto = document.getElementById('camera-preview');
-const canvasElFoto = document.getElementById('camera-canvas');
-const btnIniciarCameraFoto = document.getElementById('btnIniciarCameraFoto');
-const btnTirarFoto = document.getElementById('btnTirarFoto');
-const statusFoto = document.getElementById('statusFoto');
-
-async function iniciarCameraFoto() {
-  try {
-    statusFoto.textContent = 'Iniciando câmera...';
-    statusFoto.className = 'status';
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    videoElFoto.srcObject = stream;
-    videoElFoto.style.display = 'block';
-    trackFoto = stream.getVideoTracks()[0];
-    btnTirarFoto.disabled = false;
-    btnIniciarCameraFoto.disabled = true;
-    statusFoto.textContent = 'Câmera pronta.';
-    statusFoto.className = 'status ok';
-  } catch (err) {
-    statusFoto.textContent = `Erro ao acessar câmera: ${err.message}`;
-    statusFoto.className = 'status err';
-  }
-}
-
-async function tirarFotoESalvar() {
-  if (!trackFoto) return;
-  statusFoto.textContent = 'Capturando e enviando...';
-  statusFoto.className = 'status';
-
-  const context = canvasElFoto.getContext('2d');
-  canvasElFoto.width = videoElFoto.videoWidth;
-  canvasElFoto.height = videoElFoto.videoHeight;
-  context.drawImage(videoElFoto, 0, 0, canvasElFoto.width, canvasElFoto.height);
-
-  const imagemBase64 = canvasElFoto.toDataURL('image/jpeg', 0.9); // 90% de qualidade
-
-  try {
-    const res = await apiPostSalvarFoto(imagemBase64);
-    if (res.status === 'sucesso') {
-      statusFoto.innerHTML = `✅ ${res.mensagem} <a href="${res.url}" target="_blank">Ver foto</a>`;
-      statusFoto.className = 'status ok';
-    } else {
-      throw new Error(res.mensagem);
+  const config = {
+    fps: 30,
+    qrbox: { width: 350, height: 350 },
+    aspectRatio: 1.0,
+    formatsToSupport: [ Html5QrcodeSupportedFormats.DATA_MATRIX ],
+    videoConstraints: {
+      facingMode: "environment",
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      focusMode: "continuous"
     }
-  } catch (err) {
-    statusFoto.textContent = `Falha ao salvar foto: ${err.message}`;
-    statusFoto.className = 'status err';
-  } finally {
-    // Para a câmera após tirar a foto para economizar bateria
-    trackFoto.stop();
-    videoElFoto.style.display = 'none';
-    btnTirarFoto.disabled = true;
-    btnIniciarCameraFoto.disabled = false;
+  };
+
+  await html5QrCode.start(
+    cameraId,
+    config,
+    onScanSuccess
+  );
+
+  const videoElem = document.querySelector("video");
+  currentTrack = videoElem.srcObject.getVideoTracks()[0];
+
+  applyInitialConstraints();
+}
+
+function onScanSuccess(decodedText) {
+  document.getElementById("result").innerText =
+    "Detectado: " + decodedText;
+}
+
+function stopScanner() {
+  if (html5QrCode) {
+    html5QrCode.stop();
   }
 }
 
-/* ========= SEU CÓDIGO EXISTENTE (Scanner, Render, etc.) ========= */
-// Cole aqui todo o seu código JavaScript original, começando de:
-// function parseDateFlexible(value) { ... }
-// até
-// async function enviar(tipo) { ... }
-// FAÇA UMA PEQUENA MUDANÇA:
-// Na função onScanSuccess, mude a variável 'ultimoCodigo' para 'ultimoCodigoLido'
-// Na função enviar, mude a variável 'ultimoCodigo' para 'ultimoCodigoLido'
+async function applyInitialConstraints() {
+  const capabilities = currentTrack.getCapabilities();
 
-/* ========= LISTENERS / INIT ========= */
-// Adicione os novos listeners para a câmera de foto
-btnIniciarCameraFoto.addEventListener('click', iniciarCameraFoto);
-btnTirarFoto.addEventListener('click', tirarFotoESalvar);
+  let constraints = {};
 
-// Seus listeners existentes
-document.getElementById('btnStart').addEventListener('click', startScanner);
-document.getElementById('btnStop').addEventListener('click', stopScanner);
-document.getElementById('btnEntrada').addEventListener('click', () => enviar('Entrada'));
-document.getElementById('btnSaida').addEventListener('click', () => enviar('Saída'));
-window.addEventListener('load', carregarTudo);
+  if (capabilities.focusMode) {
+    constraints.advanced = [{ focusMode: "continuous" }];
+  }
+
+  if (capabilities.zoom) {
+    document.getElementById("zoomSlider").max = capabilities.zoom.max;
+    document.getElementById("zoomSlider").min = capabilities.zoom.min;
+  }
+
+  await currentTrack.applyConstraints(constraints);
+}
+
+async function setZoom(value) {
+  if (!currentTrack) return;
+
+  const capabilities = currentTrack.getCapabilities();
+  if (capabilities.zoom) {
+    await currentTrack.applyConstraints({
+      advanced: [{ zoom: parseFloat(value) }]
+    });
+  }
+}
+
+async function toggleFlash() {
+  if (!currentTrack) return;
+
+  const capabilities = currentTrack.getCapabilities();
+
+  if (!capabilities.torch) {
+    alert("Lanterna não suportada neste dispositivo.");
+    return;
+  }
+
+  flashOn = !flashOn;
+
+  await currentTrack.applyConstraints({
+    advanced: [{ torch: flashOn }]
+  });
+}
 
 </script>
+
 </body>
 </html>
