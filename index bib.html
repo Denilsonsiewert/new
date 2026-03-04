@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste Bibliotecas Data Matrix</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f4f4f4;
+}
+
+h2 {
+  margin-top: 10px;
+}
+
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn1 { background: #2196F3; color: white; }
+.btn2 { background: #4CAF50; color: white; }
+.btn3 { background: #FF9800; color: white; }
+.stop { background: #f44336; color: white; }
+
+#reader, #video {
+  width: 100%;
+  max-width: 500px;
+  margin-top: 10px;
+}
+
+#result {
+  font-size: 18px;
+  margin-top: 10px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<h2>Teste de Scanner - Data Matrix</h2>
+
+<button class="btn1" onclick="startZXing()">Biblioteca 1 - ZXing</button>
+<button class="btn2" onclick="startHtml5()">Biblioteca 2 - html5-qrcode</button>
+<button class="btn3" onclick="startDynamsoft()">Biblioteca 3 - Dynamsoft</button>
+<button class="stop" onclick="stopScanner()">Parar Scanner</button>
+
+<div id="reader"></div>
+<video id="video" autoplay playsinline></video>
+<div id="result">Resultado aparecerá aqui...</div>
+
+<!-- ZXing -->
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
+
+<!-- html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<!-- Dynamsoft -->
+<script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@latest/dist/dbr.js"></script>
+
+<script>
+
+let currentScanner = null;
+let codeReader = null;
+let html5Qr = null;
+
+function stopScanner() {
+  document.getElementById("result").innerText = "Scanner parado.";
+  
+  if (codeReader) {
+    codeReader.reset();
+  }
+
+  if (html5Qr) {
+    html5Qr.stop().catch(()=>{});
+  }
+
+  if (currentScanner) {
+    currentScanner.destroyContext();
+  }
+
+  let video = document.getElementById("video");
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  }
+}
+
+/* =======================
+   BIBLIOTECA 1 - ZXing
+=======================*/
+function startZXing() {
+
+  stopScanner();
+  document.getElementById("result").innerText = "Iniciando ZXing...";
+
+  codeReader = new ZXing.BrowserMultiFormatReader();
+
+  codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+    if (result) {
+      document.getElementById("result").innerText = "ZXing: " + result.text;
+    }
+  });
+}
+
+/* =======================
+   BIBLIOTECA 2 - html5-qrcode
+=======================*/
+function startHtml5() {
+
+  stopScanner();
+  document.getElementById("video").style.display = "none";
+  document.getElementById("reader").innerHTML = "";
+
+  html5Qr = new Html5Qrcode("reader");
+
+  html5Qr.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      document.getElementById("result").innerText = "HTML5: " + decodedText;
+    }
+  );
+}
+
+/* =======================
+   BIBLIOTECA 3 - Dynamsoft
+=======================*/
+async function startDynamsoft() {
+
+  stopScanner();
+  document.getElementById("result").innerText = "Iniciando Dynamsoft...";
+
+  Dynamsoft.DBR.BarcodeReader.license = "YOUR-TRIAL-LICENSE-KEY";
+
+  currentScanner = await Dynamsoft.DBR.BarcodeScanner.createInstance();
+
+  await currentScanner.setUIElement(document.body);
+
+  currentScanner.onFrameRead = results => {
+    if (results.length > 0) {
+      document.getElementById("result").innerText =
+        "Dynamsoft: " + results[0].barcodeText;
+    }
+  };
+
+  currentScanner.open();
+}
+
+</script>
+
+</body>
+</html>
