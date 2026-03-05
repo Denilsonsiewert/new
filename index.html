@@ -420,7 +420,7 @@
           setupImageCapture();
           await setupFocusControls();   // AF/MF e UI
           setupAutofocusLoop();         // AF contínuo (se suportado)
-          setupZoom(0.8);               // 80% de zoom ao iniciar
+          setupZoom(0.45);              // 45% de zoom ao iniciar
           attachTapToFocus(videoElem);  // toque para focar
 
           // Refoco rápido inicial
@@ -618,6 +618,7 @@
         setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{}), 200);
         return;
       } catch {}
+
       // Fallback: bracketing
       quickFocusBracket();
     }
@@ -649,6 +650,9 @@
         const settings = currentTrack.getSettings?.() || {};
         const cur = settings.zoom || caps.zoom.min || 1;
         const step = stepOverride || caps.zoom.step || 0.05;
+        const nudge = Math.min(cur + step
+// ... continuação do script
+
         const nudge = Math.min(cur + step, caps.zoom.max);
         await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
         setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), waitMs);
@@ -734,8 +738,6 @@
       const ok = await setTorch(!flashOn);
       if (!ok) alert("Lanterna não suportada.");
     }
-
-    /* ---------- API e App ---------- */
 
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
@@ -847,8 +849,8 @@
         }
         // Outros casos usarão o estilo padrão (cinza)
         
-        return `<li class="${liClass}"><strong>${item.tipo}</strong>
-${item.descricao}
+        return `<li class="${liClass}"><strong>${item.tipo}</strong>  
+${item.descricao}  
 <small>${item.detalhe || ''}</small></li>`;
       }).join('');
     }
@@ -893,4 +895,3 @@ ${item.descricao}
   </script>
 </body>
 </html>
-
