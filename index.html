@@ -13,87 +13,144 @@
     :root {
       --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107;
       --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d;
-      --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08 ); --altura-nav: 70px;
-      --verde-feedback: #28a745;
+      --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px;
+      --verde: #28a745;
     }
 
     body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
-    .app-main { flex-grow: 1; overflow-y: auto; padding: 25px; padding-bottom: calc(var(--altura-nav) + 25px); display: flex; justify-content: center; }
-    .content-wrapper { width: 100%; max-width: 800px; }
+    .app-main { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: calc(var(--altura-nav) + 20px); display: flex; justify-content: center; }
+    .content-wrapper { width: 100%; max-width: 900px; }
     .app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--altura-nav); background-color: var(--cor-container); box-shadow: var(--sombra); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
     .nav-link { background: none; border: none; color: var(--cor-texto-claro); font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 8px; flex-grow: 1; }
     .nav-link .icon { font-size: 1.5rem; }
     .nav-link.active { color: var(--cor-primaria); }
 
     .page { display: none; }
-    .page.active { display: block; animation: fadeIn 0.5s; }
+    .page.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .card { background: var(--cor-container); border-radius: 16px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--borda-cor); }
+    .card { background: var(--cor-container); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--borda-cor); }
     h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
 
-    /* ===== Área do leitor ===== */
-    #reader-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
+    /* ===== Área do leitor - MAIOR ===== */
+    #reader-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
     #reader {
       width: 100%;
-      border-radius: 14px;
+      border-radius: 20px;
       overflow: hidden;
-      border: 3px solid var(--borda-cor); /* Cor padrão da borda */
+      border: 4px solid #888;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       background: #000;
-      transition: border-color 0.2s ease-in-out; /* Transição suave da cor da borda */
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
-    #reader.scan-success {
-      border-color: var(--verde-feedback); /* Borda verde no sucesso */
-      box-shadow: 0 0 12px rgba(40, 167, 69, 0.5);
+    #reader.scanning-active {
+      border-color: var(--verde);
+      box-shadow: 0 0 0 3px rgba(40,167,69,0.2), 0 4px 20px rgba(0,0,0,0.15);
     }
     #reader video, #reader canvas { border-radius: inherit; }
 
-    /* Barra de controle flutuante (estilo da imagem) */
-    .camera-controls-bar {
+    /* Módulo de controles integrado */
+    .camera-controls-module {
       position: absolute;
+      bottom: 15px;
       left: 50%;
       transform: translateX(-50%);
-      bottom: 15px;
-      width: 90%;
-      padding: 8px;
-      background: rgba(0,0,0,0.6);
-      border-radius: 25px; /* Mais arredondado */
-      z-index: 21;
-      display: none; /* Começa escondido, JS mostra se houver controles */
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
       align-items: center;
-      gap: 10px;
-      color: #fff;
-      font-size: .9rem;
-      user-select: none;
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 16px;
+      z-index: 25;
+      min-width: 280px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
+
     .control-btn {
-      background: none;
-      border: none;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
       color: #fff;
-      font-size: 1.5rem; /* Ícones maiores */
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
       cursor: pointer;
-      padding: 5px;
-      line-height: 1;
+      transition: all 0.2s;
+      flex-shrink: 0;
     }
-    .control-btn.active { color: var(--cor-primaria); }
-    .camera-controls-bar input[type="range"] {
-        width: 100%;
-        margin: 0 5px;
+    .control-btn:active {
+      transform: scale(0.95);
+      background: rgba(255,255,255,0.3);
     }
-    .camera-controls-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; cursor: pointer; border: 3px solid var(--cor-primaria); }
-    .camera-controls-bar input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: rgba(255,255,255,0.3); border-radius: 6px; }
+    .control-btn.active {
+      background: var(--cor-primaria);
+      border-color: var(--cor-primaria);
+    }
 
+    .zoom-control {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .zoom-control span {
+      color: #fff;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .zoom-control input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.3);
+      border-radius: 3px;
+      outline: none;
+    }
+    .zoom-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .zoom-control input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
 
-    /* Tap-to-focus indicador (pontinho) */
+    /* Tap-to-focus indicador */
     .tap-focus-dot {
-      position: absolute; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%;
-      transform: translate(-50%,-50%); pointer-events: none; z-index: 22; display: none;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      transform: translate(-50%,-50%);
+      pointer-events: none;
+      z-index: 22;
+      display: none;
+      animation: focusPulse 0.6s ease-out;
+    }
+    @keyframes focusPulse {
+      0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
     }
 
-    .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 20px 0; min-height: 24px; text-align: center; word-break: break-all; }
+    .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
     .input-group { margin-bottom: 20px; }
     label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
     input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--borda-cor); font-size: 1rem; box-sizing: border-box; }
@@ -126,7 +183,7 @@
 </head>
 <body>
   <div id="loading-overlay" class="loading-overlay">
-    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1 )" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
+    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
     <span>Carregando dados...</span>
   </div>
 
@@ -137,16 +194,20 @@
         <div class="card">
           <h2>Registrar Movimentação</h2>
 
-          <!-- Leitor + elementos sobrepostos -->
+          <!-- Leitor com módulo de controles integrado -->
           <div id="reader-container">
             <div id="reader"></div>
 
-            <!-- Barra de controle unificada -->
-            <div id="cameraControls" class="camera-controls-bar">
-              <button id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</button>
-              <button id="btnSwitchCam" class="control-btn" onclick="switchCamera()" title="Trocar Câmera">🔄</button>
-              <span title="Zoom">🔍</span>
-              <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+            <!-- Módulo de controles: Lanterna + Zoom + Troca de Câmera -->
+            <div class="camera-controls-module">
+              <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+              
+              <div class="zoom-control">
+                <span>🔍</span>
+                <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+              </div>
+              
+              <div id="btnSwitchCamera" class="control-btn" onclick="switchCamera()" title="Trocar Câmera">🔄</div>
             </div>
 
             <!-- Pontinho do tap-to-focus -->
@@ -234,7 +295,7 @@
     // ===================================================================
     // ERROS: normalização para evitar "undefined"
     // ===================================================================
-    function normalizeError(err ) {
+    function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
       if (err.message) return err.message;
@@ -260,21 +321,23 @@
     }
 
     // ===================================================================
-    // LÓGICA DA CÂMERA (html5-qrcode) + MELHORIAS ANDROID
+    // LÓGICA DA CÂMERA (html5-qrcode) + MELHORIAS
     // ===================================================================
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
 
       const qrEl = document.getElementById('qr-result');
+      const readerEl = document.getElementById('reader');
       qrEl.textContent = 'Iniciando câmera...';
       document.getElementById('status').style.display = 'none';
+      readerEl.classList.remove('scanning-active');
 
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
         fps: 30,
-        qrbox: { width: 220, height: 220 },
+        qrbox: { width: 250, height: 250 },
         disableFlip: true,
         formatsToSupport: [
           Html5QrcodeSupportedFormats.DATA_MATRIX,
@@ -283,42 +346,71 @@
         experimentalFeatures: { useBarCodeDetectorIfSupported: true }
       };
 
-      const constraints = {
-          facingMode: { exact: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-      };
+      const attempts = [];
+
+      if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
 
       try {
-        if (!rearCameras.length) {
-            const cameras = await Html5Qrcode.getCameras();
-            rearCameras = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-            if (rearCameras.length === 0 && cameras.length > 0) rearCameras = cameras; // Fallback
+        const cameras = await Html5Qrcode.getCameras();
+        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
+        const candidates = rear.length ? rear : cameras;
+        rearCameras = candidates;
+        if (rearCameras.length > 0 && !deviceId) {
+          currentRearIndex = 0;
+          attempts.push({ type: 'cameraId', value: rearCameras[currentRearIndex].id });
         }
-
-        const targetDeviceId = deviceId || (rearCameras.length > 0 ? rearCameras[currentRearIndex].id : undefined);
-
-        await html5QrCode.start(
-            targetDeviceId ? { deviceId: { exact: targetDeviceId } } : constraints,
-            config,
-            onScanSuccess
-        );
-
-        scannerActive = true;
-        qrEl.textContent = 'Aguardando leitura...';
-
-        const videoElem = document.getElementById('reader').querySelector("video");
-        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-
-        setupAutofocusLoop();
-        setupImageCapture();
-        setupCameraControls();
-        attachTapToFocus(videoElem);
-
-      } catch (err) {
-        console.error('[Câmera] Falhou iniciar:', err);
-        qrEl.textContent = `Erro ao iniciar câmera: ${normalizeError(err)}`;
+      } catch (e) {
+        console.warn('[Câmera] getCameras falhou:', e);
       }
+
+      attempts.push(
+        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { type: 'constraints', value: { width: { ideal: 1920 }, height: { ideal: 1080 } } }
+      );
+
+      let lastErr = null;
+      for (const a of attempts) {
+        try {
+          await html5QrCode.start(a.value, config, onScanSuccess);
+          scannerActive = true;
+          qrEl.textContent = 'Aguardando leitura...';
+          readerEl.classList.add('scanning-active');
+
+          const videoElem = document.getElementById('reader').querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+
+          try {
+            const s = currentTrack?.getSettings?.() || {};
+            if (/user|front/i.test(s.facingMode || '')) {
+              console.warn('[Câmera] Abriu frontal, trocando...');
+              await stopScanner(true);
+              if (rearCameras?.length) {
+                await startScannerWithDevice(rearCameras[0].id);
+                return;
+              }
+              await startScannerWithDevice(null);
+              return;
+            }
+          } catch {}
+
+          setupAutofocusLoop();
+          setupImageCapture();
+          setupZoom();
+          attachTapToFocus(videoElem);
+          return;
+        } catch (err) {
+          lastErr = err;
+          console.warn('[Câmera] tentativa falhou:', a.type, err);
+          try { await html5QrCode.stop(); } catch {}
+          try { await html5QrCode.clear(); } catch {}
+        }
+      }
+
+      const msg = normalizeError(lastErr);
+      console.error('[Câmera] Falhou iniciar:', lastErr);
+      qrEl.textContent = `Erro: ${msg}`;
+      readerEl.classList.remove('scanning-active');
     }
 
     function onScanSuccess(decodedText) {
@@ -328,10 +420,6 @@
       beep(120, 1100, 0.3);
       if (navigator.vibrate) navigator.vibrate(150);
 
-      const readerDiv = document.getElementById('reader');
-      readerDiv.classList.add('scan-success');
-      setTimeout(() => readerDiv.classList.remove('scan-success'), 700);
-
       document.getElementById("qr-result").innerText = "✔️ Código lido: " + decodedText;
       stopScanner();
     }
@@ -339,17 +427,16 @@
     async function stopScanner(silent = false) {
       try {
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
-        if (html5QrCode && html5QrCode.isScanning) {
-          await html5QrCode.stop();
+        if (html5QrCode) {
+          await html5QrCode.stop().catch(()=>{});
+          await html5QrCode.clear().catch(()=>{});
         }
-      } catch(e) {
-        console.warn("Erro ao parar scanner (ignorado):", e);
-      }
+      } catch {}
       finally {
         currentTrack = null;
         imageCapture = null;
         scannerActive = false;
-        if (!silent) { /* mantém mensagem atual */ }
+        document.getElementById('reader').classList.remove('scanning-active');
       }
     }
 
@@ -359,7 +446,7 @@
       clearInterval(focusIntervalId);
       focusIntervalId = setInterval(() => {
         currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-      }, 900);
+      }, 600);
     }
 
     function setupImageCapture() {
@@ -378,7 +465,7 @@
       const container = document.getElementById('reader-container');
       const dot = document.getElementById('tapDot');
       container.onclick = async (ev) => {
-        if (!videoElem || !scannerActive) return;
+        if (!videoElem || ev.target.closest('.camera-controls-module')) return;
 
         const rect = videoElem.getBoundingClientRect();
         const x = (ev.clientX - rect.left) / rect.width;
@@ -387,53 +474,49 @@
         dot.style.left = `${ev.clientX - rect.left}px`;
         dot.style.top  = `${ev.clientY - rect.top}px`;
         dot.style.display = 'block';
-        setTimeout(()=> dot.style.display='none', 700);
+        setTimeout(()=> dot.style.display='none', 600);
 
         try {
           if (imageCapture?.setOptions) {
             await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
             await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
             setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 250);
+          } else {
+            quickRefocusByMicroZoom();
           }
-        } catch {}
+        } catch {
+          quickRefocusByMicroZoom();
+        }
       };
     }
 
-    // ===== Controles da Câmera (Barra Unificada) =====
-    function setupCameraControls() {
-        const controlsBar = document.getElementById('cameraControls');
-        const btnFlash = document.getElementById('btnFlash');
-        const btnSwitchCam = document.getElementById('btnSwitchCam');
-        const zoomSlider = document.getElementById('zoomSlider');
+    async function quickRefocusByMicroZoom() {
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+        const settings = currentTrack.getSettings?.() || {};
+        const cur = settings.zoom || caps.zoom.min || 1;
+        const nudge = Math.min(cur + (caps.zoom.step || 0.05), caps.zoom.max);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
+        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 100);
+      } catch {}
+    }
 
-        let hasFlash = false, hasZoom = false, hasMultipleCameras = rearCameras.length > 1;
+    function setupZoom() {
+      const slider = document.getElementById('zoomSlider');
+      if (!currentTrack?.getCapabilities) return;
 
-        if (currentTrack?.getCapabilities) {
-            try {
-                const caps = currentTrack.getCapabilities();
-                hasFlash = !!caps.torch;
-                hasZoom = !!caps.zoom;
-
-                if (hasZoom) {
-                    zoomSlider.min = caps.zoom.min ?? 1;
-                    zoomSlider.max = caps.zoom.max ?? 5;
-                    zoomSlider.step = caps.zoom.step || 0.1;
-                    const settings = currentTrack.getSettings?.() || {};
-                    zoomSlider.value = typeof settings.zoom === 'number' ? settings.zoom : zoomSlider.min;
-                }
-            } catch { /* ignora erros de capabilities */ }
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (caps.zoom) {
+          slider.min = caps.zoom.min ?? 1;
+          slider.max = caps.zoom.max ?? 5;
+          slider.step = caps.zoom.step || 0.1;
+          const settings = currentTrack.getSettings?.() || {};
+          slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
         }
-
-        btnFlash.style.display = hasFlash ? 'inline-block' : 'none';
-        btnSwitchCam.style.display = hasMultipleCameras ? 'inline-block' : 'none';
-        zoomSlider.parentElement.style.display = hasZoom ? 'flex' : 'none'; // Mostra o grupo de zoom
-
-        // Mostra a barra inteira se houver pelo menos um controle
-        if (hasFlash || hasZoom || hasMultipleCameras) {
-            controlsBar.style.display = 'flex';
-        } else {
-            controlsBar.style.display = 'none';
-        }
+      } catch {}
     }
 
     async function setZoom(value) {
@@ -444,25 +527,38 @@
     }
 
     async function toggleFlash() {
-      if (!currentTrack || !currentTrack.getCapabilities?.().torch) return;
-      flashOn = !flashOn;
-      try {
-        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
-        document.getElementById('btnFlash').classList.toggle('active', flashOn);
-      } catch {
-        alert("Falha ao controlar a lanterna.");
-        flashOn = !flashOn; // Reverte o estado
+      if (!currentTrack || !currentTrack.getCapabilities) {
+        alert("Lanterna não suportada.");
+        return;
       }
+      const caps = currentTrack.getCapabilities();
+      if (!caps.torch) {
+        alert("Lanterna não suportada.");
+        return;
+      }
+      flashOn = !flashOn;
+      const btn = document.getElementById('btnFlash');
+      if (flashOn) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
+        alert("Falha ao controlar a lanterna.");
+      });
     }
 
-    function switchCamera() {
-        if (rearCameras.length <= 1) return;
-        currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
-        startScannerWithDevice(rearCameras[currentRearIndex].id);
+    async function switchCamera() {
+      if (rearCameras.length <= 1) {
+        alert("Apenas uma câmera traseira disponível.");
+        return;
+      }
+      currentRearIndex = (currentRearIndex + 1) % rearCameras.length;
+      await startScannerWithDevice(rearCameras[currentRearIndex].id);
     }
 
     // ===================================================================
-    // COMUNICAÇÃO COM A API (BACKEND)
+    // COMUNICAÇÃO COM A API
     // ===================================================================
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
@@ -482,7 +578,7 @@
     }
 
     // ===================================================================
-    // Fluxo: ler ➜ informar quantidade ➜ Entrada/Saída ➜ reinicia câmera
+    // Fluxo: ler ➜ informar quantidade ➜ Entrada/Saída ➜ reinicia
     // ===================================================================
     async function enviarDados(tipo) {
       const quantidade = document.getElementById('quantidade').value;
@@ -510,17 +606,17 @@
           document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
           statusDiv.style.display = 'none';
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
-        }, 250); // Reinício rápido
+        }, 800);
 
         await carregarTodosOsDados(true);
 
       } catch (err) {
-        statusDiv.innerText = 'Erro de comunicação: ' + normalizeError(err);
+        statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
         setTimeout(() => {
           statusDiv.style.display = 'none';
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
-        }, 1200);
+        }, 1000);
       } finally {
         document.getElementById('btnEntrada').disabled = false;
         document.getElementById('btnSaida').disabled   = false;
@@ -545,9 +641,9 @@
           throw new Error(res.mensagem);
         }
       } catch (err) {
-        overlay.querySelector('span').textContent = 'Erro ao carregar dados: ' + normalizeError(err);
+        overlay.querySelector('span').textContent = 'Erro: ' + normalizeError(err);
       } finally {
-        if (!isUpdate) setTimeout(() => overlay.style.display = 'none', 300);
+        if (!isUpdate) overlay.style.display = 'none';
       }
     }
 
@@ -583,4 +679,39 @@ ${item.descricao}
       }
       corpoTabela.innerHTML = appData.movimentacoes.map(mov => {
         const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
-        return `<tr><td>${mov.data
+        return `<tr><td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`;
+      }).join('');
+    }
+
+    function filtrarTabela(idTabela, input) {
+      const filtro = input.value.toUpperCase();
+      const tabela = document.getElementById(idTabela);
+      const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+      for (let i = 0; i < linhas.length; i++) {
+        linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
+      }
+    }
+
+    // ===================================================================
+    // NAVEGAÇÃO E INICIALIZAÇÃO
+    // ===================================================================
+    function mostrarPagina(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.getElementById('page-' + pageId).classList.add('active');
+      document.getElementById('nav-' + pageId).classList.add('active');
+
+      if (pageId === 'registrar') {
+        startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+      } else {
+        stopScanner();
+        if (pageId === 'estoque') renderizarEstoque();
+        if (pageId === 'alertas') renderizarAlertas();
+        if (pageId === 'movimentacoes') renderizarMovimentacoes();
+      }
+    }
+
+    window.onload = () => { carregarTodosOsDados(); };
+  </script>
+</body>
+</html>
