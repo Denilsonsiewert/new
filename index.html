@@ -26,7 +26,7 @@
       --cor-texto-claro: #6c757d;
 
       --borda-cor: #d8dde3;
-      --sombra-suave: 0 4px 12px rgba(0,0,0,0.06);
+      --sombra-suave: 0 4px 12px rgba(0,0,0,0.06 );
       --sombra-media: 0 6px 18px rgba(0,0,0,0.08);
 
       --altura-nav: 70px;
@@ -183,11 +183,16 @@
     .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
     .tipo-saida { color: var(--cor-perigo); font-weight: 600; }
 
-    /* ALERTAS (padrão original) */
+    /* === ALERTAS (MODIFICADO) === */
     .alert-list { list-style: none; padding: 0; }
     .alert-list li { padding: 14px; margin-bottom: 10px; border-radius: 10px; background: #f8f9fa; border-left: 5px solid #d0d0d0; color: var(--cor-texto); }
+    
+    /* Vermelho para vencidos */
     .alert-vencido { background: #f8d7da; color: #8a1c21; border-left-color: var(--cor-perigo); }
-    .alert-7dias { background: #fff3cd; color: #664d03; border-left-color: var(--cor-alerta); }
+    
+    /* Amarelo para 30 dias ou menos */
+    .alert-30dias { background: #fff3cd; color: #664d03; border-left-color: var(--cor-alerta); }
+    
     .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
 
     .loading-overlay {
@@ -201,7 +206,7 @@
 
 <body>
   <div id="loading-overlay" class="loading-overlay">
-    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
+    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1 )" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
     <span>Carregando dados...</span>
   </div>
 
@@ -320,7 +325,7 @@
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
-    function normalizeError(err) {
+    function normalizeError(err ) {
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
       if (err.message) return err.message;
@@ -613,7 +618,6 @@
         setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{}), 200);
         return;
       } catch {}
-
       // Fallback: bracketing
       quickFocusBracket();
     }
@@ -824,7 +828,7 @@
       ).join('');
     }
 
-    /* === ALERTAS (padrão original baseado na API) === */
+    /* === ALERTAS (LÓGICA ATUALIZADA) === */
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
       if (!appData.alertas || appData.alertas.length === 0) {
@@ -833,8 +837,16 @@
       }
       lista.innerHTML = appData.alertas.map(item => {
         let liClass = '';
-        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
-        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
+        // Se o item está vencido, classe vermelha
+        if (item.tipo === 'Vencido') {
+          liClass = 'alert-vencido';
+        } 
+        // Se está próximo do vencimento E tem 30 dias ou menos, classe amarela
+        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 30) {
+          liClass = 'alert-30dias';
+        }
+        // Outros casos usarão o estilo padrão (cinza)
+        
         return `<li class="${liClass}"><strong>${item.tipo}</strong>
 ${item.descricao}
 <small>${item.detalhe || ''}</small></li>`;
@@ -881,3 +893,4 @@ ${item.descricao}
   </script>
 </body>
 </html>
+
