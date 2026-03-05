@@ -9,7 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Leitor -->
+
+  <!-- Leitor de códigos -->
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 
   <style>
@@ -185,7 +186,7 @@
     .alert-list { list-style: none; padding: 0; }
     .alert-list li { padding: 14px; margin-bottom: 10px; border-radius: 10px; background: #f8f9fa; border-left: 5px solid #d0d0d0; color: var(--cor-texto); }
     .alert-vencido { background: #f8d7da; color: #8a1c21; border-left-color: var(--cor-perigo); }
-    .alert-7dias { background: #fff3cd; color: #664d03; border-left-color: var(--cor-alerta); }
+    .alert-30dias { background: #fff3cd; color: #664d03; border-left-color: var(--cor-alerta); }
     .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
 
     .loading-overlay {
@@ -215,7 +216,7 @@
 
             <!-- CONTROLES: Lanterna, Zoom, Foco -->
             <div class="camera-controls-module">
-              <!-- Lanterna -->
+              <!-- Lanterna (somente manual) -->
               <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
 
               <!-- Zoom -->
@@ -255,7 +256,7 @@
       <div id="page-estoque" class="page">
         <div class="card">
           <h2>Consulta de Estoque</h2>
-          <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
+        <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
           <div class="table-wrapper">
             <table id="tabela-estoque" class="styled-table">
               <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
@@ -312,7 +313,7 @@
     // Foco e zoom
     let focusCaps = {
       hasFocusDistance: false, min: 0, max: 1, step: 0.01,
-      hasAF: false, // via ImageCapture focusMode/ MediaTrack 'continuous'
+      hasAF: false,
       usingManual: false
     };
 
@@ -411,13 +412,12 @@
 
           // Setup de recursos da câmera
           setupImageCapture();
-          await setupFocusControls();   // prepara AF/MF e UI de foco
-          setupAutofocusLoop();         // força AF contínuo periodicamente (se suportado)
+          await setupFocusControls();   // AF/MF e UI de foco
+          setupAutofocusLoop();         // AF contínuo (se suportado)
           setupZoom(0.8);               // 80% de zoom ao iniciar
           attachTapToFocus(videoElem);  // toque para focar
-          autoTorchIfDark(videoElem);   // liga lanterna se estiver muito escuro
 
-          // Dispara um refoco rápido inicial para “travar” o foco
+          // Refoco rápido inicial
           setTimeout(() => focusBurstQuick(), 150);
 
           return;
@@ -463,7 +463,7 @@
     /* ---------- Foco: AF contínuo + MF + burst + bracketing ---------- */
 
     function setupAutofocusLoop() {
-      // AF contínuo periódicamente (caso suportado)
+      // AF contínuo periodic (se suportado)
       if (!currentTrack?.applyConstraints) return;
       try {
         currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
@@ -471,7 +471,7 @@
       clearInterval(focusIntervalId);
       focusIntervalId = setInterval(() => {
         currentTrack?.applyConstraints?.({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-      }, 700); // 0,7s é um bom equilíbrio para tablets
+      }, 700);
     }
 
     function setupImageCapture() {
@@ -486,7 +486,7 @@
       const slider = document.getElementById('focusSlider');
       const btnAF  = document.getElementById('btnAF');
 
-      // 1) Tenta obter capabilities via MediaStreamTrack
+      // MediaStreamTrack capabilities
       try {
         const tCaps = currentTrack?.getCapabilities?.();
         if (tCaps?.focusDistance) {
@@ -497,14 +497,12 @@
         }
       } catch {}
 
-      // 2) Tenta obter via ImageCapture (PhotoCapabilities)
+      // ImageCapture PhotoCapabilities
       try {
         if (imageCapture?.getPhotoCapabilities) {
           const pcaps = await imageCapture.getPhotoCapabilities();
-          // focusMode: 'none' | 'manual' | 'single-shot' | 'continuous'
           if (pcaps?.focusMode && pcaps.focusMode !== 'none') {
             focusCaps.hasAF = true;
-            // inicia em contínuo, se suportado
             imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
           }
           if (pcaps?.focusDistance && typeof pcaps.focusDistance.min === 'number') {
@@ -516,14 +514,14 @@
         }
       } catch {}
 
-      // Configura slider (aparece apenas em MF)
+      // Slider (só em MF)
       if (focusCaps.hasFocusDistance) {
         slider.min = 0; slider.max = 1; slider.step = 0.01; slider.value = 0.5;
       } else {
         slider.style.display = 'none';
       }
 
-      // Tenta setar AF contínuo no track também
+      // AF contínuo no track (se der)
       try {
         await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: "continuous" }] });
         focusCaps.hasAF = true;
@@ -539,7 +537,6 @@
       const container = document.getElementById('reader-container');
       const dot = document.getElementById('tapDot');
 
-      // Clique simples: define ponto e tenta single-shot; se não suportado, bracketing
       container.onclick = async (ev) => {
         if (!videoElem || ev.target.closest('.camera-controls-module')) return;
 
@@ -552,7 +549,6 @@
         dot.style.display = 'block';
         setTimeout(()=> dot.style.display='none', 600);
 
-        // Se temos ImageCapture e AF, tenta focar no ponto
         try {
           if (imageCapture?.setOptions) {
             await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] }).catch(()=>{});
@@ -562,11 +558,11 @@
           }
         } catch {}
 
-        // Fallback: bracketing rápido
+        // Fallback: bracketing
         quickFocusBracket();
       };
 
-      // Duplo toque: força refoco rápido
+      // Duplo toque: refoco rápido
       container.addEventListener('dblclick', (e) => {
         if (e.target.closest('.camera-controls-module')) return;
         focusBurstQuick();
@@ -582,26 +578,14 @@
       if (focusCaps.usingManual && focusCaps.hasFocusDistance) {
         btnAF.classList.remove('active'); // MF
         slider.style.display = 'block';
-        // Tenta colocar em modo manual (se suportado)
-        try {
-          await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'manual' }] });
-        } catch {}
-        try {
-          await imageCapture?.setOptions?.({ focusMode: 'manual' });
-        } catch {}
-        // Ajuste inicial no meio da faixa
+        try { await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'manual' }] }); } catch {}
+        try { await imageCapture?.setOptions?.({ focusMode: 'manual' }); } catch {}
         await setManualFocus(slider.value);
       } else {
-        // Volta para AF contínuo
-        btnAF.classList.add('active');
+        btnAF.classList.add('active'); // AF
         slider.style.display = 'none';
-        try {
-          await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'continuous' }] });
-        } catch {}
-        try {
-          await imageCapture?.setOptions?.({ focusMode: 'continuous' });
-        } catch {}
-        // Dá um burst para travar foco
+        try { await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'continuous' }] }); } catch {}
+        try { await imageCapture?.setOptions?.({ focusMode: 'continuous' }); } catch {}
         focusBurstQuick();
       }
     }
@@ -611,17 +595,12 @@
       const f = Math.max(0, Math.min(1, parseFloat(fraction01)));
       const value = focusCaps.min + (focusCaps.max - focusCaps.min) * f;
 
-      // Aplica tanto no track quanto no ImageCapture (quando possível)
-      try {
-        await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'manual', focusDistance: value }] });
-      } catch {}
-      try {
-        await imageCapture?.setOptions?.({ focusMode: 'manual', focusDistance: value });
-      } catch {}
+      try { await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'manual', focusDistance: value }] }); } catch {}
+      try { await imageCapture?.setOptions?.({ focusMode: 'manual', focusDistance: value }); } catch {}
     }
 
     async function focusBurstQuick() {
-      // Melhor caminho: single-shot via ImageCapture (rápido)
+      // Single-shot via ImageCapture
       try {
         if (imageCapture?.setOptions) {
           await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
@@ -630,38 +609,32 @@
         }
       } catch {}
 
-      // Alternativa: tentar "single-shot" via track
+      // Single-shot via track
       try {
         await currentTrack?.applyConstraints?.({ advanced: [{ focusMode: 'single-shot' }] });
         setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{}), 200);
         return;
       } catch {}
 
-      // Fallback final: bracketing rápido
+      // Fallback: bracketing
       quickFocusBracket();
     }
 
     async function quickFocusBracket() {
-      // Varre PERTO -> MEIO -> LONGE tentando capturar foco (para dispositivos sem AF)
       try {
         const caps = currentTrack?.getCapabilities?.() || {};
         if (!caps.focusDistance) {
-          // Nem distância? usa micro-zoom nudge
           await quickRefocusByMicroZoom();
           return;
         }
         const min = caps.focusDistance.min ?? 0;
         const max = caps.focusDistance.max ?? 1;
         const mid = (min + max) / 2;
-
         const seq = [min, mid, max];
         for (const v of seq) {
-          try {
-            await currentTrack.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: v }] });
-          } catch {}
-          // pequeno nudge no zoom ajuda mover o motor/algoritmo
+          try { await currentTrack.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: v }] }); } catch {}
           await quickRefocusByMicroZoom(0.06, 90);
-          await wait(120); // 120ms por passo é agressivo e ajuda a velocidade
+          await wait(120);
         }
       } catch {}
     }
@@ -738,7 +711,7 @@
       } catch {}
     }
 
-    /* ---------- Lanterna (com auto em baixa luz) ---------- */
+    /* ---------- Lanterna (somente manual) ---------- */
     async function setTorch(on) {
       if (!currentTrack || !currentTrack.getCapabilities) return false;
       const caps = currentTrack.getCapabilities();
@@ -759,33 +732,6 @@
       const ok = await setTorch(!flashOn);
       if (!ok) alert("Lanterna não suportada.");
     }
-
-    async function autoTorchIfDark(video) {
-      try {
-        if (!video) return;
-        if (!currentTrack?.getCapabilities?.()?.torch) return;
-
-        // Amostra um frame pequeno para estimar brilho
-        const c = document.createElement('canvas');
-        const w = 80, h = 45;
-        c.width = w; c.height = h;
-        const ctx = c.getContext('2d', { willReadFrequently: true });
-        ctx.drawImage(video, 0, 0, w, h);
-        const data = ctx.getImageData(0, 0, w, h).data;
-
-        let sum = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          // luminância aproximada
-          const y = 0.2126*data[i] + 0.7152*data[i+1] + 0.0722*data[i+2];
-          sum += y;
-        }
-        const avg = sum / (data.length / 4);
-        // Threshold agressivo para ambientes escuros
-        if (avg < 40) { await setTorch(true); }
-      } catch {}
-    }
-
-    /* ---------- Tap-to-focus (UI) já configurado em attachTapToFocus ---------- */
 
     /* ---------- API e App ---------- */
 
@@ -880,19 +826,83 @@
       ).join('');
     }
 
+    /* ===== ALERTAS de TINTAS =====
+       - Apenas itens cujo nome contenha "tinta"
+       - Vencidos: vermelho
+       - Até 30 dias para vencer: amarelo
+    */
+    function parseDateString(s) {
+      if (!s) return null;
+      const str = String(s).trim();
+      // yyyy-mm-dd
+      let m = str.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+      if (m) {
+        const [_, y, mo, d] = m;
+        const dt = new Date(Number(y), Number(mo)-1, Number(d));
+        return isNaN(dt) ? null : dt;
+      }
+      // dd/mm/yyyy ou dd-mm-yyyy
+      m = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+      if (m) {
+        const [_, d, mo, y] = m;
+        const dt = new Date(Number(y), Number(mo)-1, Number(d));
+        return isNaN(dt) ? null : dt;
+      }
+      // fallback: Date parse nativo
+      const dt = new Date(str);
+      return isNaN(dt) ? null : dt;
+    }
+
+    function diasAte(dateStr) {
+      const d = parseDateString(dateStr);
+      if (!d) return null;
+      const hoje = new Date();
+      // Zerar horas para comparação em dias
+      d.setHours(0,0,0,0);
+      hoje.setHours(0,0,0,0);
+      const diffMs = d.getTime() - hoje.getTime();
+      return Math.round(diffMs / (1000*60*60*24));
+    }
+
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
-      if (!appData.alertas || appData.alertas.length === 0) {
-        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return;
+      const estoque = Array.isArray(appData.estoque) ? appData.estoque : [];
+
+      // Filtra apenas "tintas"
+      const tintas = estoque.filter(it => /\btinta\b/i.test(String(it.item || '')));
+
+      const avisos = [];
+      for (const t of tintas) {
+        const dias = diasAte(t.validade);
+        if (dias === null) continue;
+        if (dias < 0) {
+          // Vencido (vermelho)
+          avisos.push({
+            classe: 'alert-vencido',
+            titulo: 'Tinta Vencida',
+            texto: `${t.item} • Lote ${t.lote || '-'} • Validade ${t.validade || '-'}`,
+            detalhe: `Venceu há ${Math.abs(dias)} dia(s).`
+          });
+        } else if (dias <= 30) {
+          // Até 30 dias (amarelo)
+          avisos.push({
+            classe: 'alert-30dias',
+            titulo: 'Tinta Próxima do Vencimento',
+            texto: `${t.item} • Lote ${t.lote || '-'} • Validade ${t.validade || '-'}`,
+            detalhe: `Faltam ${dias} dia(s) para vencer.`
+          });
+        }
       }
-      lista.innerHTML = appData.alertas.map(item => {
-        let liClass = '';
-        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
-        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
-        return `<li class="${liClass}"><strong>${item.tipo}</strong>
-${item.descricao}
-<small>${item.detalhe || ''}</small></li>`;
-      }).join('');
+
+      if (avisos.length === 0) {
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta de tintas no momento.</li>';
+        return;
+      }
+
+      // Ordena: vencidos primeiro, depois por dias (mais urgente antes)
+      lista.innerHTML = avisos.map(a =>
+        `<li class="${a.classe}"><strong>${a.titulo}</strong><br>${a.texto}<br><small>${a.detalhe}</small></li>`
+      ).join('');
     }
 
     function renderizarMovimentacoes() {
