@@ -572,7 +572,7 @@
 
           setupAutofocusLoop();
           setupImageCapture();
-          setupZoom();
+          setupZoom(0.3);   // 30% de zoom ao iniciar
           attachTapToFocus(videoElem);
           return;
         } catch (err) {
@@ -677,18 +677,53 @@
       } catch {}
     }
 
-    function setupZoom() {
+    /* ====== ZOOM: aplica 30% na inicialização e sincroniza slider ====== */
+    function setupZoom(initialFraction = 0.3) {
       const slider = document.getElementById('zoomSlider');
       if (!currentTrack?.getCapabilities) return;
 
       try {
         const caps = currentTrack.getCapabilities();
         if (caps.zoom) {
-          slider.min = caps.zoom.min ?? 1;
-          slider.max = caps.zoom.max ?? 5;
+          // Define limites/step no slider de acordo com a câmera
+          slider.min = (caps.zoom.min ?? 1);
+          slider.max = (caps.zoom.max ?? 5);
           slider.step = caps.zoom.step || 0.1;
+
+          // Se a câmera já tem um zoom em uso, usamos; caso contrário aplicamos o inicial
           const settings = currentTrack.getSettings?.() || {};
-          slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
+          if (typeof settings.zoom === 'number') {
+            slider.value = settings.zoom;
+          } else {
+            applyInitialZoom(initialFraction);
+          }
+        }
+      } catch {}
+    }
+
+    async function applyInitialZoom(fraction = 0.3) {
+      // fraction = 0.3 => 30% entre min e max do zoom suportado
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+
+        const min = (typeof caps.zoom.min === 'number') ? caps.zoom.min : 1;
+        const max = (typeof caps.zoom.max === 'number') ? caps.zoom.max : 5;
+
+        // Garante [0,1]
+        const clampedFraction = Math.max(0, Math.min(1, fraction));
+        const target = min + (max - min) * clampedFraction;
+
+        await currentTrack.applyConstraints({ advanced: [{ zoom: target }] }).catch(()=>{});
+
+        // Sincroniza o slider visualmente
+        const slider = document.getElementById('zoomSlider');
+        if (slider) {
+          slider.min = min;
+          slider.max = max;
+          slider.step = caps.zoom.step || 0.1;
+          slider.value = target;
         }
       } catch {}
     }
@@ -696,7 +731,11 @@
     async function setZoom(value) {
       if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
       try {
-        await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+        const caps = currentTrack.getCapabilities();
+        const min = (typeof caps.zoom.min === 'number') ? caps.zoom.min : 1;
+        const max = (typeof caps.zoom.max === 'number') ? caps.zoom.max : 5;
+        const v = Math.max(min, Math.min(max, parseFloat(value)));
+        await currentTrack.applyConstraints({ advanced: [{ zoom: v }] });
       } catch {}
     }
 
