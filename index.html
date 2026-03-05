@@ -1,707 +1,680 @@
-1→<!DOCTYPE html>
-     2→<html lang="pt-BR">
-     3→<head>
-     4→  <meta charset="UTF-8" />
-     5→  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-     6→  <title>Gestão de Estoque Pro</title>
-     7→
-     8→  <!-- Fontes e biblioteca do leitor -->
-     9→  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    10→  <script src="https://unpkg.com/html5-qrcode"></script>
-    11→
-    12→  <style>
-    13→    :root {
-    14→      --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107;
-    15→      --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d;
-    16→      --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px;
-    17→      --verde: #28a745;
-    18→    }
-    19→
-    20→    body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
-    21→    .app-main { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: calc(var(--altura-nav) + 20px); display: flex; justify-content: center; }
-    22→    .content-wrapper { width: 100%; max-width: 900px; }
-    23→    .app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--altura-nav); background-color: var(--cor-container); box-shadow: var(--sombra); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-    24→    .nav-link { background: none; border: none; color: var(--cor-texto-claro); font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 8px; flex-grow: 1; }
-    25→    .nav-link .icon { font-size: 1.5rem; }
-    26→    .nav-link.active { color: var(--cor-primaria); }
-    27→
-    28→    .page { display: none; }
-    29→    .page.active { display: block; animation: fadeIn 0.3s; }
-    30→    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    31→
-    32→    .card { background: var(--cor-container); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--borda-cor); }
-    33→    h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
-    34→
-    35→    /* ===== Área do leitor - MAIOR ===== */
-    36→    #reader-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
-    37→    #reader {
-    38→      width: 100%;
-    39→      border-radius: 20px;
-    40→      overflow: hidden;
-    41→      border: 4px solid #888;
-    42→      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    43→      background: #000;
-    44→      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    45→    }
-    46→    #reader.scanning-active {
-    47→      border-color: var(--verde);
-    48→      box-shadow: 0 0 0 3px rgba(40,167,69,0.2), 0 4px 20px rgba(0,0,0,0.15);
-    49→    }
-    50→    #reader video, #reader canvas { border-radius: inherit; }
-    51→
-    52→    /* Módulo de controles integrado */
-    53→    .camera-controls-module {
-    54→      position: absolute;
-    55→      bottom: 15px;
-    56→      left: 50%;
-    57→      transform: translateX(-50%);
-    58→      background: rgba(0, 0, 0, 0.75);
-    59→      backdrop-filter: blur(10px);
-    60→      border-radius: 16px;
-    61→      padding: 12px 16px;
-    62→      display: flex;
-    63→      align-items: center;
-    64→      gap: 16px;
-    65→      z-index: 25;
-    66→      min-width: 280px;
-    67→      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    68→    }
-    69→
-    70→    .control-btn {
-    71→      background: rgba(255,255,255,0.2);
-    72→      border: 1px solid rgba(255,255,255,0.3);
-    73→      color: #fff;
-    74→      width: 42px;
-    75→      height: 42px;
-    76→      border-radius: 50%;
-    77→      display: flex;
-    78→      align-items: center;
-    79→      justify-content: center;
-    80→      font-size: 1.3rem;
-    81→      cursor: pointer;
-    82→      transition: all 0.2s;
-    83→      flex-shrink: 0;
-    84→    }
-    85→    .control-btn:active {
-    86→      transform: scale(0.95);
-    87→      background: rgba(255,255,255,0.3);
-    88→    }
-    89→    .control-btn.active {
-    90→      background: var(--cor-primaria);
-    91→      border-color: var(--cor-primaria);
-    92→    }
-    93→
-    94→    .zoom-control {
-    95→      flex: 1;
-    96→      display: flex;
-    97→      align-items: center;
-    98→      gap: 8px;
-    99→    }
-   100→    .zoom-control span {
-   101→      color: #fff;
-   102→      font-size: 1.1rem;
-   103→      flex-shrink: 0;
-   104→    }
-   105→    .zoom-control input[type="range"] {
-   106→      flex: 1;
-   107→      height: 6px;
-   108→      -webkit-appearance: none;
-   109→      appearance: none;
-   110→      background: rgba(255,255,255,0.3);
-   111→      border-radius: 3px;
-   112→      outline: none;
-   113→    }
-   114→    .zoom-control input[type="range"]::-webkit-slider-thumb {
-   115→      -webkit-appearance: none;
-   116→      appearance: none;
-   117→      width: 20px;
-   118→      height: 20px;
-   119→      border-radius: 50%;
-   120→      background: #fff;
-   121→      cursor: pointer;
-   122→      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-   123→    }
-   124→    .zoom-control input[type="range"]::-moz-range-thumb {
-   125→      width: 20px;
-   126→      height: 20px;
-   127→      border-radius: 50%;
-   128→      background: #fff;
-   129→      cursor: pointer;
-   130→      border: none;
-   131→      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-   132→    }
-   133→
-   134→    /* Tap-to-focus indicador */
-   135→    .tap-focus-dot {
-   136→      position: absolute;
-   137→      width: 24px;
-   138→      height: 24px;
-   139→      border: 2px solid #fff;
-   140→      border-radius: 50%;
-   141→      transform: translate(-50%,-50%);
-   142→      pointer-events: none;
-   143→      z-index: 22;
-   144→      display: none;
-   145→      animation: focusPulse 0.6s ease-out;
-   146→    }
-   147→    @keyframes focusPulse {
-   148→      0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
-   149→      50% { opacity: 1; }
-   150→      100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
-   151→    }
-   152→
-   153→    .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
-   154→    .input-group { margin-bottom: 20px; }
-   155→    label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
-   156→    input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--borda-cor); font-size: 1rem; box-sizing: border-box; }
-   157→    .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-   158→    button { background-color: var(--cor-primaria); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
-   159→    button.saida { background-color: var(--cor-perigo); }
-   160→    button:disabled { background-color: #adb5bd; cursor: not-allowed; }
-   161→
-   162→    #status { margin-top: 20px; font-weight: 500; padding: 12px; border-radius: 8px; display: none; }
-   163→    .status-sucesso { color: var(--cor-sucesso); background-color: #d1e7dd; display: block; }
-   164→    .status-erro { color: var(--cor-perigo); background-color: #f8d7da; display: block; }
-   165→    .status-info { color: #0c5460; background-color: #d1ecf1; display: block; }
-   166→
-   167→    .table-wrapper { overflow-x: auto; }
-   168→    .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-   169→    .styled-table thead tr { background-color: var(--cor-primaria); color: white; text-align: left; }
-   170→    .styled-table th, .styled-table td { padding: 12px 15px; }
-   171→    .styled-table tbody tr { border-bottom: 1px solid var(--borda-cor); }
-   172→    .styled-table .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
-   173→    .styled-table .tipo-saida { color: var(--cor-perigo); font-weight: 600; }
-   174→
-   175→    .alert-list { list-style: none; padding: 0; }
-   176→    .alert-list li { background: #f8f9fa; border-left: 5px solid var(--borda-cor); padding: 15px; margin-bottom: 10px; border-radius: 8px; color: var(--cor-texto); }
-   177→    .alert-list li.alert-vencido { background: #f8d7da; border-left-color: var(--cor-perigo); color: #842029; }
-   178→    .alert-list li.alert-7dias { background: #fff3cd; border-left-color: var(--cor-alerta); color: #664d03; }
-   179→
-   180→    .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
-   181→    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 15px; font-weight: 600; color: var(--cor-texto); }
-   182→  </style>
-   183→</head>
-   184→<body>
-   185→  <div id="loading-overlay" class="loading-overlay">
-   186→    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
-   187→    <span>Carregando dados...</span>
-   188→  </div>
-   189→
-   190→  <main class="app-main">
-   191→    <div class="content-wrapper">
-   192→
-   193→      <div id="page-registrar" class="page active">
-   194→        <div class="card">
-   195→          <h2>Registrar Movimentação</h2>
-   196→
-   197→          <!-- Leitor com módulo de controles integrado -->
-   198→          <div id="reader-container">
-   199→            <div id="reader"></div>
-   200→
-   201→            <!-- Módulo de controles: Lanterna + Zoom -->
-   202→            <div class="camera-controls-module">
-   203→              <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
-   204→
-   205→              <div class="zoom-control">
-   206→                <span>🔍</span>
-   207→                <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
-   208→              </div>
-   209→            </div>
-   210→
-   211→            <!-- Pontinho do tap-to-focus -->
-   212→            <div id="tapDot" class="tap-focus-dot"></div>
-   213→          </div>
-   214→
-   215→          <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
-   216→
-   217→          <div class="input-group">
-   218→            <label for="quantidade">Quantidade</label>
-   219→            <input type="number" id="quantidade" placeholder="Ex: 5" min="1" />
-   220→          </div>
-   221→
-   222→          <div class="button-group">
-   223→            <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
-   224→            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
-   225→          </div>
-   226→
-   227→          <div id="status"></div>
-   228→        </div>
-   229→      </div>
-   230→
-   231→      <div id="page-estoque" class="page">
-   232→        <div class="card">
-   233→          <h2>Consulta de Estoque</h2>
-   234→          <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
-   235→          <div class="table-wrapper">
-   236→            <table id="tabela-estoque" class="styled-table">
-   237→              <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
-   238→              <tbody id="corpo-tabela-estoque"></tbody>
-   239→            </table>
-   240→          </div>
-   241→        </div>
-   242→      </div>
-   243→
-   244→      <div id="page-movimentacoes" class="page">
-   245→        <div class="card">
-   246→          <h2>Últimas Movimentações</h2>
-   247→          <div class="input-group"><input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..." /></div>
-   248→          <div class="table-wrapper">
-   249→            <table id="tabela-movimentacoes" class="styled-table">
-   250→              <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
-   251→              <tbody id="corpo-tabela-movimentacoes"></tbody>
-   252→            </table>
-   253→          </div>
-   254→        </div>
-   255→      </div>
-   256→
-   257→      <div id="page-alertas" class="page">
-   258→        <div class="card">
-   259→          <h2>Alertas de Estoque</h2>
-   260→          <ul id="lista-alertas" class="alert-list"></ul>
-   261→        </div>
-   262→      </div>
-   263→
-   264→    </div>
-   265→  </main>
-   266→
-   267→  <nav class="app-nav">
-   268→    <button id="nav-registrar"     class="nav-link active" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
-   269→    <button id="nav-estoque"       class="nav-link"        onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
-   270→    <button id="nav-movimentacoes" class="nav-link"        onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
-   271→    <button id="nav-alertas"       class="nav-link"        onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
-   272→  </nav>
-   273→
-   274→  <script>
-   275→    // ===================================================================
-   276→    // CONFIGURAÇÃO E ESTADO GLOBAL
-   277→    // ===================================================================
-   278→    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
-   279→    const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-   280→
-   281→    let html5QrCode;
-   282→    let currentTrack;
-   283→    let imageCapture = null;
-   284→    let flashOn = false;
-   285→    let qrCodeCompleto = null;
-   286→    let focusIntervalId = null;
-   287→    let scannerActive = false;
-   288→    let rearCameras = [];
-   289→    let currentRearIndex = 0;
-   290→
-   291→    const appData = { estoque: [], alertas: [], movimentacoes: [] };
-   292→
-   293→    // ===================================================================
-   294→    // ERROS: normalização para evitar "undefined"
-   295→    // ===================================================================
-   296→    function normalizeError(err) {
-   297→      if (!err) return 'Erro desconhecido.';
-   298→      if (typeof err === 'string') return err;
-   299→      if (err.message) return err.message;
-   300→      if (err.name || err.code) return `${err.name || ''} ${err.code || ''}`.trim();
-   301→      try { return JSON.stringify(err); } catch { return String(err); }
-   302→    }
-   303→
-   304→    // ===================================================================
-   305→    // ÁUDIO: Beep ao ler (Web Audio API)
-   306→    // ===================================================================
-   307→    function beep(duration = 120, frequency = 1100, volume = 0.3) {
-   308→      try {
-   309→        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-   310→        const osc = ctx.createOscillator();
-   311→        const gain = ctx.createGain();
-   312→        osc.type = 'sine';
-   313→        osc.frequency.value = frequency;
-   314→        gain.gain.value = volume;
-   315→        osc.connect(gain); gain.connect(ctx.destination);
-   316→        osc.start();
-   317→        setTimeout(() => { osc.stop(); ctx.close(); }, duration);
-   318→      } catch {}
-   319→    }
-   320→
-   321→    // ===================================================================
-   322→    // LÓGICA DA CÂMERA (html5-qrcode) + MELHORIAS
-   323→    // ===================================================================
-   324→    async function startScannerWithDevice(deviceId = null) {
-   325→      if (scannerActive) return;
-   326→      await stopScanner(true);
-   327→
-   328→      const qrEl = document.getElementById('qr-result');
-   329→      const readerEl = document.getElementById('reader');
-   330→      qrEl.textContent = 'Iniciando câmera...';
-   331→      document.getElementById('status').style.display = 'none';
-   332→      readerEl.classList.remove('scanning-active');
-   333→
-   334→      html5QrCode = new Html5Qrcode("reader");
-   335→
-   336→      const config = {
-   337→        fps: 30,
-   338→        qrbox: { width: 250, height: 250 },
-   339→        disableFlip: true,
-   340→        formatsToSupport: [
-   341→          Html5QrcodeSupportedFormats.DATA_MATRIX,
-   342→          Html5QrcodeSupportedFormats.QR_CODE
-   343→        ],
-   344→        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-   345→      };
-   346→
-   347→      const attempts = [];
-   348→
-   349→      if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
-   350→
-   351→      try {
-   352→        const cameras = await Html5Qrcode.getCameras();
-   353→        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-   354→        const candidates = rear.length ? rear : cameras;
-   355→        rearCameras = candidates;
-   356→        if (rearCameras.length > 0 && !deviceId) {
-   357→          currentRearIndex = 0;
-   358→          attempts.push({ type: 'cameraId', value: rearCameras[currentRearIndex].id });
-   359→        }
-   360→      } catch (e) {
-   361→        console.warn('[Câmera] getCameras falhou:', e);
-   362→      }
-   363→
-   364→      attempts.push(
-   365→        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
-   366→        { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } },
-   367→        { type: 'constraints', value: { width: { ideal: 1920 }, height: { ideal: 1080 } } }
-   368→      );
-   369→
-   370→      let lastErr = null;
-   371→      for (const a of attempts) {
-   372→        try {
-   373→          await html5QrCode.start(a.value, config, onScanSuccess);
-   374→          scannerActive = true;
-   375→          qrEl.textContent = 'Aguardando leitura...';
-   376→          readerEl.classList.add('scanning-active');
-   377→
-   378→          const videoElem = document.getElementById('reader').querySelector("video");
-   379→          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-   380→
-   381→          try {
-   382→            const s = currentTrack?.getSettings?.() || {};
-   383→            if (/user|front/i.test(s.facingMode || '')) {
-   384→              console.warn('[Câmera] Abriu frontal, trocando...');
-   385→              await stopScanner(true);
-   386→              if (rearCameras?.length) {
-   387→                await startScannerWithDevice(rearCameras[0].id);
-   388→                return;
-   389→              }
-   390→              await startScannerWithDevice(null);
-   391→              return;
-   392→            }
-   393→          } catch {}
-   394→
-   395→          setupAutofocusLoop();
-   396→          setupImageCapture();
-   397→          setupZoom();
-   398→          attachTapToFocus(videoElem);
-   399→          return;
-   400→        } catch (err) {
-   401→          lastErr = err;
-   402→          console.warn('[Câmera] tentativa falhou:', a.type, err);
-   403→          try { await html5QrCode.stop(); } catch {}
-   404→          try { await html5QrCode.clear(); } catch {}
-   405→        }
-   406→      }
-   407→
-   408→      const msg = normalizeError(lastErr);
-   409→      console.error('[Câmera] Falhou iniciar:', lastErr);
-   410→      qrEl.textContent = `Erro: ${msg}`;
-   411→      readerEl.classList.remove('scanning-active');
-   412→    }
-   413→
-   414→    function onScanSuccess(decodedText) {
-   415→      if (qrCodeCompleto) return;
-   416→      qrCodeCompleto = decodedText;
-   417→
-   418→      beep(120, 1100, 0.3);
-   419→      if (navigator.vibrate) navigator.vibrate(150);
-   420→
-   421→      document.getElementById("qr-result").innerText = "✔️ Código lido: " + decodedText;
-   422→      stopScanner();
-   423→    }
-   424→
-   425→    async function stopScanner(silent = false) {
-   426→      try {
-   427→        if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
-   428→        if (html5QrCode) {
-   429→          await html5QrCode.stop().catch(()=>{});
-   430→          await html5QrCode.clear().catch(()=>{});
-   431→        }
-   432→      } catch {}
-   433→      finally {
-   434→        currentTrack = null;
-   435→        imageCapture = null;
-   436→        scannerActive = false;
-   437→        document.getElementById('reader').classList.remove('scanning-active');
-   438→      }
-   439→    }
-   440→
-   441→    function setupAutofocusLoop() {
-   442→      if (!currentTrack?.applyConstraints) return;
-   443→      (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
-   444→      clearInterval(focusIntervalId);
-   445→      focusIntervalId = setInterval(() => {
-   446→        currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-   447→      }, 600);
-   448→    }
-   449→
-   450→    function setupImageCapture() {
-   451→      try {
-   452→        if (!('ImageCapture' in window) || !currentTrack) return;
-   453→        imageCapture = new ImageCapture(currentTrack);
-   454→        imageCapture.getPhotoCapabilities?.().then(caps => {
-   455→          if (caps?.focusMode && caps.focusMode !== 'none') {
-   456→            imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
-   457→          }
-   458→        }).catch(()=>{});
-   459→      } catch { imageCapture = null; }
-   460→    }
-   461→
-   462→    function attachTapToFocus(videoElem) {
-   463→      const container = document.getElementById('reader-container');
-   464→      const dot = document.getElementById('tapDot');
-   465→      container.onclick = async (ev) => {
-   466→        if (!videoElem || ev.target.closest('.camera-controls-module')) return;
-   467→
-   468→        const rect = videoElem.getBoundingClientRect();
-   469→        const x = (ev.clientX - rect.left) / rect.width;
-   470→        const y = (ev.clientY - rect.top) / rect.height;
-   471→
-   472→        dot.style.left = `${ev.clientX - rect.left}px`;
-   473→        dot.style.top  = `${ev.clientY - rect.top}px`;
-   474→        dot.style.display = 'block';
-   475→        setTimeout(()=> dot.style.display='none', 600);
-   476→
-   477→        try {
-   478→          if (imageCapture?.setOptions) {
-   479→            await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
-   480→            await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
-   481→            setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 250);
-   482→          } else {
-   483→            quickRefocusByMicroZoom();
-   484→          }
-   485→        } catch {
-   486→          quickRefocusByMicroZoom();
-   487→        }
-   488→      };
-   489→    }
-   490→
-   491→    async function quickRefocusByMicroZoom() {
-   492→      try {
-   493→        if (!currentTrack?.getCapabilities) return;
-   494→        const caps = currentTrack.getCapabilities();
-   495→        if (!caps?.zoom) return;
-   496→        const settings = currentTrack.getSettings?.() || {};
-   497→        const cur = settings.zoom || caps.zoom.min || 1;
-   498→        const nudge = Math.min(cur + (caps.zoom.step || 0.05), caps.zoom.max);
-   499→        await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
-   500→        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 100);
-   501→      } catch {}
-   502→    }
-   503→
-   504→    function setupZoom() {
-   505→      const slider = document.getElementById('zoomSlider');
-   506→      if (!currentTrack?.getCapabilities) return;
-   507→
-   508→      try {
-   509→        const caps = currentTrack.getCapabilities();
-   510→        if (caps.zoom) {
-   511→          slider.min = caps.zoom.min ?? 1;
-   512→          slider.max = caps.zoom.max ?? 5;
-   513→          slider.step = caps.zoom.step || 0.1;
-   514→          const settings = currentTrack.getSettings?.() || {};
-   515→          slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
-   516→        }
-   517→      } catch {}
-   518→    }
-   519→
-   520→    async function setZoom(value) {
-   521→      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
-   522→      try {
-   523→        await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
-   524→      } catch {}
-   525→    }
-   526→
-   527→    async function toggleFlash() {
-   528→      if (!currentTrack || !currentTrack.getCapabilities) {
-   529→        alert("Lanterna não suportada.");
-   530→        return;
-   531→      }
-   532→      const caps = currentTrack.getCapabilities();
-   533→      if (!caps.torch) {
-   534→        alert("Lanterna não suportada.");
-   535→        return;
-   536→      }
-   537→      flashOn = !flashOn;
-   538→      const btn = document.getElementById('btnFlash');
-   539→      if (flashOn) {
-   540→        btn.classList.add('active');
-   541→      } else {
-   542→        btn.classList.remove('active');
-   543→      }
-   544→      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
-   545→        alert("Falha ao controlar a lanterna.");
-   546→      });
-   547→    }
-   548→
-   549→
-   550→    // ===================================================================
-   551→    // COMUNICAÇÃO COM A API
-   552→    // ===================================================================
-   553→    async function apiGet(action) {
-   554→      const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-   555→      const response = await fetch(url);
-   556→      if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-   557→      return response.json();
-   558→    }
-   559→
-   560→    async function apiPost(payload) {
-   561→      const response = await fetch(WEB_APP_URL, {
-   562→        method: 'POST',
-   563→        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-   564→        body: JSON.stringify({ ...payload, token: API_TOKEN })
-   565→      });
-   566→      if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
-   567→      return response.json();
-   568→    }
-   569→
-   570→    // ===================================================================
-   571→    // Fluxo: ler ➜ informar quantidade ➜ Entrada/Saída ➜ reinicia
-   572→    // ===================================================================
-   573→    async function enviarDados(tipo) {
-   574→      const quantidade = document.getElementById('quantidade').value;
-   575→      const statusDiv  = document.getElementById('status');
-   576→      if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
-   577→        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
-   578→        statusDiv.className = 'status-erro';
-   579→        statusDiv.style.display = 'block';
-   580→        return;
-   581→      }
-   582→      document.getElementById('btnEntrada').disabled = true;
-   583→      document.getElementById('btnSaida').disabled   = true;
-   584→      statusDiv.innerText = 'Registrando...';
-   585→      statusDiv.className = 'status-info';
-   586→      statusDiv.style.display = 'block';
-   587→
-   588→      try {
-   589→        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
-   590→        statusDiv.innerText = res.mensagem;
-   591→        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
-   592→
-   593→        setTimeout(() => {
-   594→          document.getElementById('quantidade').value = '';
-   595→          qrCodeCompleto = null;
-   596→          document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
-   597→          statusDiv.style.display = 'none';
-   598→          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
-   599→        }, 800);
-   600→
-   601→        await carregarTodosOsDados(true);
-   602→
-   603→      } catch (err) {
-   604→        statusDiv.innerText = 'Erro: ' + normalizeError(err);
-   605→        statusDiv.className = 'status-erro';
-   606→        setTimeout(() => {
-   607→          statusDiv.style.display = 'none';
-   608→          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
-   609→        }, 1000);
-   610→      } finally {
-   611→        document.getElementById('btnEntrada').disabled = false;
-   612→        document.getElementById('btnSaida').disabled   = false;
-   613→      }
-   614→    }
-   615→
-   616→    // ===================================================================
-   617→    // CARREGAMENTO DE DADOS E RENDERIZAÇÃO
-   618→    // ===================================================================
-   619→    async function carregarTodosOsDados(isUpdate = false) {
-   620→      const overlay = document.getElementById('loading-overlay');
-   621→      if (!isUpdate) overlay.style.display = 'flex';
-   622→      try {
-   623→        const res = await apiGet('obter');
-   624→        if (res.status === 'sucesso') {
-   625→          Object.assign(appData, res.dados);
-   626→          if (!isUpdate) mostrarPagina('registrar');
-   627→          if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
-   628→          if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
-   629→          if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
-   630→        } else {
-   631→          throw new Error(res.mensagem);
-   632→        }
-   633→      } catch (err) {
-   634→        overlay.querySelector('span').textContent = 'Erro: ' + normalizeError(err);
-   635→      } finally {
-   636→        if (!isUpdate) overlay.style.display = 'none';
-   637→      }
-   638→    }
-   639→
-   640→    function renderizarEstoque() {
-   641→      const corpoTabela = document.getElementById('corpo-tabela-estoque');
-   642→      if (!appData.estoque || appData.estoque.length === 0) {
-   643→        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
-   644→      }
-   645→      corpoTabela.innerHTML = appData.estoque.map(item =>
-   646→        `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
-   647→      ).join('');
-   648→    }
-   649→
-   650→    function renderizarAlertas() {
-   651→      const lista = document.getElementById('lista-alertas');
-   652→      if (!appData.alertas || appData.alertas.length === 0) {
-   653→        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return;
-   654→      }
-   655→      lista.innerHTML = appData.alertas.map(item => {
-   656→        let liClass = '';
-   657→        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
-   658→        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
-   659→        return `<li class="${liClass}"><strong>${item.tipo}</strong>
-   660→${item.descricao}
-   661→<small>${item.detalhe || ''}</small></li>`;
-   662→      }).join('');
-   663→    }
-   664→
-   665→    function renderizarMovimentacoes() {
-   666→      const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
-   667→      if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
-   668→        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return;
-   669→      }
-   670→      corpoTabela.innerHTML = appData.movimentacoes.map(mov => {
-   671→        const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
-   672→        return `<tr><td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`;
-   673→      }).join('');
-   674→    }
-   675→
-   676→    function filtrarTabela(idTabela, input) {
-   677→      const filtro = input.value.toUpperCase();
-   678→      const tabela = document.getElementById(idTabela);
-   679→      const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-   680→      for (let i = 0; i < linhas.length; i++) {
-   681→        linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
-   682→      }
-   683→    }
-   684→
-   685→    // ===================================================================
-   686→    // NAVEGAÇÃO E INICIALIZAÇÃO
-   687→    // ===================================================================
-   688→    function mostrarPagina(pageId) {
-   689→      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-   690→      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-   691→      document.getElementById('page-' + pageId).classList.add('active');
-   692→      document.getElementById('nav-' + pageId).classList.add('active');
-   693→
-   694→      if (pageId === 'registrar') {
-   695→        startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
-   696→      } else {
-   697→        stopScanner();
-   698→        if (pageId === 'estoque') renderizarEstoque();
-   699→        if (pageId === 'alertas') renderizarAlertas();
-   700→        if (pageId === 'movimentacoes') renderizarMovimentacoes();
-   701→      }
-   702→    }
-   703→
-   704→    window.onload = () => { carregarTodosOsDados(); };
-   705→  </script>
-   706→</body>
-   707→</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Gestão de Estoque Pro</title>
+
+  <!-- Fontes e biblioteca do leitor -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    :root {
+      --cor-primaria: #0d6efd; --cor-sucesso: #198754; --cor-perigo: #dc3545; --cor-alerta: #ffc107;
+      --cor-fundo: #f0f2f5; --cor-container: #ffffff; --cor-texto: #212529; --cor-texto-claro: #6c757d;
+      --borda-cor: #dee2e6; --sombra: 0 -4px 12px rgba(0,0,0,0.08); --altura-nav: 70px;
+      --verde: #28a745;
+    }
+
+    body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--cor-fundo); display: flex; flex-direction: column; height: 100vh; }
+    .app-main { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: calc(var(--altura-nav) + 20px); display: flex; justify-content: center; }
+    .content-wrapper { width: 100%; max-width: 900px; }
+    .app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--altura-nav); background-color: var(--cor-container); box-shadow: var(--sombra); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+    .nav-link { background: none; border: none; color: var(--cor-texto-claro); font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 8px; flex-grow: 1; }
+    .nav-link .icon { font-size: 1.5rem; }
+    .nav-link.active { color: var(--cor-primaria); }
+
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .card { background: var(--cor-container); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--borda-cor); }
+    h2 { font-size: 1.5rem; margin-top: 0; margin-bottom: 20px; text-align: center; }
+
+    /* ===== Área do leitor - MAIOR ===== */
+    #reader-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
+    #reader {
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 4px solid #888;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      background: #000;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    #reader.scanning-active {
+      border-color: var(--verde);
+      box-shadow: 0 0 0 3px rgba(40,167,69,0.2), 0 4px 20px rgba(0,0,0,0.15);
+    }
+    #reader video, #reader canvas { border-radius: inherit; }
+
+    /* Módulo de controles integrado */
+    .camera-controls-module {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 25;
+      min-width: 280px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .control-btn {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .control-btn:active {
+      transform: scale(0.95);
+      background: rgba(255,255,255,0.3);
+    }
+    .control-btn.active {
+      background: var(--cor-primaria);
+      border-color: var(--cor-primaria);
+    }
+
+    .zoom-control {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .zoom-control span {
+      color: #fff;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .zoom-control input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.3);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .zoom-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .zoom-control input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* Tap-to-focus indicador */
+    .tap-focus-dot {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      transform: translate(-50%,-50%);
+      pointer-events: none;
+      z-index: 22;
+      display: none;
+      animation: focusPulse 0.6s ease-out;
+    }
+    @keyframes focusPulse {
+      0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+    }
+
+    .qr-result { font-weight: 500; color: var(--cor-texto-claro); margin: 14px 0 20px; min-height: 24px; text-align: center; word-break: break-all; }
+    .input-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-claro); }
+    input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--borda-cor); font-size: 1rem; box-sizing: border-box; }
+    .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button { background-color: var(--cor-primaria); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    button.saida { background-color: var(--cor-perigo); }
+    button:disabled { background-color: #adb5bd; cursor: not-allowed; }
+
+    #status { margin-top: 20px; font-weight: 500; padding: 12px; border-radius: 8px; display: none; }
+    .status-sucesso { color: var(--cor-sucesso); background-color: #d1e7dd; display: block; }
+    .status-erro { color: var(--cor-perigo); background-color: #f8d7da; display: block; }
+    .status-info { color: #0c5460; background-color: #d1ecf1; display: block; }
+
+    .table-wrapper { overflow-x: auto; }
+    .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    .styled-table thead tr { background-color: var(--cor-primaria); color: white; text-align: left; }
+    .styled-table th, .styled-table td { padding: 12px 15px; }
+    .styled-table tbody tr { border-bottom: 1px solid var(--borda-cor); }
+    .styled-table .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
+    .styled-table .tipo-saida { color: var(--cor-perigo); font-weight: 600; }
+
+    .alert-list { list-style: none; padding: 0; }
+    .alert-list li { background: #f8f9fa; border-left: 5px solid var(--borda-cor); padding: 15px; margin-bottom: 10px; border-radius: 8px; color: var(--cor-texto); }
+    .alert-list li.alert-vencido { background: #f8d7da; border-left-color: var(--cor-perigo); color: #842029; }
+    .alert-list li.alert-7dias { background: #fff3cd; border-left-color: var(--cor-alerta); color: #664d03; }
+
+    .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 15px; font-weight: 600; color: var(--cor-texto); }
+  </style>
+</head>
+
+<body>
+  <div id="loading-overlay" class="loading-overlay">
+    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
+    <span>Carregando dados...</span>
+  </div>
+
+  <main class="app-main">
+    <div class="content-wrapper">
+
+      <div id="page-registrar" class="page active">
+        <div class="card">
+          <h2>Registrar Movimentação</h2>
+
+          <!-- Leitor com módulo de controles integrado -->
+          <div id="reader-container">
+            <div id="reader"></div>
+
+            <!-- Módulo de controles: Lanterna + Zoom -->
+            <div class="camera-controls-module">
+              <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+
+              <div class="zoom-control">
+                <span>🔍</span>
+                <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+              </div>
+            </div>
+
+            <!-- Pontinho do tap-to-focus -->
+            <div id="tapDot" class="tap-focus-dot"></div>
+          </div>
+
+          <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
+
+          <div class="input-group">
+            <label for="quantidade">Quantidade</label>
+            <input type="number" id="quantidade" placeholder="Ex: 5" min="1" />
+          </div>
+
+          <div class="button-group">
+            <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
+            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
+          </div>
+
+          <div id="status"></div>
+        </div>
+      </div>
+
+      <div id="page-estoque" class="page">
+        <div class="card">
+          <h2>Consulta de Estoque</h2>
+          <div class="input-group"><input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." /></div>
+          <div class="table-wrapper">
+            <table id="tabela-estoque" class="styled-table">
+              <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
+              <tbody id="corpo-tabela-estoque"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-movimentacoes" class="page">
+        <div class="card">
+          <h2>Últimas Movimentações</h2>
+          <div class="input-group"><input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..." /></div>
+          <div class="table-wrapper">
+            <table id="tabela-movimentacoes" class="styled-table">
+              <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
+              <tbody id="corpo-tabela-movimentacoes"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-alertas" class="page">
+        <div class="card">
+          <h2>Alertas de Estoque</h2>
+          <ul id="lista-alertas" class="alert-list"></ul>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <nav class="app-nav">
+    <button id="nav-registrar" class="nav-link active" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
+    <button id="nav-estoque" class="nav-link" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
+    <button id="nav-movimentacoes" class="nav-link" onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
+    <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
+  </nav>
+
+  <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
+    const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
+
+    let html5QrCode;
+    let currentTrack;
+    let imageCapture = null;
+    let flashOn = false;
+    let qrCodeCompleto = null;
+    let focusIntervalId = null;
+    let scannerActive = false;
+    let rearCameras = [];
+    let currentRearIndex = 0;
+
+    const appData = { estoque: [], alertas: [], movimentacoes: [] };
+
+    function normalizeError(err) {
+      if (!err) return 'Erro desconhecido.';
+      if (typeof err === 'string') return err;
+      if (err.message) return err.message;
+      if (err.name || err.code) return `${err.name || ''} ${err.code || ''}`.trim();
+      try { return JSON.stringify(err); } catch { return String(err); }
+    }
+
+    function beep(duration = 120, frequency = 1100, volume = 0.3) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = frequency;
+        gain.gain.value = volume;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start();
+        setTimeout(() => { osc.stop(); ctx.close(); }, duration);
+      } catch {}
+    }
+
+    async function startScannerWithDevice(deviceId = null) {
+      if (scannerActive) return;
+      await stopScanner(true);
+
+      const qrEl = document.getElementById('qr-result');
+      const readerEl = document.getElementById('reader');
+      qrEl.textContent = 'Iniciando câmera...';
+      document.getElementById('status').style.display = 'none';
+      readerEl.classList.remove('scanning-active');
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      const config = {
+        fps: 30,
+        qrbox: { width: 250, height: 250 },
+        disableFlip: true,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      };
+
+      const attempts = [];
+
+      if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
+
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
+        const candidates = rear.length ? rear : cameras;
+        rearCameras = candidates;
+        if (rearCameras.length > 0 && !deviceId) {
+          currentRearIndex = 0;
+          attempts.push({ type: 'cameraId', value: rearCameras[currentRearIndex].id });
+        }
+      } catch (e) {}
+
+      attempts.push(
+        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { type: 'constraints', value: { width: { ideal: 1920 }, height: { ideal: 1080 } } }
+      );
+
+      let lastErr = null;
+      for (const a of attempts) {
+        try {
+          await html5QrCode.start(a.value, config, onScanSuccess);
+          scannerActive = true;
+          qrEl.textContent = 'Aguardando leitura...';
+          readerEl.classList.add('scanning-active');
+
+          const videoElem = document.getElementById('reader').querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+
+          try {
+            const s = currentTrack?.getSettings?.() || {};
+            if (/user|front/i.test(s.facingMode || '')) {
+              await stopScanner(true);
+              if (rearCameras?.length) {
+                await startScannerWithDevice(rearCameras[0].id);
+                return;
+              }
+              await startScannerWithDevice(null);
+              return;
+            }
+          } catch {}
+
+          setupAutofocusLoop();
+          setupImageCapture();
+          setupZoom();
+          attachTapToFocus(videoElem);
+          return;
+        } catch (err) {
+          lastErr = err;
+          try { await html5QrCode.stop(); } catch {}
+          try { await html5QrCode.clear(); } catch {}
+        }
+      }
+
+      const msg = normalizeError(lastErr);
+      qrEl.textContent = `Erro: ${msg}`;
+      readerEl.classList.remove('scanning-active');
+    }
+
+    function onScanSuccess(decodedText) {
+      if (qrCodeCompleto) return;
+      qrCodeCompleto = decodedText;
+
+      beep(120, 1100, 0.3);
+      if (navigator.vibrate) navigator.vibrate(150);
+
+      document.getElementById("qr-result").innerText = "✔️ Código lido: " + decodedText;
+      stopScanner();
+    }
+
+    async function stopScanner(silent = false) {
+      try {
+        if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
+        if (html5QrCode) {
+          await html5QrCode.stop().catch(()=>{});
+          await html5QrCode.clear().catch(()=>{});
+        }
+      } catch {}
+      finally {
+        currentTrack = null;
+        imageCapture = null;
+        scannerActive = false;
+        document.getElementById('reader').classList.remove('scanning-active');
+      }
+    }
+
+    function setupAutofocusLoop() {
+      if (!currentTrack?.applyConstraints) return;
+      (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
+      clearInterval(focusIntervalId);
+      focusIntervalId = setInterval(() => {
+        currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+      }, 600);
+    }
+
+    function setupImageCapture() {
+      try {
+        if (!('ImageCapture' in window) || !currentTrack) return;
+        imageCapture = new ImageCapture(currentTrack);
+        imageCapture.getPhotoCapabilities?.().then(caps => {
+          if (caps?.focusMode && caps.focusMode !== 'none') {
+            imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
+          }
+        }).catch(()=>{});
+      } catch { imageCapture = null; }
+    }
+
+    function attachTapToFocus(videoElem) {
+      const container = document.getElementById('reader-container');
+      const dot = document.getElementById('tapDot');
+      container.onclick = async (ev) => {
+        if (!videoElem || ev.target.closest('.camera-controls-module')) return;
+
+        const rect = videoElem.getBoundingClientRect();
+        const x = (ev.clientX - rect.left) / rect.width;
+        const y = (ev.clientY - rect.top) / rect.height;
+
+        dot.style.left = `${ev.clientX - rect.left}px`;
+        dot.style.top  = `${ev.clientY - rect.top}px`;
+        dot.style.display = 'block';
+        setTimeout(()=> dot.style.display='none', 600);
+
+        try {
+          if (imageCapture?.setOptions) {
+            await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
+            await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
+            setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 250);
+          } else {
+            quickRefocusByMicroZoom();
+          }
+        } catch {
+          quickRefocusByMicroZoom();
+        }
+      };
+    }
+
+    async function quickRefocusByMicroZoom() {
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+        const settings = currentTrack.getSettings?.() || {};
+        const cur = settings.zoom || caps.zoom.min || 1;
+        const nudge = Math.min(cur + (caps.zoom.step || 0.05), caps.zoom.max);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
+        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 100);
+      } catch {}
+    }
+
+    function setupZoom() {
+      const slider = document.getElementById('zoomSlider');
+      if (!currentTrack?.getCapabilities) return;
+
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (caps.zoom) {
+          slider.min = caps.zoom.min ?? 1;
+          slider.max = caps.zoom.max ?? 5;
+          slider.step = caps.zoom.step || 0.1;
+          const settings = currentTrack.getSettings?.() || {};
+          slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
+        }
+      } catch {}
+    }
+
+    async function setZoom(value) {
+      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
+      try {
+        await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+      } catch {}
+    }
+
+    async function toggleFlash() {
+      if (!currentTrack || !currentTrack.getCapabilities) {
+        alert("Lanterna não suportada.");
+        return;
+      }
+      const caps = currentTrack.getCapabilities();
+      if (!caps.torch) {
+        alert("Lanterna não suportada.");
+        return;
+      }
+      flashOn = !flashOn;
+      const btn = document.getElementById('btnFlash');
+      if (flashOn) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
+        alert("Falha ao controlar a lanterna.");
+      });
+    }
+
+    async function apiGet(action) {
+      const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+      return response.json();
+    }
+
+    async function apiPost(payload) {
+      const response = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ ...payload, token: API_TOKEN })
+      });
+      if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+      return response.json();
+    }
+
+    async function enviarDados(tipo) {
+      const quantidade = document.getElementById('quantidade').value;
+      const statusDiv  = document.getElementById('status');
+      if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
+        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
+        statusDiv.className = 'status-erro';
+        statusDiv.style.display = 'block';
+        return;
+      }
+      document.getElementById('btnEntrada').disabled = true;
+      document.getElementById('btnSaida').disabled   = true;
+      statusDiv.innerText = 'Registrando...';
+      statusDiv.className = 'status-info';
+      statusDiv.style.display = 'block';
+
+      try {
+        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
+        statusDiv.innerText = res.mensagem;
+        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
+
+        setTimeout(() => {
+          document.getElementById('quantidade').value = '';
+          qrCodeCompleto = null;
+          document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
+          statusDiv.style.display = 'none';
+          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+        }, 800);
+
+        await carregarTodosOsDados(true);
+
+      } catch (err) {
+        statusDiv.innerText = 'Erro: ' + normalizeError(err);
+        statusDiv.className = 'status-erro';
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+        }, 1000);
+      } finally {
+        document.getElementById('btnEntrada').disabled = false;
+        document.getElementById('btnSaida').disabled   = false;
+      }
+    }
+
+    async function carregarTodosOsDados(isUpdate = false) {
+      const overlay = document.getElementById('loading-overlay');
+      if (!isUpdate) overlay.style.display = 'flex';
+      try {
+        const res = await apiGet('obter');
+        if (res.status === 'sucesso') {
+          Object.assign(appData, res.dados);
+          if (!isUpdate) mostrarPagina('registrar');
+          if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
+          if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
+          if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
+        } else {
+          throw new Error(res.mensagem);
+        }
+      } catch (err) {
+        overlay.querySelector('span').textContent = 'Erro: ' + normalizeError(err);
+      } finally {
+        if (!isUpdate) overlay.style.display = 'none';
+      }
+    }
+
+    function renderizarEstoque() {
+      const corpoTabela = document.getElementById('corpo-tabela-estoque');
+      if (!appData.estoque || appData.estoque.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
+      }
+      corpoTabela.innerHTML = appData.estoque.map(item =>
+        `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
+      ).join('');
+    }
+
+    function renderizarAlertas() {
+      const lista = document.getElementById('lista-alertas');
+      if (!appData.alertas || appData.alertas.length === 0) {
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return;
+      }
+      lista.innerHTML = appData.alertas.map(item => {
+        let liClass = '';
+        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
+        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
+        return `<li class="${liClass}"><strong>${item.tipo}</strong>
+${item.descricao}
+<small>${item.detalhe || ''}</small></li>`;
+      }).join('');
+    }
+
+    function renderizarMovimentacoes() {
+      const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
+      if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return;
+      }
+      corpoTabela.innerHTML = appData.movimentacoes.map(mov => {
+        const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
+        return `<tr><td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`;
+      }).join('');
+    }
+
+    function filtrarTabela(idTabela, input) {
+      const filtro = input.value.toUpperCase();
+      const tabela = document.getElementById(idTabela);
+      const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+      for (let i = 0; i < linhas.length; i++) {
+        linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
+      }
+    }
+
+    function mostrarPagina(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.getElementById('page-' + pageId).classList.add('active');
+      document.getElementById('nav-' + pageId).classList.add('active');
+
+      if (pageId === 'registrar') {
+        startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+      } else {
+        stopScanner();
+        if (pageId === 'estoque') renderizarEstoque();
+        if (pageId === 'alertas') renderizarAlertas();
+        if (pageId === 'movimentacoes') renderizarMovimentacoes();
+      }
+    }
+
+    window.onload = () => { carregarTodosOsDados(); };
+  </script>
+
+</body>
+</html>
