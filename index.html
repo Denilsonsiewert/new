@@ -572,7 +572,7 @@
 
           setupAutofocusLoop();
           setupImageCapture();
-          setupZoom(0.3);   // 30% de zoom ao iniciar
+          setupZoom(0.8);   // <-- 80% da faixa de zoom ao iniciar
           attachTapToFocus(videoElem);
           return;
         } catch (err) {
@@ -677,8 +677,8 @@
       } catch {}
     }
 
-    /* ====== ZOOM: aplica 30% na inicialização e sincroniza slider ====== */
-    function setupZoom(initialFraction = 0.3) {
+    /* ====== ZOOM: aplica zoom inicial e sincroniza slider ====== */
+    function setupZoom(initialFraction = 0.8) {
       const slider = document.getElementById('zoomSlider');
       if (!currentTrack?.getCapabilities) return;
 
@@ -701,8 +701,8 @@
       } catch {}
     }
 
-    async function applyInitialZoom(fraction = 0.3) {
-      // fraction = 0.3 => 30% entre min e max do zoom suportado
+    async function applyInitialZoom(fraction = 0.8) {
+      // fraction = 0.8 => 80% entre min e max do zoom suportado
       try {
         if (!currentTrack?.getCapabilities) return;
         const caps = currentTrack.getCapabilities();
@@ -711,7 +711,6 @@
         const min = (typeof caps.zoom.min === 'number') ? caps.zoom.min : 1;
         const max = (typeof caps.zoom.max === 'number') ? caps.zoom.max : 5;
 
-        // Garante [0,1]
         const clampedFraction = Math.max(0, Math.min(1, fraction));
         const target = min + (max - min) * clampedFraction;
 
