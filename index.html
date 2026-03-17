@@ -773,7 +773,26 @@
           slider.step = caps.zoom.step || 0.1;
           const settings = currentTrack.getSettings?.() || {};
           slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
+          
+          // Aplicar zoom inicial de 30%
+          applyInitialZoom();
         }
+      } catch {}
+    }
+
+    async function applyInitialZoom() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.zoom) return;
+        
+        const minZoom = caps.zoom.min ?? 1;
+        const maxZoom = caps.zoom.max ?? 5;
+        const zoomRange = maxZoom - minZoom;
+        const initialZoom = minZoom + (zoomRange * 0.3); // 30% do intervalo disponível
+        
+        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
+        DOM_CACHE.zoomSlider.value = initialZoom;
       } catch {}
     }
 
