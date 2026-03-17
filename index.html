@@ -34,6 +34,8 @@
       --verde: #28a745;
     }
 
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
@@ -41,16 +43,19 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      overflow: hidden;
     }
 
     /* CONTEÚDO */
     .app-main {
       flex-grow: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 20px;
       padding-bottom: calc(var(--altura-nav) + 20px);
       display: flex;
       justify-content: center;
+      -webkit-overflow-scrolling: touch;
     }
 
     .content-wrapper {
@@ -69,6 +74,7 @@
       justify-content: space-around;
       align-items: center;
       z-index: 100;
+      will-change: transform;
     }
 
     .nav-link {
@@ -79,13 +85,14 @@
       flex-grow: 1;
       color: var(--cor-texto-claro);
       border-radius: 10px;
-      transition: color 0.2s, transform 0.2s;
+      transition: color 0.2s;
       font-weight: 600;
       font-size: 0.8rem;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .nav-link .icon {
@@ -94,12 +101,11 @@
 
     .nav-link.active {
       color: var(--cor-primaria);
-      transform: translateY(-3px);
     }
 
     /* PÁGINAS */
     .page { display: none; }
-    .page.active { display: block; animation: fadeIn .25s ease; }
+    .page.active { display: block; animation: fadeIn .15s ease; }
 
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -111,6 +117,7 @@
       border: 1px solid var(--borda-cor);
       box-shadow: var(--sombra-suave);
       margin-bottom: 20px;
+      will-change: contents;
     }
 
     h2 {
@@ -127,24 +134,30 @@
       width: 100%;
       max-width: 600px;
       margin: 0 auto;
-    }
-
-    #reader {
-      width: 100%;
+      background: #000;
       border-radius: 18px;
       overflow: hidden;
       border: 3px solid #777;
-      background: #000;
-      transition: border-color 0.2s ease;
       box-shadow: var(--sombra-media);
+      transition: border-color 0.2s ease;
     }
 
-    #reader.scanning-active {
+    #reader-container.scanning-active {
       border-color: var(--verde);
       box-shadow: 0 0 0 2px rgba(40,167,69,0.25);
     }
 
-    #reader video, #reader canvas { border-radius: inherit; }
+    #reader {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    #reader video, #reader canvas { 
+      width: 100%;
+      height: auto;
+      display: block;
+    }
 
     /* CONTROLES DA CÂMERA */
     .camera-controls-module {
@@ -161,6 +174,7 @@
       box-shadow: var(--sombra-media);
       z-index: 25;
       min-width: 280px;
+      will-change: transform;
     }
 
     .control-btn {
@@ -173,9 +187,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background .2s, transform .1s;
+      transition: background .15s;
       cursor: pointer;
       flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .control-btn:active { transform: scale(0.95); }
@@ -200,14 +215,16 @@
       background: rgba(255,255,255,0.25);
       border-radius: 4px;
       outline: none;
+      -webkit-appearance: none;
     }
 
     .zoom-control input[type="range"]::-webkit-slider-thumb {
-      appearance: none;
+      -webkit-appearance: none;
       width: 18px; height: 18px;
       background: white;
       border-radius: 50%;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
     }
 
     .zoom-control input[type="range"]::-moz-range-thumb {
@@ -216,6 +233,7 @@
       border-radius: 50%;
       border: none;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
     }
 
     /* TAP FOCUS */
@@ -226,8 +244,9 @@
       border-radius: 50%;
       pointer-events: none;
       display: none;
-      animation: focusPulse .5s ease-out;
+      animation: focusPulse .4s ease-out;
       z-index: 22;
+      will-change: transform;
     }
 
     @keyframes focusPulse {
@@ -252,9 +271,11 @@
       border-radius: 10px;
       border: 1px solid var(--borda-cor);
       box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-      transition: border .2s;
+      transition: border .15s;
       font-size: 1rem;
       box-sizing: border-box;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     input:focus {
@@ -277,8 +298,9 @@
       cursor: pointer;
       background: var(--cor-primaria);
       color: white;
-      transition: opacity .2s, transform .1s;
+      transition: opacity .15s;
       font-size: 1rem;
+      -webkit-tap-highlight-color: transparent;
     }
 
     button:hover { opacity: .9; }
@@ -300,7 +322,7 @@
     .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
 
     /* TABELAS */
-    .table-wrapper { overflow-x: auto; }
+    .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
     .styled-table {
       width: 100%;
@@ -331,6 +353,7 @@
     .alert-list {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
 
     .alert-list li {
@@ -370,6 +393,17 @@
       z-index: 9999;
       font-weight: 600;
       color: var(--cor-texto);
+    }
+
+    .qr-result {
+      text-align: center;
+      padding: 16px;
+      margin-top: 16px;
+      font-weight: 500;
+      color: var(--cor-texto);
+      background: #f8f9fa;
+      border-radius: 10px;
+      border: 1px solid var(--borda-cor);
     }
   </style>
 </head>
@@ -468,6 +502,20 @@
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
+    // Cache de elementos para evitar múltiplas queries
+    const DOM_CACHE = {
+      readerContainer: null,
+      reader: null,
+      qrResult: null,
+      status: null,
+      tapDot: null,
+      zoomSlider: null,
+      btnFlash: null,
+      btnEntrada: null,
+      btnSaida: null,
+      loadingOverlay: null
+    };
+
     let html5QrCode;
     let currentTrack;
     let imageCapture = null;
@@ -477,8 +525,24 @@
     let scannerActive = false;
     let rearCameras = [];
     let currentRearIndex = 0;
+    let tapFocusTimeout = null;
+    let lastFocusTime = 0;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
+
+    // Inicializar cache de DOM
+    function initDOMCache() {
+      DOM_CACHE.readerContainer = document.getElementById('reader-container');
+      DOM_CACHE.reader = document.getElementById('reader');
+      DOM_CACHE.qrResult = document.getElementById('qr-result');
+      DOM_CACHE.status = document.getElementById('status');
+      DOM_CACHE.tapDot = document.getElementById('tapDot');
+      DOM_CACHE.zoomSlider = document.getElementById('zoomSlider');
+      DOM_CACHE.btnFlash = document.getElementById('btnFlash');
+      DOM_CACHE.btnEntrada = document.getElementById('btnEntrada');
+      DOM_CACHE.btnSaida = document.getElementById('btnSaida');
+      DOM_CACHE.loadingOverlay = document.getElementById('loading-overlay');
+    }
 
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
@@ -496,9 +560,10 @@
         osc.type = 'sine';
         osc.frequency.value = frequency;
         gain.gain.value = volume;
-        osc.connect(gain); gain.connect(ctx.destination);
+        osc.connect(gain); 
+        gain.connect(ctx.destination);
         osc.start();
-        setTimeout(() => { osc.stop(); ctx.close(); }, duration);
+        osc.stop(ctx.currentTime + duration / 1000);
       } catch {}
     }
 
@@ -506,16 +571,14 @@
       if (scannerActive) return;
       await stopScanner(true);
 
-      const qrEl = document.getElementById('qr-result');
-      const readerEl = document.getElementById('reader');
-      qrEl.textContent = 'Iniciando câmera...';
-      document.getElementById('status').style.display = 'none';
-      readerEl.classList.remove('scanning-active');
+      DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
+      DOM_CACHE.status.style.display = 'none';
+      DOM_CACHE.readerContainer.classList.remove('scanning-active');
 
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 30,
+        fps: 25,
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
         formatsToSupport: [
@@ -541,9 +604,9 @@
       } catch (e) {}
 
       attempts.push(
-        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
-        { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } },
-        { type: 'constraints', value: { width: { ideal: 1920 }, height: { ideal: 1080 } } }
+        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { type: 'constraints', value: { width: { ideal: 1280 }, height: { ideal: 720 } } }
       );
 
       let lastErr = null;
@@ -551,10 +614,10 @@
         try {
           await html5QrCode.start(a.value, config, onScanSuccess);
           scannerActive = true;
-          qrEl.textContent = 'Aguardando leitura...';
-          readerEl.classList.add('scanning-active');
+          DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+          DOM_CACHE.readerContainer.classList.add('scanning-active');
 
-          const videoElem = document.getElementById('reader').querySelector("video");
+          const videoElem = DOM_CACHE.reader.querySelector("video");
           currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
           try {
@@ -583,8 +646,8 @@
       }
 
       const msg = normalizeError(lastErr);
-      qrEl.textContent = `Erro: ${msg}`;
-      readerEl.classList.remove('scanning-active');
+      DOM_CACHE.qrResult.textContent = `Erro: ${msg}`;
+      DOM_CACHE.readerContainer.classList.remove('scanning-active');
     }
 
     function onScanSuccess(decodedText) {
@@ -594,13 +657,14 @@
       beep(120, 1100, 0.3);
       if (navigator.vibrate) navigator.vibrate(150);
 
-      document.getElementById("qr-result").innerText = "✔️ Código lido: " + decodedText;
+      DOM_CACHE.qrResult.innerText = "✔️ Código lido: " + decodedText;
       stopScanner();
     }
 
     async function stopScanner(silent = false) {
       try {
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
+        if (tapFocusTimeout) { clearTimeout(tapFocusTimeout); tapFocusTimeout = null; }
         if (html5QrCode) {
           await html5QrCode.stop().catch(()=>{});
           await html5QrCode.clear().catch(()=>{});
@@ -610,17 +674,26 @@
         currentTrack = null;
         imageCapture = null;
         scannerActive = false;
-        document.getElementById('reader').classList.remove('scanning-active');
+        DOM_CACHE.readerContainer.classList.remove('scanning-active');
       }
     }
 
     function setupAutofocusLoop() {
       if (!currentTrack?.applyConstraints) return;
-      (async () => { try { await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {} })();
+      
+      (async () => { 
+        try { 
+          await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
+        } catch {} 
+      })();
+      
       clearInterval(focusIntervalId);
+      // Aumentar intervalo de 600ms para 1000ms para economizar bateria
       focusIntervalId = setInterval(() => {
-        currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-      }, 600);
+        if (currentTrack) {
+          currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+        }
+      }, 1000);
     }
 
     function setupImageCapture() {
@@ -636,10 +709,16 @@
     }
 
     function attachTapToFocus(videoElem) {
-      const container = document.getElementById('reader-container');
-      const dot = document.getElementById('tapDot');
+      const container = DOM_CACHE.readerContainer;
+      const dot = DOM_CACHE.tapDot;
+      
       container.onclick = async (ev) => {
         if (!videoElem || ev.target.closest('.camera-controls-module')) return;
+
+        // Throttle tap-to-focus: máximo uma vez a cada 300ms
+        const now = Date.now();
+        if (now - lastFocusTime < 300) return;
+        lastFocusTime = now;
 
         const rect = videoElem.getBoundingClientRect();
         const x = (ev.clientX - rect.left) / rect.width;
@@ -648,13 +727,18 @@
         dot.style.left = `${ev.clientX - rect.left}px`;
         dot.style.top  = `${ev.clientY - rect.top}px`;
         dot.style.display = 'block';
-        setTimeout(()=> dot.style.display='none', 600);
+        
+        if (tapFocusTimeout) clearTimeout(tapFocusTimeout);
+        tapFocusTimeout = setTimeout(()=> { 
+          dot.style.display = 'none'; 
+          tapFocusTimeout = null;
+        }, 400);
 
         try {
           if (imageCapture?.setOptions) {
             await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
             await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
-            setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 250);
+            setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 200);
           } else {
             quickRefocusByMicroZoom();
           }
@@ -673,12 +757,12 @@
         const cur = settings.zoom || caps.zoom.min || 1;
         const nudge = Math.min(cur + (caps.zoom.step || 0.05), caps.zoom.max);
         await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
-        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 100);
+        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 80);
       } catch {}
     }
 
     function setupZoom() {
-      const slider = document.getElementById('zoomSlider');
+      const slider = DOM_CACHE.zoomSlider;
       if (!currentTrack?.getCapabilities) return;
 
       try {
@@ -711,7 +795,7 @@
         return;
       }
       flashOn = !flashOn;
-      const btn = document.getElementById('btnFlash');
+      const btn = DOM_CACHE.btnFlash;
       if (flashOn) {
         btn.classList.add('active');
       } else {
@@ -741,15 +825,15 @@
 
     async function enviarDados(tipo) {
       const quantidade = document.getElementById('quantidade').value;
-      const statusDiv  = document.getElementById('status');
+      const statusDiv  = DOM_CACHE.status;
       if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
         statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
         statusDiv.className = 'status-erro';
         statusDiv.style.display = 'block';
         return;
       }
-      document.getElementById('btnEntrada').disabled = true;
-      document.getElementById('btnSaida').disabled   = true;
+      DOM_CACHE.btnEntrada.disabled = true;
+      DOM_CACHE.btnSaida.disabled   = true;
       statusDiv.innerText = 'Registrando...';
       statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
@@ -762,7 +846,7 @@
         setTimeout(() => {
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
-          document.getElementById('qr-result').textContent = 'Aponte a câmera para o Data Matrix';
+          DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
           statusDiv.style.display = 'none';
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 800);
@@ -777,13 +861,13 @@
           startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
         }, 1000);
       } finally {
-        document.getElementById('btnEntrada').disabled = false;
-        document.getElementById('btnSaida').disabled   = false;
+        DOM_CACHE.btnEntrada.disabled = false;
+        DOM_CACHE.btnSaida.disabled   = false;
       }
     }
 
     async function carregarTodosOsDados(isUpdate = false) {
-      const overlay = document.getElementById('loading-overlay');
+      const overlay = DOM_CACHE.loadingOverlay;
       if (!isUpdate) overlay.style.display = 'flex';
       try {
         const res = await apiGet('obter');
@@ -797,7 +881,8 @@
           throw new Error(res.mensagem);
         }
       } catch (err) {
-        overlay.querySelector('span').textContent = 'Erro: ' + normalizeError(err);
+        overlay.querySelector('span').textContent = 'Erro ao carregar: ' + normalizeError(err);
+        setTimeout(() => { overlay.style.display = 'none'; }, 2000);
       } finally {
         if (!isUpdate) overlay.style.display = 'none';
       }
@@ -806,46 +891,71 @@
     function renderizarEstoque() {
       const corpoTabela = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque || appData.estoque.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return;
+        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; 
+        return;
       }
-      corpoTabela.innerHTML = appData.estoque.map(item =>
-        `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
-      ).join('');
+      // Usar DocumentFragment para melhor performance
+      const fragment = document.createDocumentFragment();
+      appData.estoque.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td>`;
+        fragment.appendChild(row);
+      });
+      corpoTabela.innerHTML = '';
+      corpoTabela.appendChild(fragment);
     }
 
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
       if (!appData.alertas || appData.alertas.length === 0) {
-        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return;
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
+        return;
       }
-      lista.innerHTML = appData.alertas.map(item => {
+      // Usar DocumentFragment para melhor performance
+      const fragment = document.createDocumentFragment();
+      appData.alertas.forEach(item => {
         let liClass = '';
         if (item.tipo === 'Vencido') liClass = 'alert-vencido';
         else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
-        return `<li class="${liClass}"><strong>${item.tipo}</strong>
-${item.descricao}
-<small>${item.detalhe || ''}</small></li>`;
-      }).join('');
+        
+        const li = document.createElement('li');
+        li.className = liClass;
+        li.innerHTML = `<strong>${item.tipo}</strong><br/>${item.descricao}<br/><small>${item.detalhe || ''}</small>`;
+        fragment.appendChild(li);
+      });
+      lista.innerHTML = '';
+      lista.appendChild(fragment);
     }
 
     function renderizarMovimentacoes() {
       const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
       if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return;
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; 
+        return;
       }
-      corpoTabela.innerHTML = appData.movimentacoes.map(mov => {
+      // Usar DocumentFragment para melhor performance
+      const fragment = document.createDocumentFragment();
+      appData.movimentacoes.forEach(mov => {
         const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
-        return `<tr><td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`;
-      }).join('');
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td>`;
+        fragment.appendChild(row);
+      });
+      corpoTabela.innerHTML = '';
+      corpoTabela.appendChild(fragment);
     }
 
     function filtrarTabela(idTabela, input) {
       const filtro = input.value.toUpperCase();
       const tabela = document.getElementById(idTabela);
       const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-      for (let i = 0; i < linhas.length; i++) {
-        linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
-      }
+      
+      // Usar requestAnimationFrame para não bloquear a UI
+      requestAnimationFrame(() => {
+        for (let i = 0; i < linhas.length; i++) {
+          linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
+        }
+      });
     }
 
     function mostrarPagina(pageId) {
@@ -864,7 +974,10 @@ ${item.descricao}
       }
     }
 
-    window.onload = () => { carregarTodosOsDados(); };
+    window.addEventListener('load', () => { 
+      initDOMCache();
+      carregarTodosOsDados(); 
+    });
   </script>
 
 </body>
