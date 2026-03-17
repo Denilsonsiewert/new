@@ -330,56 +330,146 @@
     .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
     .tipo-saida   { color: var(--cor-perigo); font-weight: 600; }
 
-    /* ALERTAS */
-    .alert-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    /* ALERTAS - NOVO DESIGN */
+    .alerts-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .alert-list li {
-      padding: 14px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      background: #f8f9fa;
-      border-left: 5px solid #d0d0d0;
-      color: var(--cor-texto);
+    .alerts-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .alert-vencido {
-      background: #f8d7da;
-      color: #8a1c21;
+    .alerts-section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 12px 0;
+      border-bottom: 3px solid;
+      margin-bottom: 8px;
+    }
+
+    .alerts-section-title.vencidos {
+      color: var(--cor-perigo);
+      border-bottom-color: var(--cor-perigo);
+    }
+
+    .alerts-section-title.proximos {
+      color: var(--cor-alerta);
+      border-bottom-color: var(--cor-alerta);
+    }
+
+    .alert-card {
+      display: flex;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 12px;
+      border-left: 5px solid;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .alert-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .alert-card.vencido {
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
       border-left-color: var(--cor-perigo);
-      border: 2px solid var(--cor-perigo);
+      border: 1px solid #ffcccc;
       border-left: 5px solid var(--cor-perigo);
     }
 
-    .alert-7dias {
-      background: #fff3cd;
-      color: #664d03;
+    .alert-card.proximo {
+      background: linear-gradient(135deg, #fffbf0 0%, #fff9e6 100%);
       border-left-color: var(--cor-alerta);
-      border: 2px solid var(--cor-alerta);
+      border: 1px solid #ffe8a3;
       border-left: 5px solid var(--cor-alerta);
     }
 
-    .alert-item-info {
+    .alert-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+    }
+
+    .alert-card.vencido .alert-icon {
+      background: rgba(220, 53, 69, 0.15);
+    }
+
+    .alert-card.proximo .alert-icon {
+      background: rgba(255, 193, 7, 0.15);
+    }
+
+    .alert-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .alert-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .alert-card.vencido .alert-title {
+      color: var(--cor-perigo);
+    }
+
+    .alert-card.proximo .alert-title {
+      color: #b8860b;
+    }
+
+    .alert-details {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 8px;
+      gap: 10px;
       font-size: 0.9rem;
     }
 
-    .alert-item-info-row {
+    .alert-detail-item {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 2px;
     }
 
-    .alert-item-info-row strong {
+    .alert-detail-label {
       font-weight: 600;
+      color: var(--cor-texto-claro);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
+    .alert-detail-value {
+      color: var(--cor-texto);
+      font-weight: 500;
+    }
+
+    .alert-card.vencido .alert-detail-value {
+      color: #8a1c21;
+    }
+
+    .alert-card.proximo .alert-detail-value {
+      color: #664d03;
+    }
+
+    .placeholder { 
+      text-align: center; 
+      padding: 40px 20px; 
+      color: var(--cor-texto-claro);
+      font-size: 1.1rem;
+    }
 
     /* CARREGAMENTO */
     .loading-overlay {
@@ -600,7 +690,7 @@
       <div id="page-alertas" class="page">
         <div class="card">
           <h2>Alertas de Estoque</h2>
-          <ul id="lista-alertas" class="alert-list"></ul>
+          <div id="alertas-content"></div>
         </div>
       </div>
 
@@ -800,7 +890,6 @@
       focusAttempts = 0;
       lastZoomNudge = 0;
       
-      // Ativar modo contínuo imediatamente
       (async () => { 
         try { 
           await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
@@ -809,14 +898,11 @@
       
       clearInterval(focusIntervalId);
       
-      // TURBO FOCUS: Ciclo ultra-rápido de 180ms com nudge de contraste
       focusIntervalId = setInterval(() => {
         if (currentTrack && autoFocusActive && scannerActive) {
           focusAttempts++;
           
-          // A cada ciclo, aplicar estratégia diferente
           if (focusAttempts % 3 === 0) {
-            // A cada 3 ciclos: Single-shot para refoco forçado
             currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
               .then(() => {
                 setTimeout(() => {
@@ -827,14 +913,12 @@
               })
               .catch(()=>{});
           } else if (focusAttempts % 2 === 0) {
-            // A cada 2 ciclos: Nudge de zoom para "acordar" o hardware
             applyZoomNudge();
           } else {
-            // Ciclos normais: Manter contínuo
             currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
           }
         }
-      }, 180); // TURBO: 180ms - 5.5x por segundo!
+      }, 180);
     }
 
     async function applyZoomNudge() {
@@ -846,7 +930,6 @@
         const settings = currentTrack.getSettings?.() || {};
         const currentZoom = settings.zoom || currentZoomValue || 1;
         
-        // Nudge imperceptível: +0.01 e volta
         const nudgedZoom = Math.min(currentZoom + 0.01, caps.zoom.max || 5);
         await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
         
@@ -883,7 +966,6 @@
           const settings = currentTrack.getSettings?.() || {};
           slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
           
-          // Aplicar zoom inicial de 30%
           applyInitialZoom();
         }
       } catch {}
@@ -953,7 +1035,6 @@
       return response.json();
     }
 
-    // Função para verificar se um item está vencido
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -967,7 +1048,6 @@
       }
     }
 
-    // Função para obter informações do item pelo QR code
     async function obterInfoItem(qrCode) {
       try {
         const res = await apiGet(`obter_item&qr=${encodeURIComponent(qrCode)}`);
@@ -978,7 +1058,6 @@
       return null;
     }
 
-    // Mostrar modal de confirmação para item vencido
     function mostrarModalVencido(item, lote, validade, quantidade) {
       document.getElementById('modal-item').textContent = item || 'N/A';
       document.getElementById('modal-lote').textContent = lote || 'N/A';
@@ -994,7 +1073,6 @@
       document.getElementById('modal-vencido').classList.add('active');
     }
 
-    // Confirmar entrada de item vencido
     async function confirmarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       if (entradaVencidaPendente) {
@@ -1003,7 +1081,6 @@
       entradaVencidaPendente = null;
     }
 
-    // Cancelar entrada de item vencido
     function cancelarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       entradaVencidaPendente = null;
@@ -1012,7 +1089,6 @@
       startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
     }
 
-    // Função auxiliar para registrar movimentação
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
       const statusDiv = DOM_CACHE.status;
       statusDiv.innerText = 'Registrando...';
@@ -1059,7 +1135,6 @@
       DOM_CACHE.btnEntrada.disabled = true;
       DOM_CACHE.btnSaida.disabled   = true;
 
-      // Se for entrada, verificar se o item está vencido
       if (tipo === 'Entrada') {
         try {
           const infoItem = await obterInfoItem(qrCodeCompleto);
@@ -1070,7 +1145,6 @@
         } catch {}
       }
 
-      // Se não for vencido ou for saída, registrar normalmente
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
@@ -1113,35 +1187,91 @@
     }
 
     function renderizarAlertas() {
-      const lista = document.getElementById('lista-alertas');
+      const container = document.getElementById('alertas-content');
+      
       if (!appData.alertas || appData.alertas.length === 0) {
-        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
+        container.innerHTML = '<div class="placeholder">🎉 Nenhum alerta no momento.</div>';
         return;
       }
-      const fragment = document.createDocumentFragment();
-      appData.alertas.forEach(item => {
-        let liClass = '';
-        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
-        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
-        
-        const li = document.createElement('li');
-        li.className = liClass;
-        
-        // Construir conteúdo do alerta com informações detalhadas
-        let conteudo = `<strong>${item.tipo}</strong>`;
-        
-        if (item.item) conteudo += `<br/><strong>Item:</strong> ${item.item}`;
-        if (item.lote) conteudo += `<br/><strong>Lote:</strong> ${item.lote}`;
-        if (item.validade) conteudo += `<br/><strong>Validade:</strong> ${item.validade}`;
-        if (item.quantidade) conteudo += `<br/><strong>Quantidade:</strong> ${item.quantidade}`;
-        if (item.descricao) conteudo += `<br/><small>${item.descricao}</small>`;
-        if (item.detalhe) conteudo += `<br/><small>${item.detalhe}</small>`;
-        
-        li.innerHTML = conteudo;
-        fragment.appendChild(li);
-      });
-      lista.innerHTML = '';
-      lista.appendChild(fragment);
+
+      // Separar alertas por tipo
+      const vencidos = appData.alertas.filter(a => a.tipo === 'Vencido');
+      const proximos = appData.alertas.filter(a => a.tipo === 'Vencimento Próximo' && Number(a.dias) <= 7);
+
+      let html = '<div class="alerts-container">';
+
+      // Seção de Vencidos
+      if (vencidos.length > 0) {
+        html += '<div class="alerts-section">';
+        html += '<div class="alerts-section-title vencidos">🚨 Itens Vencidos</div>';
+        vencidos.forEach(item => {
+          html += `
+            <div class="alert-card vencido">
+              <div class="alert-icon">⛔</div>
+              <div class="alert-content">
+                <div class="alert-title">${item.item || 'Item sem nome'}</div>
+                <div class="alert-details">
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Lote</span>
+                    <span class="alert-detail-value">${item.lote || 'N/A'}</span>
+                  </div>
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Validade</span>
+                    <span class="alert-detail-value">${item.validade || 'N/A'}</span>
+                  </div>
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Quantidade</span>
+                    <span class="alert-detail-value">${item.quantidade || '0'}</span>
+                  </div>
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Status</span>
+                    <span class="alert-detail-value">Vencido</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      // Seção de Próximos do Vencimento
+      if (proximos.length > 0) {
+        html += '<div class="alerts-section">';
+        html += '<div class="alerts-section-title proximos">⏰ Próximos do Vencimento</div>';
+        proximos.forEach(item => {
+          html += `
+            <div class="alert-card proximo">
+              <div class="alert-icon">⚠️</div>
+              <div class="alert-content">
+                <div class="alert-title">${item.item || 'Item sem nome'}</div>
+                <div class="alert-details">
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Lote</span>
+                    <span class="alert-detail-value">${item.lote || 'N/A'}</span>
+                  </div>
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Validade</span>
+                    <span class="alert-detail-value">${item.validade || 'N/A'}</span>
+                  </div>
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Quantidade</span>
+                    <span class="alert-detail-value">${item.quantidade || '0'}</span>
+                  </div>
+                  <div class="alert-detail-item">
+                    <span class="alert-detail-label">Dias para vencer</span>
+                    <span class="alert-detail-value">${item.dias || '0'} dias</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
     }
 
     function renderizarMovimentacoes() {
