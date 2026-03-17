@@ -527,6 +527,10 @@
     let currentRearIndex = 0;
     let tapFocusTimeout = null;
     let lastFocusTime = 0;
+    let autoFocusActive = false;
+    let focusAttempts = 0;
+    let lastAutoFocusTime = 0;
+    let focusMode = 'continuous';
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
@@ -578,7 +582,7 @@
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 25,
+        fps: 20,
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
         formatsToSupport: [
@@ -633,10 +637,9 @@
             }
           } catch {}
 
-          setupAutofocusLoop();
+          setupIntelligentAutofocus();
           setupImageCapture();
           setupZoom();
-          attachTapToFocus(videoElem);
           return;
         } catch (err) {
           lastErr = err;
@@ -674,13 +677,19 @@
         currentTrack = null;
         imageCapture = null;
         scannerActive = false;
+        autoFocusActive = false;
         DOM_CACHE.readerContainer.classList.remove('scanning-active');
       }
     }
 
-    function setupAutofocusLoop() {
+    function setupIntelligentAutofocus() {
       if (!currentTrack?.applyConstraints) return;
       
+      autoFocusActive = true;
+      focusAttempts = 0;
+      focusMode = 'continuous';
+      
+      // Tentar modo contínuo primeiro
       (async () => { 
         try { 
           await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
@@ -688,12 +697,32 @@
       })();
       
       clearInterval(focusIntervalId);
-      // Aumentar intervalo de 600ms para 1000ms para economizar bateria
+      
+      // Sistema inteligente: alterna entre contínuo e single-shot para garantir foco rápido
       focusIntervalId = setInterval(() => {
-        if (currentTrack) {
-          currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+        if (currentTrack && autoFocusActive && scannerActive) {
+          focusAttempts++;
+          
+          // A cada 2 ciclos, forçar um single-shot para refoco rápido
+          if (focusAttempts % 2 === 0) {
+            focusMode = 'single-shot';
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+              .then(() => {
+                setTimeout(() => {
+                  if (currentTrack && autoFocusActive) {
+                    focusMode = 'continuous';
+                    currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+                  }
+                }, 120);
+              })
+              .catch(()=>{});
+          } else {
+            // Manter contínuo nos outros ciclos
+            focusMode = 'continuous';
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+          }
         }
-      }, 1000);
+      }, 350); // Intervalo reduzido para 350ms para foco mais rápido e responsivo
     }
 
     function setupImageCapture() {
@@ -706,59 +735,6 @@
           }
         }).catch(()=>{});
       } catch { imageCapture = null; }
-    }
-
-    function attachTapToFocus(videoElem) {
-      const container = DOM_CACHE.readerContainer;
-      const dot = DOM_CACHE.tapDot;
-      
-      container.onclick = async (ev) => {
-        if (!videoElem || ev.target.closest('.camera-controls-module')) return;
-
-        // Throttle tap-to-focus: máximo uma vez a cada 300ms
-        const now = Date.now();
-        if (now - lastFocusTime < 300) return;
-        lastFocusTime = now;
-
-        const rect = videoElem.getBoundingClientRect();
-        const x = (ev.clientX - rect.left) / rect.width;
-        const y = (ev.clientY - rect.top) / rect.height;
-
-        dot.style.left = `${ev.clientX - rect.left}px`;
-        dot.style.top  = `${ev.clientY - rect.top}px`;
-        dot.style.display = 'block';
-        
-        if (tapFocusTimeout) clearTimeout(tapFocusTimeout);
-        tapFocusTimeout = setTimeout(()=> { 
-          dot.style.display = 'none'; 
-          tapFocusTimeout = null;
-        }, 400);
-
-        try {
-          if (imageCapture?.setOptions) {
-            await imageCapture.setOptions({ pointsOfInterest: [{ x, y }] });
-            await imageCapture.setOptions({ focusMode: 'single-shot' }).catch(()=>{});
-            setTimeout(()=> imageCapture.setOptions({ focusMode: 'continuous' }).catch(()=>{}), 200);
-          } else {
-            quickRefocusByMicroZoom();
-          }
-        } catch {
-          quickRefocusByMicroZoom();
-        }
-      };
-    }
-
-    async function quickRefocusByMicroZoom() {
-      try {
-        if (!currentTrack?.getCapabilities) return;
-        const caps = currentTrack.getCapabilities();
-        if (!caps?.zoom) return;
-        const settings = currentTrack.getSettings?.() || {};
-        const cur = settings.zoom || caps.zoom.min || 1;
-        const nudge = Math.min(cur + (caps.zoom.step || 0.05), caps.zoom.max);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: nudge }] });
-        setTimeout(()=> currentTrack.applyConstraints({ advanced: [{ zoom: cur }] }).catch(()=>{}), 80);
-      } catch {}
     }
 
     function setupZoom() {
@@ -789,7 +765,7 @@
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
         const zoomRange = maxZoom - minZoom;
-        const initialZoom = minZoom + (zoomRange * 0.3); // 30% do intervalo disponível
+        const initialZoom = minZoom + (zoomRange * 0.3);
         
         await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
         DOM_CACHE.zoomSlider.value = initialZoom;
@@ -913,7 +889,6 @@
         corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; 
         return;
       }
-      // Usar DocumentFragment para melhor performance
       const fragment = document.createDocumentFragment();
       appData.estoque.forEach(item => {
         const row = document.createElement('tr');
@@ -930,7 +905,6 @@
         lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
         return;
       }
-      // Usar DocumentFragment para melhor performance
       const fragment = document.createDocumentFragment();
       appData.alertas.forEach(item => {
         let liClass = '';
@@ -952,7 +926,6 @@
         corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; 
         return;
       }
-      // Usar DocumentFragment para melhor performance
       const fragment = document.createDocumentFragment();
       appData.movimentacoes.forEach(mov => {
         const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
@@ -969,7 +942,6 @@
       const tabela = document.getElementById(idTabela);
       const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
       
-      // Usar requestAnimationFrame para não bloquear a UI
       requestAnimationFrame(() => {
         for (let i = 0; i < linhas.length; i++) {
           linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
