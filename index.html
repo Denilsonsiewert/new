@@ -1205,23 +1205,29 @@
         html += '<div class="alerts-section">';
         html += '<div class="alerts-section-title vencidos">🚨 Itens Vencidos</div>';
         vencidos.forEach(item => {
+          // Usar descricao como fallback para item se item não existir
+          const nomeItem = item.item || item.descricao || 'Item sem nome';
+          const lote = item.lote || item.detalhe || 'N/A';
+          const validade = item.validade || 'N/A';
+          const quantidade = item.quantidade || item.qtd || '0';
+          
           html += `
             <div class="alert-card vencido">
               <div class="alert-icon">⛔</div>
               <div class="alert-content">
-                <div class="alert-title">${item.item || 'Item sem nome'}</div>
+                <div class="alert-title">${nomeItem}</div>
                 <div class="alert-details">
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Lote</span>
-                    <span class="alert-detail-value">${item.lote || 'N/A'}</span>
+                    <span class="alert-detail-value">${lote}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Validade</span>
-                    <span class="alert-detail-value">${item.validade || 'N/A'}</span>
+                    <span class="alert-detail-value">${validade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Quantidade</span>
-                    <span class="alert-detail-value">${item.quantidade || '0'}</span>
+                    <span class="alert-detail-value">${quantidade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Status</span>
@@ -1240,23 +1246,29 @@
         html += '<div class="alerts-section">';
         html += '<div class="alerts-section-title proximos">⏰ Próximos do Vencimento</div>';
         proximos.forEach(item => {
+          // Usar descricao como fallback para item se item não existir
+          const nomeItem = item.item || item.descricao || 'Item sem nome';
+          const lote = item.lote || item.detalhe || 'N/A';
+          const validade = item.validade || 'N/A';
+          const quantidade = item.quantidade || item.qtd || '0';
+          
           html += `
             <div class="alert-card proximo">
               <div class="alert-icon">⚠️</div>
               <div class="alert-content">
-                <div class="alert-title">${item.item || 'Item sem nome'}</div>
+                <div class="alert-title">${nomeItem}</div>
                 <div class="alert-details">
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Lote</span>
-                    <span class="alert-detail-value">${item.lote || 'N/A'}</span>
+                    <span class="alert-detail-value">${lote}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Validade</span>
-                    <span class="alert-detail-value">${item.validade || 'N/A'}</span>
+                    <span class="alert-detail-value">${validade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Quantidade</span>
-                    <span class="alert-detail-value">${item.quantidade || '0'}</span>
+                    <span class="alert-detail-value">${quantidade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Dias para vencer</span>
