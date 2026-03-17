@@ -236,25 +236,6 @@
       cursor: pointer;
     }
 
-    /* TAP FOCUS */
-    .tap-focus-dot {
-      position: absolute;
-      width: 22px; height: 22px;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      pointer-events: none;
-      display: none;
-      animation: focusPulse .4s ease-out;
-      z-index: 22;
-      will-change: transform;
-    }
-
-    @keyframes focusPulse {
-      0% { transform: scale(.4); opacity: 0; }
-      50% { opacity: 1; }
-      100% { transform: scale(1); opacity: 0; }
-    }
-
     /* INPUTS */
     .input-group { margin-bottom: 18px; }
 
@@ -434,9 +415,6 @@
                 <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
               </div>
             </div>
-
-            <!-- Pontinho do tap-to-focus -->
-            <div id="tapDot" class="tap-focus-dot"></div>
           </div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
@@ -508,7 +486,6 @@
       reader: null,
       qrResult: null,
       status: null,
-      tapDot: null,
       zoomSlider: null,
       btnFlash: null,
       btnEntrada: null,
@@ -525,12 +502,10 @@
     let scannerActive = false;
     let rearCameras = [];
     let currentRearIndex = 0;
-    let tapFocusTimeout = null;
-    let lastFocusTime = 0;
     let autoFocusActive = false;
     let focusAttempts = 0;
-    let lastAutoFocusTime = 0;
-    let focusMode = 'continuous';
+    let lastZoomNudge = 0;
+    let currentZoomValue = 1;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
@@ -540,7 +515,6 @@
       DOM_CACHE.reader = document.getElementById('reader');
       DOM_CACHE.qrResult = document.getElementById('qr-result');
       DOM_CACHE.status = document.getElementById('status');
-      DOM_CACHE.tapDot = document.getElementById('tapDot');
       DOM_CACHE.zoomSlider = document.getElementById('zoomSlider');
       DOM_CACHE.btnFlash = document.getElementById('btnFlash');
       DOM_CACHE.btnEntrada = document.getElementById('btnEntrada');
@@ -582,13 +556,10 @@
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 20,
+        fps: 18,
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.DATA_MATRIX,
-          Html5QrcodeSupportedFormats.QR_CODE
-        ],
+        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
         experimentalFeatures: { useBarCodeDetectorIfSupported: true }
       };
 
@@ -637,7 +608,7 @@
             }
           } catch {}
 
-          setupIntelligentAutofocus();
+          setupTurboAutofocus();
           setupImageCapture();
           setupZoom();
           return;
@@ -667,7 +638,6 @@
     async function stopScanner(silent = false) {
       try {
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
-        if (tapFocusTimeout) { clearTimeout(tapFocusTimeout); tapFocusTimeout = null; }
         if (html5QrCode) {
           await html5QrCode.stop().catch(()=>{});
           await html5QrCode.clear().catch(()=>{});
@@ -682,14 +652,14 @@
       }
     }
 
-    function setupIntelligentAutofocus() {
+    function setupTurboAutofocus() {
       if (!currentTrack?.applyConstraints) return;
       
       autoFocusActive = true;
       focusAttempts = 0;
-      focusMode = 'continuous';
+      lastZoomNudge = 0;
       
-      // Tentar modo contínuo primeiro
+      // Ativar modo contínuo imediatamente
       (async () => { 
         try { 
           await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
@@ -698,31 +668,53 @@
       
       clearInterval(focusIntervalId);
       
-      // Sistema inteligente: alterna entre contínuo e single-shot para garantir foco rápido
+      // TURBO FOCUS: Ciclo ultra-rápido de 180ms com nudge de contraste
       focusIntervalId = setInterval(() => {
         if (currentTrack && autoFocusActive && scannerActive) {
           focusAttempts++;
           
-          // A cada 2 ciclos, forçar um single-shot para refoco rápido
-          if (focusAttempts % 2 === 0) {
-            focusMode = 'single-shot';
+          // A cada ciclo, aplicar estratégia diferente
+          if (focusAttempts % 3 === 0) {
+            // A cada 3 ciclos: Single-shot para refoco forçado
             currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
               .then(() => {
                 setTimeout(() => {
                   if (currentTrack && autoFocusActive) {
-                    focusMode = 'continuous';
                     currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
                   }
-                }, 120);
+                }, 80);
               })
               .catch(()=>{});
+          } else if (focusAttempts % 2 === 0) {
+            // A cada 2 ciclos: Nudge de zoom para "acordar" o hardware
+            applyZoomNudge();
           } else {
-            // Manter contínuo nos outros ciclos
-            focusMode = 'continuous';
+            // Ciclos normais: Manter contínuo
             currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
           }
         }
-      }, 350); // Intervalo reduzido para 350ms para foco mais rápido e responsivo
+      }, 180); // TURBO: 180ms - 5.5x por segundo!
+    }
+
+    async function applyZoomNudge() {
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+        
+        const settings = currentTrack.getSettings?.() || {};
+        const currentZoom = settings.zoom || currentZoomValue || 1;
+        
+        // Nudge imperceptível: +0.01 e volta
+        const nudgedZoom = Math.min(currentZoom + 0.01, caps.zoom.max || 5);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
+        
+        setTimeout(() => {
+          if (currentTrack) {
+            currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(()=>{});
+          }
+        }, 50);
+      } catch {}
     }
 
     function setupImageCapture() {
@@ -767,6 +759,7 @@
         const zoomRange = maxZoom - minZoom;
         const initialZoom = minZoom + (zoomRange * 0.3);
         
+        currentZoomValue = initialZoom;
         await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
         DOM_CACHE.zoomSlider.value = initialZoom;
       } catch {}
@@ -775,7 +768,8 @@
     async function setZoom(value) {
       if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
       try {
-        await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(value) }] });
+        currentZoomValue = parseFloat(value);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
       } catch {}
     }
 
