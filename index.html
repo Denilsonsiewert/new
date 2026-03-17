@@ -1186,6 +1186,54 @@
       corpoTabela.appendChild(fragment);
     }
 
+    // Função auxiliar para extrair e limpar informações do alerta
+    function parseAlertData(item) {
+      let nomeItem = item.item || item.descricao || '';
+      let lote = item.lote || '';
+      let validade = item.validade || '';
+      let quantidade = item.quantidade || item.qtd || '0';
+
+      // Se o nome do item contém padrão "XXXXX (Lote: XXXXX)", extrair corretamente
+      if (nomeItem && nomeItem.includes('(Lote:')) {
+        const match = nomeItem.match(/^([^(]+)\s*\(Lote:\s*([^)]+)\)/);
+        if (match) {
+          nomeItem = match[1].trim();
+          if (!lote) lote = match[2].trim();
+        }
+      }
+
+      // Se a validade contém padrão "Venceu em DD/MM/YYYY", extrair a data
+      if (validade && validade.includes('Venceu em')) {
+        const dateMatch = validade.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          validade = dateMatch[1];
+        }
+      }
+
+      // Se a validade contém padrão "Vencerá em DD/MM/YYYY", extrair a data
+      if (validade && validade.includes('Vencerá em')) {
+        const dateMatch = validade.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          validade = dateMatch[1];
+        }
+      }
+
+      // Limpar quantidade de textos extras
+      if (quantidade && typeof quantidade === 'string') {
+        const qtdMatch = quantidade.match(/(\d+)/);
+        if (qtdMatch) {
+          quantidade = qtdMatch[1];
+        }
+      }
+
+      return {
+        item: nomeItem || 'Item sem nome',
+        lote: lote || 'N/A',
+        validade: validade || 'N/A',
+        quantidade: quantidade || '0'
+      };
+    }
+
     function renderizarAlertas() {
       const container = document.getElementById('alertas-content');
       
@@ -1205,29 +1253,25 @@
         html += '<div class="alerts-section">';
         html += '<div class="alerts-section-title vencidos">🚨 Itens Vencidos</div>';
         vencidos.forEach(item => {
-          // Usar descricao como fallback para item se item não existir
-          const nomeItem = item.item || item.descricao || 'Item sem nome';
-          const lote = item.lote || item.detalhe || 'N/A';
-          const validade = item.validade || 'N/A';
-          const quantidade = item.quantidade || item.qtd || '0';
+          const dados = parseAlertData(item);
           
           html += `
             <div class="alert-card vencido">
               <div class="alert-icon">⛔</div>
               <div class="alert-content">
-                <div class="alert-title">${nomeItem}</div>
+                <div class="alert-title">${dados.item}</div>
                 <div class="alert-details">
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Lote</span>
-                    <span class="alert-detail-value">${lote}</span>
+                    <span class="alert-detail-value">${dados.lote}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Validade</span>
-                    <span class="alert-detail-value">${validade}</span>
+                    <span class="alert-detail-value">${dados.validade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Quantidade</span>
-                    <span class="alert-detail-value">${quantidade}</span>
+                    <span class="alert-detail-value">${dados.quantidade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Status</span>
@@ -1246,29 +1290,25 @@
         html += '<div class="alerts-section">';
         html += '<div class="alerts-section-title proximos">⏰ Próximos do Vencimento</div>';
         proximos.forEach(item => {
-          // Usar descricao como fallback para item se item não existir
-          const nomeItem = item.item || item.descricao || 'Item sem nome';
-          const lote = item.lote || item.detalhe || 'N/A';
-          const validade = item.validade || 'N/A';
-          const quantidade = item.quantidade || item.qtd || '0';
+          const dados = parseAlertData(item);
           
           html += `
             <div class="alert-card proximo">
               <div class="alert-icon">⚠️</div>
               <div class="alert-content">
-                <div class="alert-title">${nomeItem}</div>
+                <div class="alert-title">${dados.item}</div>
                 <div class="alert-details">
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Lote</span>
-                    <span class="alert-detail-value">${lote}</span>
+                    <span class="alert-detail-value">${dados.lote}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Validade</span>
-                    <span class="alert-detail-value">${validade}</span>
+                    <span class="alert-detail-value">${dados.validade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Quantidade</span>
-                    <span class="alert-detail-value">${quantidade}</span>
+                    <span class="alert-detail-value">${dados.quantidade}</span>
                   </div>
                   <div class="alert-detail-item">
                     <span class="alert-detail-label">Dias para vencer</span>
