@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gestão de Estoque Pro</title>
 
-  <!-- Pré-conexão para acelerar fontes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <!-- Fontes e biblioteca do leitor -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8"></script>
 
-  <!-- CSS Universal com Navegação Inferior Fixa -->
   <style>
     :root {
       --cor-primaria: #0d6efd;
@@ -21,17 +17,14 @@
       --cor-perigo: #dc3545;
       --cor-alerta: #ffc107;
       --cor-vencido: #e74c3c;
-
       --cor-fundo: #f4f6f9;
       --cor-container: #ffffff;
       --cor-texto: #1f1f1f;
       --cor-texto-claro: #6c757d;
-
       --borda-cor: #d8dde3;
       --sombra-suave: 0 4px 12px rgba(0,0,0,0.06);
       --sombra-media: 0 6px 18px rgba(0,0,0,0.08);
       --sombra-forte: 0 10px 30px rgba(0,0,0,0.15);
-
       --altura-nav: 75px;
       --verde: #28a745;
       --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -50,7 +43,6 @@
       color: var(--cor-texto);
     }
 
-    /* CONTEÚDO PRINCIPAL - SEMPRE COM ESPAÇO PARA NAV INFERIOR */
     .app-main {
       flex-grow: 1;
       overflow-y: auto;
@@ -68,7 +60,6 @@
       margin: 0 auto;
     }
 
-    /* NAVEGAÇÃO INFERIOR FIXA EM TODOS OS DISPOSITIVOS */
     .app-nav {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -100,26 +91,15 @@
       text-decoration: none;
     }
 
-    .nav-link .icon {
-      font-size: 1.6rem;
-      transition: transform 0.2s ease;
-    }
+    .nav-link .icon { font-size: 1.6rem; transition: transform 0.2s ease; }
+    .nav-link.active { color: var(--cor-primaria); }
+    .nav-link.active .icon { transform: translateY(-3px); }
 
-    .nav-link.active {
-      color: var(--cor-primaria);
-    }
-
-    .nav-link.active .icon {
-      transform: translateY(-3px);
-    }
-
-    /* PÁGINAS */
     .page { display: none; width: 100%; }
     .page.active { display: block; animation: fadeIn 0.25s ease-out; }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* CARDS PROFISSIONAIS */
     .card {
       background: var(--cor-container);
       padding: 24px;
@@ -137,7 +117,6 @@
       color: var(--cor-texto);
     }
 
-    /* LEITOR TURBO */
     #reader-container {
       position: relative;
       width: 100%;
@@ -157,16 +136,9 @@
       box-shadow: 0 0 20px rgba(40,167,69,0.3);
     }
 
-    #reader {
-      width: 100%;
-      height: 100%;
-    }
+    #reader { width: 100%; height: 100%; }
+    #reader video { object-fit: cover !important; width: 100%; height: 100%; }
 
-    #reader video {
-      object-fit: cover !important;
-    }
-
-    /* CONTROLES DA CÂMERA */
     .camera-controls-module {
       position: absolute;
       bottom: 16px;
@@ -229,7 +201,6 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
 
-    /* FORMULÁRIO */
     .input-group { margin-bottom: 20px; }
 
     label {
@@ -281,7 +252,6 @@
       box-shadow: 0 4px 6px rgba(220,53,69,0.15);
     }
 
-    /* STATUS */
     #status {
       margin-top: 20px;
       padding: 15px;
@@ -296,7 +266,6 @@
     .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
 
-    /* TABELAS RESPONSIVAS */
     .table-wrapper { 
       overflow-x: auto; 
       border-radius: 12px;
@@ -326,7 +295,6 @@
       border-bottom: 1px solid #eee;
     }
 
-    /* ALERTAS VISUAIS */
     .alert-list {
       list-style: none;
       padding: 0;
@@ -376,7 +344,6 @@
     .alert-info h4 { margin: 0 0 4px; font-size: 1.1rem; }
     .alert-info p { margin: 0; font-size: 0.9rem; opacity: 0.9; }
 
-    /* MODAL DE SEGURANÇA */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -436,7 +403,6 @@
     .btn-confirm { background: var(--cor-vencido); color: white; }
     .btn-cancel { background: #eee; color: var(--cor-texto); }
 
-    /* CARREGAMENTO */
     .loading-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -459,7 +425,17 @@
 
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* MEDIA QUERIES PARA AJUSTES EM TELAS GRANDES */
+    .qr-result {
+      text-align: center;
+      padding: 16px;
+      margin-top: 16px;
+      font-weight: 500;
+      color: var(--cor-texto);
+      background: #f8f9fa;
+      border-radius: 10px;
+      border: 1px solid var(--borda-cor);
+    }
+
     @media (min-width: 768px) {
       .app-main { padding: 40px; }
       .app-main { padding-bottom: 120px; }
@@ -476,15 +452,12 @@
     <span style="font-weight: 600;">Iniciando Sistema...</span>
   </div>
 
-  <!-- Modal de Segurança -->
   <div id="modal-vencimento" class="modal-overlay">
     <div class="modal-card">
       <div class="icon">🚫</div>
       <h3>Produto Vencido!</h3>
       <p>Este item ultrapassou a data de validade. Deseja realmente dar entrada?</p>
-      <div class="modal-details" id="modal-details-content">
-        <!-- Preenchido via JS -->
-      </div>
+      <div class="modal-details" id="modal-details-content"></div>
       <div class="modal-btns">
         <button class="modal-btn btn-confirm" onclick="confirmarEntradaVencida()">Sim, Confirmar Entrada</button>
         <button class="modal-btn btn-cancel" onclick="cancelarEntradaVencida()">Não, Cancelar</button>
@@ -492,7 +465,6 @@
     </div>
   </div>
 
-  <!-- NAVEGAÇÃO SEMPRE INFERIOR -->
   <nav class="app-nav">
     <button id="nav-registrar" class="nav-link active" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Scanner</span></button>
     <button id="nav-estoque" class="nav-link" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
@@ -537,7 +509,7 @@
       <div id="page-estoque" class="page">
         <div class="card">
           <h2>Consulta de Estoque</h2>
-          <div class="input-group"><input type="text" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Pesquisar item ou lote..." /></div>
+          <div class="input-group"><input type="text" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Pesquisar..." /></div>
           <div class="table-wrapper">
             <table id="tabela-estoque" class="styled-table">
               <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
@@ -550,7 +522,7 @@
       <div id="page-movimentacoes" class="page">
         <div class="card">
           <h2>Histórico</h2>
-          <div class="input-group"><input type="text" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Filtrar histórico..." /></div>
+          <div class="input-group"><input type="text" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Filtrar..." /></div>
           <div class="table-wrapper">
             <table id="tabela-movimentacoes" class="styled-table">
               <thead><tr><th>Data</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Qtd</th></tr></thead>
@@ -574,120 +546,157 @@
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
-    const DOM = {
-      reader: null, container: null, result: null, status: null,
-      slider: null, flash: null, modal: null, modalContent: null,
-      overlay: null, btnE: null, btnS: null
-    };
-
-    let html5QrCode, currentTrack, scannerActive = false, flashOn = false;
-    let qrCodeLido = null, focusInterval = null, appData = { estoque: [], alertas: [], movimentacoes: [] };
+    let html5QrCode = null;
+    let currentTrack = null;
+    let scannerActive = false;
+    let flashOn = false;
+    let qrCodeLido = null;
+    let focusInterval = null;
+    let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let pendente = null;
-
-    function initDOM() {
-      DOM.reader = document.getElementById('reader');
-      DOM.container = document.getElementById('reader-container');
-      DOM.result = document.getElementById('qr-result');
-      DOM.status = document.getElementById('status');
-      DOM.slider = document.getElementById('zoomSlider');
-      DOM.flash = document.getElementById('btnFlash');
-      DOM.modal = document.getElementById('modal-vencimento');
-      DOM.modalContent = document.getElementById('modal-details-content');
-      DOM.overlay = document.getElementById('loading-overlay');
-      DOM.btnE = document.getElementById('btnEntrada');
-      DOM.btnS = document.getElementById('btnSaida');
-    }
 
     async function startScanner() {
       if (scannerActive) return;
-      if (html5QrCode) await stopScanner();
+      
+      const container = document.getElementById('reader-container');
+      const result = document.getElementById('qr-result');
+      
+      result.textContent = 'Iniciando câmera...';
+      
+      if (html5QrCode) {
+        try { await html5QrCode.stop(); } catch (e) {}
+        try { await html5QrCode.clear(); } catch (e) {}
+      }
 
-      DOM.result.textContent = 'Iniciando câmera...';
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 20, qrbox: { width: 250, height: 250 },
-        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX]
+        fps: 20,
+        qrbox: { width: 250, height: 250 },
+        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
+        disableFlip: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: false
+        }
       };
 
       try {
-        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+        await html5QrCode.start(
+          { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+
         scannerActive = true;
-        DOM.container.classList.add('scanning-active');
-        DOM.result.textContent = 'Aguardando Data Matrix...';
-        
-        const video = DOM.reader.querySelector('video');
-        currentTrack = video?.srcObject?.getVideoTracks()[0];
-        
-        setupTurboFocus();
-        setupInitialZoom();
-      } catch (e) {
-        DOM.result.textContent = "Erro ao acessar câmera.";
+        container.classList.add('scanning-active');
+        result.textContent = 'Aguardando Data Matrix...';
+
+        const video = document.querySelector('#reader video');
+        if (video && video.srcObject) {
+          currentTrack = video.srcObject.getVideoTracks()[0];
+          setupTurboFocus();
+          setupInitialZoom();
+        }
+      } catch (err) {
+        result.textContent = 'Erro ao acessar câmera: ' + err.message;
+        console.error('Erro ao iniciar scanner:', err);
       }
     }
 
     function onScanSuccess(text) {
       if (qrCodeLido) return;
+      // Validar que é Data Matrix (formato específico)
+      if (!text || text.length < 3) return;
       qrCodeLido = text;
       if (navigator.vibrate) navigator.vibrate(100);
-      DOM.result.innerHTML = `<strong>✓ Lido:</strong> ${text}`;
+      document.getElementById('qr-result').innerHTML = `<strong>✓ Data Matrix Lido:</strong> ${text}`;
       stopScanner();
+    }
+
+    function onScanFailure(error) {
+      // Silencioso - não mostra erro a cada frame
     }
 
     async function stopScanner() {
       if (focusInterval) clearInterval(focusInterval);
-      if (html5QrCode) {
-        await html5QrCode.stop().catch(() => {});
-        await html5QrCode.clear().catch(() => {});
-      }
       scannerActive = false;
-      DOM.container.classList.remove('scanning-active');
+      document.getElementById('reader-container').classList.remove('scanning-active');
+      
+      if (html5QrCode) {
+        try { await html5QrCode.stop(); } catch (e) {}
+      }
     }
 
     function setupTurboFocus() {
-      if (!currentTrack?.applyConstraints) return;
+      if (!currentTrack || !currentTrack.applyConstraints) return;
+
       let count = 0;
       focusInterval = setInterval(() => {
+        if (!scannerActive) return;
+        
         count++;
         const mode = (count % 3 === 0) ? "single-shot" : "continuous";
-        currentTrack.applyConstraints({ advanced: [{ focusMode: mode }] }).catch(() => {});
         
+        currentTrack.applyConstraints({ advanced: [{ focusMode: mode }] }).catch(() => {});
+
         if (count % 2 === 0) {
-          const z = (currentTrack.getSettings().zoom || 1);
-          currentTrack.applyConstraints({ advanced: [{ zoom: z + 0.01 }] }).then(() => {
-            setTimeout(() => currentTrack.applyConstraints({ advanced: [{ zoom: z }] }), 50);
-          }).catch(() => {});
+          try {
+            const settings = currentTrack.getSettings();
+            const z = settings.zoom || 1;
+            currentTrack.applyConstraints({ advanced: [{ zoom: z + 0.01 }] }).then(() => {
+              setTimeout(() => {
+                if (currentTrack) currentTrack.applyConstraints({ advanced: [{ zoom: z }] }).catch(() => {});
+              }, 50);
+            }).catch(() => {});
+          } catch (e) {}
         }
       }, 180);
     }
 
     async function setupInitialZoom() {
-      if (!currentTrack?.getCapabilities) return;
-      const caps = currentTrack.getCapabilities();
-      if (caps.zoom) {
-        const initial = (caps.zoom.min || 1) + ((caps.zoom.max - caps.zoom.min) * 0.3);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: initial }] });
-        DOM.slider.value = initial;
-        DOM.slider.min = caps.zoom.min;
-        DOM.slider.max = caps.zoom.max;
-      }
+      if (!currentTrack || !currentTrack.getCapabilities) return;
+
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (caps.zoom) {
+          const min = caps.zoom.min || 1;
+          const max = caps.zoom.max || 5;
+          const initial = min + ((max - min) * 0.3);
+          
+          await currentTrack.applyConstraints({ advanced: [{ zoom: initial }] });
+          
+          const slider = document.getElementById('zoomSlider');
+          slider.min = min;
+          slider.max = max;
+          slider.value = initial;
+        }
+      } catch (e) {}
     }
 
     async function setZoom(v) {
-      if (currentTrack) await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(v) }] });
+      if (currentTrack) {
+        try {
+          await currentTrack.applyConstraints({ advanced: [{ zoom: parseFloat(v) }] });
+        } catch (e) {}
+      }
     }
 
     async function toggleFlash() {
       if (!currentTrack) return;
-      flashOn = !flashOn;
-      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
-      DOM.flash.classList.toggle('active', flashOn);
+      try {
+        flashOn = !flashOn;
+        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+        document.getElementById('btnFlash').classList.toggle('active', flashOn);
+      } catch (e) {
+        alert('Lanterna não suportada neste dispositivo.');
+      }
     }
 
     async function enviarDados(tipo) {
       const qtd = document.getElementById('quantidade').value;
       if (!qrCodeLido || !qtd || qtd <= 0) {
-        mostrarStatus("Erro: Leia o código e informe a quantidade.", "erro");
+        mostrarStatus('Erro: Leia o código e informe a quantidade.', 'erro');
         return;
       }
 
@@ -695,83 +704,111 @@
         const item = appData.estoque.find(i => i.item === qrCodeLido || i.lote === qrCodeLido);
         if (item && isVencido(item.validade)) {
           pendente = { tipo, qtd };
-          DOM.modalContent.innerHTML = `<strong>Item:</strong> ${item.item}<br><strong>Lote:</strong> ${item.lote}<br><strong>Validade:</strong> ${item.validade}`;
-          DOM.modal.classList.add('active');
+          document.getElementById('modal-details-content').innerHTML = 
+            `<strong>Item:</strong> ${item.item}<br><strong>Lote:</strong> ${item.lote}<br><strong>Validade:</strong> ${item.validade}`;
+          document.getElementById('modal-vencimento').classList.add('active');
           return;
         }
       }
+      
       executarEnvio(tipo, qtd);
     }
 
     function isVencido(dataStr) {
       if (!dataStr) return false;
-      const [d, m, a] = dataStr.split('/').map(Number);
-      return new Date(a, m - 1, d) < new Date().setHours(0,0,0,0);
+      try {
+        const [d, m, a] = dataStr.split('/').map(Number);
+        return new Date(a, m - 1, d) < new Date().setHours(0, 0, 0, 0);
+      } catch (e) {
+        return false;
+      }
     }
 
     function confirmarEntradaVencida() {
-      DOM.modal.classList.remove('active');
+      document.getElementById('modal-vencimento').classList.remove('active');
       executarEnvio(pendente.tipo, pendente.qtd);
     }
 
     function cancelarEntradaVencida() {
-      DOM.modal.classList.remove('active');
+      document.getElementById('modal-vencimento').classList.remove('active');
       qrCodeLido = null;
-      DOM.result.textContent = 'Aponte para o Data Matrix';
+      document.getElementById('qr-result').textContent = 'Aponte para o Data Matrix';
       startScanner();
     }
 
     async function executarEnvio(tipo, quantidade) {
-      mostrarStatus("Processando...", "info");
-      DOM.btnE.disabled = DOM.btnS.disabled = true;
+      mostrarStatus('Processando...', 'info');
+      document.getElementById('btnEntrada').disabled = true;
+      document.getElementById('btnSaida').disabled = true;
 
       try {
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'registrar', tipo, qrCodeCompleto: qrCodeLido, quantidade, token: API_TOKEN })
+          body: JSON.stringify({ 
+            action: 'registrar', 
+            tipo, 
+            qrCodeCompleto: qrCodeLido, 
+            quantidade, 
+            token: API_TOKEN 
+          })
         }).then(r => r.json());
 
         mostrarStatus(res.mensagem, res.status === 'sucesso' ? 'sucesso' : 'erro');
+        
         if (res.status === 'sucesso') {
           qrCodeLido = null;
           document.getElementById('quantidade').value = '';
-          setTimeout(() => { DOM.status.style.display = 'none'; startScanner(); }, 1500);
+          setTimeout(() => {
+            document.getElementById('status').style.display = 'none';
+            startScanner();
+          }, 1500);
           carregarDados(true);
         }
       } catch (e) {
-        mostrarStatus("Erro na conexão com o servidor.", "erro");
+        mostrarStatus('Erro na conexão com o servidor.', 'erro');
       } finally {
-        DOM.btnE.disabled = DOM.btnS.disabled = false;
+        document.getElementById('btnEntrada').disabled = false;
+        document.getElementById('btnSaida').disabled = false;
       }
     }
 
     function mostrarStatus(msg, tipo) {
-      DOM.status.textContent = msg;
-      DOM.status.className = `status-${tipo}`;
-      DOM.status.style.display = 'block';
+      const status = document.getElementById('status');
+      status.textContent = msg;
+      status.className = `status-${tipo}`;
+      status.style.display = 'block';
     }
 
     async function carregarDados(update = false) {
-      if (!update) DOM.overlay.style.display = 'flex';
+      if (!update) document.getElementById('loading-overlay').style.display = 'flex';
+      
       try {
         const res = await fetch(`${WEB_APP_URL}?action=obter&token=${API_TOKEN}`).then(r => r.json());
         if (res.status === 'sucesso') {
           appData = res.dados;
           renderizarTudo();
         }
-      } catch (e) {} finally { DOM.overlay.style.display = 'none'; }
+      } catch (e) {
+        console.error('Erro ao carregar dados:', e);
+      } finally {
+        document.getElementById('loading-overlay').style.display = 'none';
+      }
     }
 
     function renderizarTudo() {
       const estoque = document.getElementById('corpo-tabela-estoque');
-      estoque.innerHTML = appData.estoque.map(i => `<tr><td>${i.item}</td><td>${i.lote}</td><td>${i.validade}</td><td><strong>${i.total}</strong></td></tr>`).join('');
+      estoque.innerHTML = (appData.estoque || []).map(i => 
+        `<tr><td>${i.item}</td><td>${i.lote}</td><td>${i.validade}</td><td><strong>${i.total}</strong></td></tr>`
+      ).join('');
 
       const mov = document.getElementById('corpo-tabela-movimentacoes');
-      mov.innerHTML = appData.movimentacoes.map(m => `<tr><td>${m.dataHora.split(' ')[0]}</td><td>${m.tipo}</td><td>${m.item}</td><td>${m.lote}</td><td>${m.qtd}</td></tr>`).join('');
+      mov.innerHTML = (appData.movimentacoes || []).map(m => 
+        `<tr><td>${m.dataHora.split(' ')[0]}</td><td>${m.tipo}</td><td>${m.item}</td><td>${m.lote}</td><td>${m.qtd}</td></tr>`
+      ).join('');
 
       const alertas = document.getElementById('lista-alertas');
-      if (!appData.alertas.length) {
-        alertas.innerHTML = '<div class="placeholder">Nenhum alerta crítico encontrado.</div>';
+      if (!appData.alertas || appData.alertas.length === 0) {
+        alertas.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--cor-texto-claro);">Nenhum alerta crítico.</div>';
       } else {
         alertas.innerHTML = appData.alertas.map(a => {
           const isV = a.tipo === 'Vencido';
@@ -800,10 +837,17 @@
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       document.getElementById('page-' + id).classList.add('active');
       document.getElementById('nav-' + id).classList.add('active');
-      if (id === 'registrar') startScanner(); else stopScanner();
+      
+      if (id === 'registrar') {
+        startScanner();
+      } else {
+        stopScanner();
+      }
     }
 
-    window.onload = () => { initDOM(); carregarDados(); };
+    window.addEventListener('load', () => {
+      carregarDados();
+    });
   </script>
 </body>
 </html>
