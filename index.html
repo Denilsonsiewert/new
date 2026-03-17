@@ -554,6 +554,7 @@
     let focusInterval = null;
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let pendente = null;
+    let lastReadTime = 0;
 
     async function startScanner() {
       if (scannerActive) return;
@@ -566,6 +567,7 @@
       if (html5QrCode) {
         try { await html5QrCode.stop(); } catch (e) {}
         try { await html5QrCode.clear(); } catch (e) {}
+        html5QrCode = null;
       }
 
       html5QrCode = new Html5Qrcode("reader");
@@ -573,16 +575,12 @@
       const config = {
         fps: 20,
         qrbox: { width: 250, height: 250 },
-        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-        disableFlip: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: false
-        }
+        disableFlip: false
       };
 
       try {
         await html5QrCode.start(
-          { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+          { facingMode: "environment" },
           config,
           onScanSuccess,
           onScanFailure
@@ -599,15 +597,22 @@
           setupInitialZoom();
         }
       } catch (err) {
-        result.textContent = 'Erro ao acessar câmera: ' + err.message;
+        result.textContent = 'Erro ao acessar câmera';
         console.error('Erro ao iniciar scanner:', err);
       }
     }
 
     function onScanSuccess(text) {
       if (qrCodeLido) return;
-      // Validar que é Data Matrix (formato específico)
-      if (!text || text.length < 3) return;
+      
+      const now = Date.now();
+      if (now - lastReadTime < 500) return;
+      lastReadTime = now;
+
+      // Filtro de Data Matrix: aceita apenas se tiver comprimento apropriado
+      // Data Matrix típico tem entre 3 e 2000 caracteres
+      if (!text || text.length < 3 || text.length > 2000) return;
+
       qrCodeLido = text;
       if (navigator.vibrate) navigator.vibrate(100);
       document.getElementById('qr-result').innerHTML = `<strong>✓ Data Matrix Lido:</strong> ${text}`;
@@ -615,7 +620,7 @@
     }
 
     function onScanFailure(error) {
-      // Silencioso - não mostra erro a cada frame
+      // Silencioso
     }
 
     async function stopScanner() {
