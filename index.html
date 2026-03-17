@@ -350,12 +350,33 @@
       background: #f8d7da;
       color: #8a1c21;
       border-left-color: var(--cor-perigo);
+      border: 2px solid var(--cor-perigo);
+      border-left: 5px solid var(--cor-perigo);
     }
 
     .alert-7dias {
       background: #fff3cd;
       color: #664d03;
       border-left-color: var(--cor-alerta);
+      border: 2px solid var(--cor-alerta);
+      border-left: 5px solid var(--cor-alerta);
+    }
+
+    .alert-item-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+
+    .alert-item-info-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .alert-item-info-row strong {
+      font-weight: 600;
     }
 
     .placeholder { text-align: center; padding: 40px; color: var(--cor-texto-claro); }
@@ -386,13 +407,130 @@
       border-radius: 10px;
       border: 1px solid var(--borda-cor);
     }
+
+    /* MODAL DE CONFIRMAÇÃO */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--cor-perigo);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body {
+      margin-bottom: 20px;
+      color: var(--cor-texto);
+      line-height: 1.5;
+    }
+
+    .modal-info-box {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      border-left: 4px solid var(--cor-alerta);
+    }
+
+    .modal-info-box div {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.95rem;
+    }
+
+    .modal-info-box strong {
+      font-weight: 600;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-actions button {
+      padding: 12px;
+      font-size: 0.95rem;
+      border-radius: 8px;
+    }
+
+    .modal-actions .btn-confirmar {
+      background: var(--cor-perigo);
+    }
+
+    .modal-actions .btn-cancelar {
+      background: var(--cor-texto-claro);
+    }
   </style>
 </head>
 
 <body>
   <div id="loading-overlay" class="loading-overlay">
-    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"></circle><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
-    <span>Carregando dados...</span>
+    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#0d6efd"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".5" cx="18" cy="18" r="18"/><path d="M36 18c0-9.94-8.06-18-18-18"><animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/></path></g></g></svg>
+    <span>Carregando...</span>
+  </div>
+
+  <!-- Modal de Confirmação para Item Vencido -->
+  <div id="modal-vencido" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        ⚠️ Atenção: Item Vencido
+      </div>
+      <div class="modal-body">
+        <p>Você está tentando dar entrada de um item que já está <strong>vencido</strong>.</p>
+        <p>Deseja realmente registrar a entrada deste item?</p>
+        <div class="modal-info-box">
+          <div><strong>Item:</strong> <span id="modal-item"></span></div>
+          <div><strong>Lote:</strong> <span id="modal-lote"></span></div>
+          <div><strong>Validade:</strong> <span id="modal-validade"></span></div>
+          <div><strong>Quantidade:</strong> <span id="modal-quantidade"></span></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-confirmar" onclick="confirmarEntradaVencida()">Confirmar Entrada</button>
+        <button class="btn-cancelar" onclick="cancelarEntradaVencida()">Cancelar</button>
+      </div>
+    </div>
   </div>
 
   <main class="app-main">
@@ -506,6 +644,9 @@
     let focusAttempts = 0;
     let lastZoomNudge = 0;
     let currentZoomValue = 1;
+
+    // Variáveis para controle de entrada vencida
+    let entradaVencidaPendente = null;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
@@ -812,23 +953,74 @@
       return response.json();
     }
 
-    async function enviarDados(tipo) {
-      const quantidade = document.getElementById('quantidade').value;
-      const statusDiv  = DOM_CACHE.status;
-      if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
-        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
-        statusDiv.className = 'status-erro';
-        statusDiv.style.display = 'block';
-        return;
+    // Função para verificar se um item está vencido
+    function verificarSeVencido(validade) {
+      if (!validade) return false;
+      try {
+        const [dia, mes, ano] = validade.split('/');
+        const dataValidade = new Date(ano, mes - 1, dia);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        return dataValidade < hoje;
+      } catch {
+        return false;
       }
-      DOM_CACHE.btnEntrada.disabled = true;
-      DOM_CACHE.btnSaida.disabled   = true;
+    }
+
+    // Função para obter informações do item pelo QR code
+    async function obterInfoItem(qrCode) {
+      try {
+        const res = await apiGet(`obter_item&qr=${encodeURIComponent(qrCode)}`);
+        if (res.status === 'sucesso') {
+          return res.dados;
+        }
+      } catch {}
+      return null;
+    }
+
+    // Mostrar modal de confirmação para item vencido
+    function mostrarModalVencido(item, lote, validade, quantidade) {
+      document.getElementById('modal-item').textContent = item || 'N/A';
+      document.getElementById('modal-lote').textContent = lote || 'N/A';
+      document.getElementById('modal-validade').textContent = validade || 'N/A';
+      document.getElementById('modal-quantidade').textContent = quantidade || '0';
+
+      entradaVencidaPendente = {
+        tipo: 'Entrada',
+        qrCode: qrCodeCompleto,
+        quantidade: quantidade
+      };
+
+      document.getElementById('modal-vencido').classList.add('active');
+    }
+
+    // Confirmar entrada de item vencido
+    async function confirmarEntradaVencida() {
+      document.getElementById('modal-vencido').classList.remove('active');
+      if (entradaVencidaPendente) {
+        await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
+      }
+      entradaVencidaPendente = null;
+    }
+
+    // Cancelar entrada de item vencido
+    function cancelarEntradaVencida() {
+      document.getElementById('modal-vencido').classList.remove('active');
+      entradaVencidaPendente = null;
+      DOM_CACHE.btnEntrada.disabled = false;
+      DOM_CACHE.btnSaida.disabled = false;
+      startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+    }
+
+    // Função auxiliar para registrar movimentação
+    async function registrarMovimentacao(tipo, qrCode, quantidade) {
+      const statusDiv = DOM_CACHE.status;
       statusDiv.innerText = 'Registrando...';
       statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
 
       try {
-        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto, quantidade });
+        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
 
@@ -851,8 +1043,35 @@
         }, 1000);
       } finally {
         DOM_CACHE.btnEntrada.disabled = false;
-        DOM_CACHE.btnSaida.disabled   = false;
+        DOM_CACHE.btnSaida.disabled = false;
       }
+    }
+
+    async function enviarDados(tipo) {
+      const quantidade = document.getElementById('quantidade').value;
+      const statusDiv  = DOM_CACHE.status;
+      if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
+        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
+        statusDiv.className = 'status-erro';
+        statusDiv.style.display = 'block';
+        return;
+      }
+      DOM_CACHE.btnEntrada.disabled = true;
+      DOM_CACHE.btnSaida.disabled   = true;
+
+      // Se for entrada, verificar se o item está vencido
+      if (tipo === 'Entrada') {
+        try {
+          const infoItem = await obterInfoItem(qrCodeCompleto);
+          if (infoItem && verificarSeVencido(infoItem.validade)) {
+            mostrarModalVencido(infoItem.item, infoItem.lote, infoItem.validade, quantidade);
+            return;
+          }
+        } catch {}
+      }
+
+      // Se não for vencido ou for saída, registrar normalmente
+      await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
     async function carregarTodosOsDados(isUpdate = false) {
@@ -907,7 +1126,18 @@
         
         const li = document.createElement('li');
         li.className = liClass;
-        li.innerHTML = `<strong>${item.tipo}</strong><br/>${item.descricao}<br/><small>${item.detalhe || ''}</small>`;
+        
+        // Construir conteúdo do alerta com informações detalhadas
+        let conteudo = `<strong>${item.tipo}</strong>`;
+        
+        if (item.item) conteudo += `<br/><strong>Item:</strong> ${item.item}`;
+        if (item.lote) conteudo += `<br/><strong>Lote:</strong> ${item.lote}`;
+        if (item.validade) conteudo += `<br/><strong>Validade:</strong> ${item.validade}`;
+        if (item.quantidade) conteudo += `<br/><strong>Quantidade:</strong> ${item.quantidade}`;
+        if (item.descricao) conteudo += `<br/><small>${item.descricao}</small>`;
+        if (item.detalhe) conteudo += `<br/><small>${item.detalhe}</small>`;
+        
+        li.innerHTML = conteudo;
         fragment.appendChild(li);
       });
       lista.innerHTML = '';
