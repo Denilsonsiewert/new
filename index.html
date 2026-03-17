@@ -1188,10 +1188,19 @@
 
     // Função auxiliar para extrair e limpar informações do alerta
     function parseAlertData(item) {
-      let nomeItem = item.item || item.descricao || '';
-      let lote = item.lote || '';
-      let validade = item.validade || '';
-      let quantidade = item.quantidade || item.qtd || '0';
+      // Mapeamento flexível para nome do item
+      let nomeItem = item.item || item.descricao || item.nome || item.produto || '';
+      
+      // Mapeamento flexível para lote
+      let lote = item.lote || item.lote_numero || item.numero_lote || item.detalhe || '';
+
+      // Mapeamento MUITO flexível para validade - tenta múltiplas chaves
+      let validade = item.validade || item.data_validade || item.vencimento || item.data_vencimento || 
+                     item.data || item.vence || item.vence_em || item.expira_em || '';
+      
+      // Mapeamento flexível para quantidade
+      let quantidade = item.quantidade || item.qtd || item.total || item.estoque || item.qnt || 
+                      item.quantidade_total || item.qtd_total || '0';
 
       // Se o nome do item contém padrão "XXXXX (Lote: XXXXX)", extrair corretamente
       if (nomeItem && nomeItem.includes('(Lote:')) {
@@ -1199,6 +1208,15 @@
         if (match) {
           nomeItem = match[1].trim();
           if (!lote) lote = match[2].trim();
+        }
+      }
+
+      // Se o nome do item contém padrão "XXXXX (XXXXX)", pode ser item (lote)
+      if (nomeItem && nomeItem.includes('(') && !lote) {
+        const match = nomeItem.match(/^([^(]+)\s*\(([^)]+)\)/);
+        if (match) {
+          nomeItem = match[1].trim();
+          lote = match[2].trim();
         }
       }
 
@@ -1218,11 +1236,44 @@
         }
       }
 
+      // Se a validade contém padrão "(436 dia(s) atrás)", extrair a data antes
+      if (validade && validade.includes('dia(s)')) {
+        const dateMatch = validade.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          validade = dateMatch[1];
+        }
+      }
+
       // Limpar quantidade de textos extras
       if (quantidade && typeof quantidade === 'string') {
         const qtdMatch = quantidade.match(/(\d+)/);
         if (qtdMatch) {
           quantidade = qtdMatch[1];
+        }
+      }
+
+      // Debug: Se ainda estiver vazio, tenta procurar em todas as propriedades
+      if (!validade) {
+        for (let key in item) {
+          if (key.toLowerCase().includes('valid') || key.toLowerCase().includes('venc') || key.toLowerCase().includes('data')) {
+            const val = item[key];
+            if (val && val.toString().match(/(\d{2}\/\d{2}\/\d{4})/)) {
+              validade = val.toString().match(/(\d{2}\/\d{2}\/\d{4})/)[1];
+              break;
+            }
+          }
+        }
+      }
+
+      if (!quantidade || quantidade === '0') {
+        for (let key in item) {
+          if (key.toLowerCase().includes('qtd') || key.toLowerCase().includes('quant') || key.toLowerCase().includes('estoque') || key.toLowerCase().includes('total')) {
+            const val = item[key];
+            if (val && !isNaN(val)) {
+              quantidade = val.toString();
+              break;
+            }
+          }
         }
       }
 
