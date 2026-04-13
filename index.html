@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Gestão de Estoque Pro</title>
+  <title>Gestão de Estoque Pro - Batch Scan</title>
 
   <!-- Pré-conexão para acelerar fontes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -147,6 +147,11 @@
       box-shadow: 0 0 0 2px rgba(40,167,69,0.25);
     }
 
+    #reader-container.batch-mode-active {
+      border-color: #ff9800;
+      box-shadow: 0 0 0 2px rgba(255,152,0,0.25);
+    }
+
     #reader {
       width: 100%;
       height: auto;
@@ -175,6 +180,8 @@
       z-index: 25;
       min-width: 280px;
       will-change: transform;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .control-btn {
@@ -199,11 +206,17 @@
       border-color: var(--cor-primaria);
     }
 
+    .control-btn.batch-active {
+      background: #ff9800;
+      border-color: #ff9800;
+    }
+
     .zoom-control {
       display: flex;
       align-items: center;
       gap: 8px;
       flex: 1;
+      min-width: 150px;
     }
 
     .zoom-control span { color: white; font-size: 1rem; }
@@ -271,6 +284,12 @@
       gap: 12px;
     }
 
+    .button-group-batch {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
     button {
       padding: 15px;
       font-weight: 600;
@@ -287,6 +306,8 @@
     button:hover { opacity: .9; }
     button:active { transform: scale(.97); }
     button.saida { background: var(--cor-perigo); }
+    button.batch-btn { background: #ff9800; }
+    button.finalizar-btn { background: var(--cor-perigo); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* STATUS */
@@ -301,6 +322,56 @@
     .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; }
     .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
+
+    /* BATCH SCAN LIST */
+    .batch-list-container {
+      margin-top: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--borda-cor);
+      border-radius: 10px;
+      background: #f8f9fa;
+      padding: 12px;
+    }
+
+    .batch-list-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: white;
+      border-radius: 8px;
+      border-left: 4px solid var(--cor-sucesso);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .batch-list-item.error {
+      border-left-color: var(--cor-perigo);
+      background: #fff5f5;
+    }
+
+    .batch-item-code {
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--cor-texto);
+    }
+
+    .batch-item-time {
+      font-size: 0.8rem;
+      color: var(--cor-texto-claro);
+    }
+
+    .batch-counter {
+      background: var(--cor-sucesso);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      text-align: center;
+    }
 
     /* TABELAS */
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -501,6 +572,16 @@
     .modal-actions .btn-cancelar {
       background: var(--cor-texto-claro);
     }
+
+    @keyframes pulse-success {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .batch-success-pulse {
+      animation: pulse-success 0.3s ease;
+    }
   </style>
 </head>
 
@@ -544,7 +625,7 @@
           <div id="reader-container">
             <div id="reader"></div>
 
-            <!-- Módulo de controles: Lanterna + Zoom -->
+            <!-- Módulo de controles: Lanterna + Zoom + Batch Mode -->
             <div class="camera-controls-module">
               <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
 
@@ -552,19 +633,49 @@
                 <span>🔍</span>
                 <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
               </div>
+
+              <div id="btnBatchMode" class="control-btn" onclick="toggleBatchMode()" title="Modo Contínuo">📦</div>
             </div>
           </div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
 
-          <div class="input-group">
-            <label for="quantidade">Quantidade</label>
-            <input type="number" id="quantidade" placeholder="Ex: 5" min="1" />
+          <!-- Modo Normal -->
+          <div id="normal-mode-controls">
+            <div class="input-group">
+              <label for="quantidade">Quantidade</label>
+              <input type="number" id="quantidade" placeholder="Ex: 5" min="1" />
+            </div>
+
+            <div class="button-group">
+              <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
+              <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
+            </div>
           </div>
 
-          <div class="button-group">
-            <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
-            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
+          <!-- Modo Batch -->
+          <div id="batch-mode-controls" style="display: none;">
+            <div class="input-group">
+              <label for="batch-tipo">Tipo de Operação</label>
+              <select id="batch-tipo" style="width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--borda-cor); font-size: 1rem;">
+                <option value="Entrada">Entrada</option>
+                <option value="Saída">Saída</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label for="batch-quantidade">Quantidade por Item</label>
+              <input type="number" id="batch-quantidade" placeholder="Ex: 1" min="1" value="1" />
+            </div>
+
+            <div class="button-group-batch">
+              <button id="btnIniciarBatch" class="batch-btn" onclick="iniciarModoBatch()">▶️ Iniciar</button>
+              <button id="btnPausarBatch" class="batch-btn" onclick="pausarModoBatch()" disabled>⏸️ Pausar</button>
+              <button id="btnFinalizarBatch" class="finalizar-btn" onclick="finalizarModoBatch()" disabled>⏹️ Finalizar</button>
+            </div>
+
+            <div id="batch-list" class="batch-list-container" style="display: none;"></div>
+            <div id="batch-counter" class="batch-counter" style="display: none;">Itens escaneados: 0</div>
           </div>
 
           <div id="status"></div>
@@ -630,7 +741,17 @@
       btnFlash: null,
       btnEntrada: null,
       btnSaida: null,
-      loadingOverlay: null
+      loadingOverlay: null,
+      btnBatchMode: null,
+      normalModeControls: null,
+      batchModeControls: null,
+      batchList: null,
+      batchCounter: null,
+      btnIniciarBatch: null,
+      btnPausarBatch: null,
+      btnFinalizarBatch: null,
+      batchTipo: null,
+      batchQuantidade: null
     };
 
     // Estado da câmera
@@ -647,7 +768,7 @@
       focusAttempts: 0,
       currentZoomValue: 1,
       lastFrameTime: 0,
-      detectionThrottle: 50 // ms entre detecções
+      detectionThrottle: 50
     };
 
     // Estado da aplicação
@@ -657,6 +778,17 @@
       estoque: [],
       alertas: [],
       movimentacoes: []
+    };
+
+    // Estado do Batch Scan
+    const BATCH_STATE = {
+      batchModeActive: false,
+      batchPaused: false,
+      batchItems: [],
+      lastScannedCode: null,
+      lastScannedTime: 0,
+      debounceTime: 500, // ms para evitar leitura duplicada
+      batchProcessing: false
     };
 
     // ============================================================
@@ -673,6 +805,16 @@
       DOM_CACHE.btnEntrada = document.getElementById('btnEntrada');
       DOM_CACHE.btnSaida = document.getElementById('btnSaida');
       DOM_CACHE.loadingOverlay = document.getElementById('loading-overlay');
+      DOM_CACHE.btnBatchMode = document.getElementById('btnBatchMode');
+      DOM_CACHE.normalModeControls = document.getElementById('normal-mode-controls');
+      DOM_CACHE.batchModeControls = document.getElementById('batch-mode-controls');
+      DOM_CACHE.batchList = document.getElementById('batch-list');
+      DOM_CACHE.batchCounter = document.getElementById('batch-counter');
+      DOM_CACHE.btnIniciarBatch = document.getElementById('btnIniciarBatch');
+      DOM_CACHE.btnPausarBatch = document.getElementById('btnPausarBatch');
+      DOM_CACHE.btnFinalizarBatch = document.getElementById('btnFinalizarBatch');
+      DOM_CACHE.batchTipo = document.getElementById('batch-tipo');
+      DOM_CACHE.batchQuantidade = document.getElementById('batch-quantidade');
     }
 
     // ============================================================
@@ -702,6 +844,14 @@
       } catch {}
     }
 
+    function beepSuccess() {
+      beep(100, 1200, 0.3);
+    }
+
+    function beepError() {
+      beep(150, 600, 0.3);
+    }
+
     // ============================================================
     // CÂMERA - INICIALIZAÇÃO E CONTROLE
     // ============================================================
@@ -718,7 +868,7 @@
 
       // Configuração otimizada para dispositivos antigos
       const config = {
-        fps: 12, // Reduzido de 18 para melhor performance em dispositivos antigos
+        fps: 12,
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
         formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
@@ -741,7 +891,6 @@
         }
       } catch (e) {}
 
-      // Estratégias de inicialização em ordem de prioridade
       attempts.push(
         { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
         { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } },
@@ -753,10 +902,14 @@
       let lastErr = null;
       for (const a of attempts) {
         try {
-          await CAMERA_STATE.html5QrCode.start(a.value, config, onScanSuccess);
+          const onScanFn = BATCH_STATE.batchModeActive ? onScanSuccessBatch : onScanSuccess;
+          await CAMERA_STATE.html5QrCode.start(a.value, config, onScanFn);
           CAMERA_STATE.scannerActive = true;
-          DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+          DOM_CACHE.qrResult.textContent = BATCH_STATE.batchModeActive ? 'Modo Contínuo Ativo - Escaneando...' : 'Aguardando leitura...';
           DOM_CACHE.readerContainer.classList.add('scanning-active');
+          if (BATCH_STATE.batchModeActive) {
+            DOM_CACHE.readerContainer.classList.add('batch-mode-active');
+          }
 
           const videoElem = DOM_CACHE.reader.querySelector("video");
           CAMERA_STATE.currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
@@ -794,11 +947,30 @@
       if (APP_STATE.qrCodeCompleto) return;
       APP_STATE.qrCodeCompleto = decodedText;
 
-      beep(120, 1100, 0.3);
+      beepSuccess();
       if (navigator.vibrate) navigator.vibrate(150);
 
       DOM_CACHE.qrResult.innerText = "✔️ Código lido: " + decodedText;
       stopScanner();
+    }
+
+    function onScanSuccessBatch(decodedText) {
+      const agora = Date.now();
+      
+      // Debounce: evita leitura duplicada do mesmo código
+      if (BATCH_STATE.lastScannedCode === decodedText && 
+          (agora - BATCH_STATE.lastScannedTime) < BATCH_STATE.debounceTime) {
+        return;
+      }
+
+      BATCH_STATE.lastScannedCode = decodedText;
+      BATCH_STATE.lastScannedTime = agora;
+
+      beepSuccess();
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+      // Adicionar à lista de batch
+      adicionarAoBatch(decodedText);
     }
 
     async function stopScanner(silent = false) {
@@ -818,6 +990,7 @@
         CAMERA_STATE.scannerActive = false;
         CAMERA_STATE.autoFocusActive = false;
         DOM_CACHE.readerContainer.classList.remove('scanning-active');
+        DOM_CACHE.readerContainer.classList.remove('batch-mode-active');
       }
     }
 
@@ -831,7 +1004,6 @@
       CAMERA_STATE.autoFocusActive = true;
       CAMERA_STATE.focusAttempts = 0;
       
-      // Ativar modo contínuo imediatamente
       (async () => { 
         try { 
           await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
@@ -840,14 +1012,11 @@
       
       clearInterval(CAMERA_STATE.focusIntervalId);
       
-      // TURBO FOCUS: Ciclo otimizado de 200ms com estratégias adaptativas
       CAMERA_STATE.focusIntervalId = setInterval(() => {
         if (CAMERA_STATE.currentTrack && CAMERA_STATE.autoFocusActive && CAMERA_STATE.scannerActive) {
           CAMERA_STATE.focusAttempts++;
           
-          // Estratégia adaptativa baseada no ciclo
           if (CAMERA_STATE.focusAttempts % 4 === 0) {
-            // A cada 4 ciclos: Single-shot para refoco forçado
             CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
               .then(() => {
                 setTimeout(() => {
@@ -858,14 +1027,12 @@
               })
               .catch(()=>{});
           } else if (CAMERA_STATE.focusAttempts % 2 === 0) {
-            // A cada 2 ciclos: Nudge de zoom para "acordar" o hardware
             applyZoomNudge();
           } else {
-            // Ciclos normais: Manter contínuo
             CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
           }
         }
-      }, 200); // 200ms - 5 ciclos por segundo
+      }, 200);
     }
 
     async function applyZoomNudge() {
@@ -877,7 +1044,6 @@
         const settings = CAMERA_STATE.currentTrack.getSettings?.() || {};
         const currentZoom = settings.zoom || CAMERA_STATE.currentZoomValue || 1;
         
-        // Nudge imperceptível: +0.01 e volta
         const nudgedZoom = Math.min(currentZoom + 0.01, caps.zoom.max || 5);
         await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
         
@@ -916,7 +1082,6 @@
           const settings = CAMERA_STATE.currentTrack.getSettings?.() || {};
           slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
           
-          // Aplicar zoom inicial de 25% para melhor foco
           applyInitialZoom();
         }
       } catch {}
@@ -967,6 +1132,170 @@
       await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ torch: CAMERA_STATE.flashOn }] }).catch(() => {
         alert("Falha ao controlar a lanterna.");
       });
+    }
+
+    // ============================================================
+    // BATCH SCAN - MODO DE ESCANEAMENTO CONTÍNUO
+    // ============================================================
+    
+    function toggleBatchMode() {
+      if (BATCH_STATE.batchModeActive) {
+        // Desativar modo batch
+        BATCH_STATE.batchModeActive = false;
+        DOM_CACHE.btnBatchMode.classList.remove('batch-active');
+        DOM_CACHE.normalModeControls.style.display = 'block';
+        DOM_CACHE.batchModeControls.style.display = 'none';
+        stopScanner();
+      } else {
+        // Ativar modo batch
+        BATCH_STATE.batchModeActive = true;
+        DOM_CACHE.btnBatchMode.classList.add('batch-active');
+        DOM_CACHE.normalModeControls.style.display = 'none';
+        DOM_CACHE.batchModeControls.style.display = 'block';
+        BATCH_STATE.batchItems = [];
+        atualizarContadorBatch();
+        DOM_CACHE.batchList.innerHTML = '';
+        DOM_CACHE.batchList.style.display = 'none';
+      }
+    }
+
+    function iniciarModoBatch() {
+      BATCH_STATE.batchPaused = false;
+      BATCH_STATE.batchItems = [];
+      DOM_CACHE.batchList.innerHTML = '';
+      DOM_CACHE.batchList.style.display = 'block';
+      DOM_CACHE.batchCounter.style.display = 'block';
+      atualizarContadorBatch();
+
+      DOM_CACHE.btnIniciarBatch.disabled = true;
+      DOM_CACHE.btnPausarBatch.disabled = false;
+      DOM_CACHE.btnFinalizarBatch.disabled = false;
+
+      startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
+    }
+
+    function pausarModoBatch() {
+      BATCH_STATE.batchPaused = !BATCH_STATE.batchPaused;
+      if (BATCH_STATE.batchPaused) {
+        stopScanner();
+        DOM_CACHE.btnPausarBatch.textContent = '▶️ Retomar';
+        DOM_CACHE.qrResult.textContent = 'Modo Contínuo Pausado';
+      } else {
+        DOM_CACHE.btnPausarBatch.textContent = '⏸️ Pausar';
+        startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
+      }
+    }
+
+    async function finalizarModoBatch() {
+      stopScanner();
+      DOM_CACHE.btnIniciarBatch.disabled = false;
+      DOM_CACHE.btnPausarBatch.disabled = true;
+      DOM_CACHE.btnFinalizarBatch.disabled = true;
+      DOM_CACHE.btnPausarBatch.textContent = '⏸️ Pausar';
+
+      if (BATCH_STATE.batchItems.length === 0) {
+        DOM_CACHE.status.innerText = 'Nenhum item foi escaneado.';
+        DOM_CACHE.status.className = 'status-info';
+        DOM_CACHE.status.style.display = 'block';
+        return;
+      }
+
+      // Processar todos os itens em lote
+      await processarBatchCompleto();
+    }
+
+    function adicionarAoBatch(codigo) {
+      const item = {
+        codigo: codigo,
+        timestamp: new Date().toLocaleTimeString('pt-BR'),
+        processado: false
+      };
+
+      BATCH_STATE.batchItems.push(item);
+      atualizarContadorBatch();
+      renderizarBatchList();
+
+      // Feedback visual
+      DOM_CACHE.batchList.classList.add('batch-success-pulse');
+      setTimeout(() => {
+        DOM_CACHE.batchList.classList.remove('batch-success-pulse');
+      }, 300);
+    }
+
+    function atualizarContadorBatch() {
+      DOM_CACHE.batchCounter.textContent = `Itens escaneados: ${BATCH_STATE.batchItems.length}`;
+    }
+
+    function renderizarBatchList() {
+      const fragment = document.createDocumentFragment();
+      
+      BATCH_STATE.batchItems.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'batch-list-item';
+        div.innerHTML = `
+          <span class="batch-item-code">${item.codigo}</span>
+          <span class="batch-item-time">${item.timestamp}</span>
+        `;
+        fragment.appendChild(div);
+      });
+
+      DOM_CACHE.batchList.innerHTML = '';
+      DOM_CACHE.batchList.appendChild(fragment);
+    }
+
+    async function processarBatchCompleto() {
+      const statusDiv = DOM_CACHE.status;
+      const tipo = DOM_CACHE.batchTipo.value;
+      const quantidade = parseInt(DOM_CACHE.batchQuantidade.value) || 1;
+
+      statusDiv.innerText = `Processando ${BATCH_STATE.batchItems.length} itens...`;
+      statusDiv.className = 'status-info';
+      statusDiv.style.display = 'block';
+
+      let sucessos = 0;
+      let erros = 0;
+
+      try {
+        for (const item of BATCH_STATE.batchItems) {
+          try {
+            const res = await apiPost({ 
+              action: 'registrar', 
+              tipo: tipo, 
+              qrCodeCompleto: item.codigo, 
+              quantidade: quantidade 
+            });
+            
+            if (res.status === 'sucesso') {
+              sucessos++;
+              item.processado = true;
+            } else {
+              erros++;
+            }
+          } catch (err) {
+            erros++;
+          }
+        }
+
+        statusDiv.innerText = `✔️ Processamento Concluído: ${sucessos} itens registrados, ${erros} erros.`;
+        statusDiv.className = sucessos > 0 ? 'status-sucesso' : 'status-erro';
+
+        // Limpar batch após sucesso
+        setTimeout(() => {
+          BATCH_STATE.batchItems = [];
+          DOM_CACHE.batchList.innerHTML = '';
+          DOM_CACHE.batchList.style.display = 'none';
+          DOM_CACHE.batchCounter.style.display = 'none';
+          atualizarContadorBatch();
+          statusDiv.style.display = 'none';
+          
+          // Recarregar dados
+          carregarTodosOsDados(true);
+        }, 1500);
+
+      } catch (err) {
+        statusDiv.innerText = 'Erro ao processar batch: ' + normalizeError(err);
+        statusDiv.className = 'status-erro';
+      }
     }
 
     // ============================================================
@@ -1102,7 +1431,6 @@
       DOM_CACHE.btnEntrada.disabled = true;
       DOM_CACHE.btnSaida.disabled   = true;
 
-      // Se for entrada, verificar se o item está vencido
       if (tipo === 'Entrada') {
         try {
           const infoItem = await obterInfoItem(APP_STATE.qrCodeCompleto);
@@ -1113,7 +1441,6 @@
         } catch {}
       }
 
-      // Se não for vencido ou for saída, registrar normalmente
       await registrarMovimentacao(tipo, APP_STATE.qrCodeCompleto, quantidade);
     }
 
@@ -1233,7 +1560,9 @@
       document.getElementById('nav-' + pageId).classList.add('active');
 
       if (pageId === 'registrar') {
-        startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
+        if (!BATCH_STATE.batchModeActive) {
+          startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
+        }
       } else {
         stopScanner();
         if (pageId === 'estoque') renderizarEstoque();
