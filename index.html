@@ -618,7 +618,9 @@
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
 
-    // Cache de elementos para evitar múltiplas queries
+    // ============================================================
+    // CACHE E VARIÁVEIS GLOBAIS - OTIMIZADAS
+    // ============================================================
     const DOM_CACHE = {
       readerContainer: null,
       reader: null,
@@ -631,26 +633,36 @@
       loadingOverlay: null
     };
 
-    let html5QrCode;
-    let currentTrack;
-    let imageCapture = null;
-    let flashOn = false;
-    let qrCodeCompleto = null;
-    let focusIntervalId = null;
-    let scannerActive = false;
-    let rearCameras = [];
-    let currentRearIndex = 0;
-    let autoFocusActive = false;
-    let focusAttempts = 0;
-    let lastZoomNudge = 0;
-    let currentZoomValue = 1;
+    // Estado da câmera
+    const CAMERA_STATE = {
+      html5QrCode: null,
+      currentTrack: null,
+      imageCapture: null,
+      flashOn: false,
+      scannerActive: false,
+      autoFocusActive: false,
+      rearCameras: [],
+      currentRearIndex: 0,
+      focusIntervalId: null,
+      focusAttempts: 0,
+      currentZoomValue: 1,
+      lastFrameTime: 0,
+      detectionThrottle: 50 // ms entre detecções
+    };
 
-    // Variáveis para controle de entrada vencida
-    let entradaVencidaPendente = null;
+    // Estado da aplicação
+    const APP_STATE = {
+      qrCodeCompleto: null,
+      entradaVencidaPendente: null,
+      estoque: [],
+      alertas: [],
+      movimentacoes: []
+    };
 
-    const appData = { estoque: [], alertas: [], movimentacoes: [] };
-
-    // Inicializar cache de DOM
+    // ============================================================
+    // INICIALIZAÇÃO E SETUP
+    // ============================================================
+    
     function initDOMCache() {
       DOM_CACHE.readerContainer = document.getElementById('reader-container');
       DOM_CACHE.reader = document.getElementById('reader');
@@ -663,6 +675,10 @@
       DOM_CACHE.loadingOverlay = document.getElementById('loading-overlay');
     }
 
+    // ============================================================
+    // UTILITÁRIOS
+    // ============================================================
+    
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
@@ -686,22 +702,28 @@
       } catch {}
     }
 
+    // ============================================================
+    // CÂMERA - INICIALIZAÇÃO E CONTROLE
+    // ============================================================
+    
     async function startScannerWithDevice(deviceId = null) {
-      if (scannerActive) return;
+      if (CAMERA_STATE.scannerActive) return;
       await stopScanner(true);
 
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
 
-      html5QrCode = new Html5Qrcode("reader");
+      CAMERA_STATE.html5QrCode = new Html5Qrcode("reader");
 
+      // Configuração otimizada para dispositivos antigos
       const config = {
-        fps: 18,
+        fps: 12, // Reduzido de 18 para melhor performance em dispositivos antigos
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
         formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        aspectRatio: 1.0
       };
 
       const attempts = [];
@@ -712,36 +734,39 @@
         const cameras = await Html5Qrcode.getCameras();
         const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
         const candidates = rear.length ? rear : cameras;
-        rearCameras = candidates;
-        if (rearCameras.length > 0 && !deviceId) {
-          currentRearIndex = 0;
-          attempts.push({ type: 'cameraId', value: rearCameras[currentRearIndex].id });
+        CAMERA_STATE.rearCameras = candidates;
+        if (CAMERA_STATE.rearCameras.length > 0 && !deviceId) {
+          CAMERA_STATE.currentRearIndex = 0;
+          attempts.push({ type: 'cameraId', value: CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex].id });
         }
       } catch (e) {}
 
+      // Estratégias de inicialização em ordem de prioridade
       attempts.push(
         { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
         { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } },
-        { type: 'constraints', value: { width: { ideal: 1280 }, height: { ideal: 720 } } }
+        { type: 'constraints', value: { width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { type: 'constraints', value: { facingMode: "environment" } },
+        { type: 'constraints', value: {} }
       );
 
       let lastErr = null;
       for (const a of attempts) {
         try {
-          await html5QrCode.start(a.value, config, onScanSuccess);
-          scannerActive = true;
+          await CAMERA_STATE.html5QrCode.start(a.value, config, onScanSuccess);
+          CAMERA_STATE.scannerActive = true;
           DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
           DOM_CACHE.readerContainer.classList.add('scanning-active');
 
           const videoElem = DOM_CACHE.reader.querySelector("video");
-          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+          CAMERA_STATE.currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
           try {
-            const s = currentTrack?.getSettings?.() || {};
+            const s = CAMERA_STATE.currentTrack?.getSettings?.() || {};
             if (/user|front/i.test(s.facingMode || '')) {
               await stopScanner(true);
-              if (rearCameras?.length) {
-                await startScannerWithDevice(rearCameras[0].id);
+              if (CAMERA_STATE.rearCameras?.length) {
+                await startScannerWithDevice(CAMERA_STATE.rearCameras[0].id);
                 return;
               }
               await startScannerWithDevice(null);
@@ -755,8 +780,8 @@
           return;
         } catch (err) {
           lastErr = err;
-          try { await html5QrCode.stop(); } catch {}
-          try { await html5QrCode.clear(); } catch {}
+          try { await CAMERA_STATE.html5QrCode.stop(); } catch {}
+          try { await CAMERA_STATE.html5QrCode.clear(); } catch {}
         }
       }
 
@@ -766,8 +791,8 @@
     }
 
     function onScanSuccess(decodedText) {
-      if (qrCodeCompleto) return;
-      qrCodeCompleto = decodedText;
+      if (APP_STATE.qrCodeCompleto) return;
+      APP_STATE.qrCodeCompleto = decodedText;
 
       beep(120, 1100, 0.3);
       if (navigator.vibrate) navigator.vibrate(150);
@@ -778,164 +803,176 @@
 
     async function stopScanner(silent = false) {
       try {
-        if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
-        if (html5QrCode) {
-          await html5QrCode.stop().catch(()=>{});
-          await html5QrCode.clear().catch(()=>{});
+        if (CAMERA_STATE.focusIntervalId) { 
+          clearInterval(CAMERA_STATE.focusIntervalId); 
+          CAMERA_STATE.focusIntervalId = null; 
+        }
+        if (CAMERA_STATE.html5QrCode) {
+          await CAMERA_STATE.html5QrCode.stop().catch(()=>{});
+          await CAMERA_STATE.html5QrCode.clear().catch(()=>{});
         }
       } catch {}
       finally {
-        currentTrack = null;
-        imageCapture = null;
-        scannerActive = false;
-        autoFocusActive = false;
+        CAMERA_STATE.currentTrack = null;
+        CAMERA_STATE.imageCapture = null;
+        CAMERA_STATE.scannerActive = false;
+        CAMERA_STATE.autoFocusActive = false;
         DOM_CACHE.readerContainer.classList.remove('scanning-active');
       }
     }
 
+    // ============================================================
+    // AUTOFOCO TURBINADO - OTIMIZADO PARA DISPOSITIVOS ANTIGOS
+    // ============================================================
+    
     function setupTurboAutofocus() {
-      if (!currentTrack?.applyConstraints) return;
+      if (!CAMERA_STATE.currentTrack?.applyConstraints) return;
       
-      autoFocusActive = true;
-      focusAttempts = 0;
-      lastZoomNudge = 0;
+      CAMERA_STATE.autoFocusActive = true;
+      CAMERA_STATE.focusAttempts = 0;
       
       // Ativar modo contínuo imediatamente
       (async () => { 
         try { 
-          await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
+          await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
         } catch {} 
       })();
       
-      clearInterval(focusIntervalId);
+      clearInterval(CAMERA_STATE.focusIntervalId);
       
-      // TURBO FOCUS: Ciclo ultra-rápido de 180ms com nudge de contraste
-      focusIntervalId = setInterval(() => {
-        if (currentTrack && autoFocusActive && scannerActive) {
-          focusAttempts++;
+      // TURBO FOCUS: Ciclo otimizado de 200ms com estratégias adaptativas
+      CAMERA_STATE.focusIntervalId = setInterval(() => {
+        if (CAMERA_STATE.currentTrack && CAMERA_STATE.autoFocusActive && CAMERA_STATE.scannerActive) {
+          CAMERA_STATE.focusAttempts++;
           
-          // A cada ciclo, aplicar estratégia diferente
-          if (focusAttempts % 3 === 0) {
-            // A cada 3 ciclos: Single-shot para refoco forçado
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+          // Estratégia adaptativa baseada no ciclo
+          if (CAMERA_STATE.focusAttempts % 4 === 0) {
+            // A cada 4 ciclos: Single-shot para refoco forçado
+            CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
               .then(() => {
                 setTimeout(() => {
-                  if (currentTrack && autoFocusActive) {
-                    currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+                  if (CAMERA_STATE.currentTrack && CAMERA_STATE.autoFocusActive) {
+                    CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
                   }
-                }, 80);
+                }, 100);
               })
               .catch(()=>{});
-          } else if (focusAttempts % 2 === 0) {
+          } else if (CAMERA_STATE.focusAttempts % 2 === 0) {
             // A cada 2 ciclos: Nudge de zoom para "acordar" o hardware
             applyZoomNudge();
           } else {
             // Ciclos normais: Manter contínuo
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+            CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
           }
         }
-      }, 180); // TURBO: 180ms - 5.5x por segundo!
+      }, 200); // 200ms - 5 ciclos por segundo
     }
 
     async function applyZoomNudge() {
       try {
-        if (!currentTrack?.getCapabilities) return;
-        const caps = currentTrack.getCapabilities();
+        if (!CAMERA_STATE.currentTrack?.getCapabilities) return;
+        const caps = CAMERA_STATE.currentTrack.getCapabilities();
         if (!caps?.zoom) return;
         
-        const settings = currentTrack.getSettings?.() || {};
-        const currentZoom = settings.zoom || currentZoomValue || 1;
+        const settings = CAMERA_STATE.currentTrack.getSettings?.() || {};
+        const currentZoom = settings.zoom || CAMERA_STATE.currentZoomValue || 1;
         
         // Nudge imperceptível: +0.01 e volta
         const nudgedZoom = Math.min(currentZoom + 0.01, caps.zoom.max || 5);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
+        await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
         
         setTimeout(() => {
-          if (currentTrack) {
-            currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(()=>{});
+          if (CAMERA_STATE.currentTrack) {
+            CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(()=>{});
           }
-        }, 50);
+        }, 60);
       } catch {}
     }
 
     function setupImageCapture() {
       try {
-        if (!('ImageCapture' in window) || !currentTrack) return;
-        imageCapture = new ImageCapture(currentTrack);
-        imageCapture.getPhotoCapabilities?.().then(caps => {
+        if (!('ImageCapture' in window) || !CAMERA_STATE.currentTrack) return;
+        CAMERA_STATE.imageCapture = new ImageCapture(CAMERA_STATE.currentTrack);
+        CAMERA_STATE.imageCapture.getPhotoCapabilities?.().then(caps => {
           if (caps?.focusMode && caps.focusMode !== 'none') {
-            imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
+            CAMERA_STATE.imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
           }
         }).catch(()=>{});
-      } catch { imageCapture = null; }
+      } catch { 
+        CAMERA_STATE.imageCapture = null; 
+      }
     }
 
     function setupZoom() {
       const slider = DOM_CACHE.zoomSlider;
-      if (!currentTrack?.getCapabilities) return;
+      if (!CAMERA_STATE.currentTrack?.getCapabilities) return;
 
       try {
-        const caps = currentTrack.getCapabilities();
+        const caps = CAMERA_STATE.currentTrack.getCapabilities();
         if (caps.zoom) {
           slider.min = caps.zoom.min ?? 1;
           slider.max = caps.zoom.max ?? 5;
           slider.step = caps.zoom.step || 0.1;
-          const settings = currentTrack.getSettings?.() || {};
+          const settings = CAMERA_STATE.currentTrack.getSettings?.() || {};
           slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
           
-          // Aplicar zoom inicial de 30%
+          // Aplicar zoom inicial de 25% para melhor foco
           applyInitialZoom();
         }
       } catch {}
     }
 
     async function applyInitialZoom() {
-      if (!currentTrack?.getCapabilities) return;
+      if (!CAMERA_STATE.currentTrack?.getCapabilities) return;
       try {
-        const caps = currentTrack.getCapabilities();
+        const caps = CAMERA_STATE.currentTrack.getCapabilities();
         if (!caps.zoom) return;
         
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
         const zoomRange = maxZoom - minZoom;
-        const initialZoom = minZoom + (zoomRange * 0.3);
+        const initialZoom = minZoom + (zoomRange * 0.25);
         
-        currentZoomValue = initialZoom;
-        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
+        CAMERA_STATE.currentZoomValue = initialZoom;
+        await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
         DOM_CACHE.zoomSlider.value = initialZoom;
       } catch {}
     }
 
     async function setZoom(value) {
-      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
+      if (!CAMERA_STATE.currentTrack || !CAMERA_STATE.currentTrack.getCapabilities?.().zoom) return;
       try {
-        currentZoomValue = parseFloat(value);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
+        CAMERA_STATE.currentZoomValue = parseFloat(value);
+        await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ zoom: CAMERA_STATE.currentZoomValue }] });
       } catch {}
     }
 
     async function toggleFlash() {
-      if (!currentTrack || !currentTrack.getCapabilities) {
+      if (!CAMERA_STATE.currentTrack || !CAMERA_STATE.currentTrack.getCapabilities) {
         alert("Lanterna não suportada.");
         return;
       }
-      const caps = currentTrack.getCapabilities();
+      const caps = CAMERA_STATE.currentTrack.getCapabilities();
       if (!caps.torch) {
         alert("Lanterna não suportada.");
         return;
       }
-      flashOn = !flashOn;
+      CAMERA_STATE.flashOn = !CAMERA_STATE.flashOn;
       const btn = DOM_CACHE.btnFlash;
-      if (flashOn) {
+      if (CAMERA_STATE.flashOn) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
       }
-      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
+      await CAMERA_STATE.currentTrack.applyConstraints({ advanced: [{ torch: CAMERA_STATE.flashOn }] }).catch(() => {
         alert("Falha ao controlar a lanterna.");
       });
     }
 
+    // ============================================================
+    // API E DADOS
+    // ============================================================
+    
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
       const response = await fetch(url);
@@ -953,7 +990,6 @@
       return response.json();
     }
 
-    // Função para verificar se um item está vencido
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -967,7 +1003,6 @@
       }
     }
 
-    // Função para obter informações do item pelo QR code
     async function obterInfoItem(qrCode) {
       try {
         const res = await apiGet(`obter_item&qr=${encodeURIComponent(qrCode)}`);
@@ -978,41 +1013,49 @@
       return null;
     }
 
-    // Mostrar modal de confirmação para item vencido
+    // ============================================================
+    // MODAIS E CONFIRMAÇÕES
+    // ============================================================
+    
     function mostrarModalVencido(item, lote, validade, quantidade) {
       document.getElementById('modal-item').textContent = item || 'N/A';
       document.getElementById('modal-lote').textContent = lote || 'N/A';
       document.getElementById('modal-validade').textContent = validade || 'N/A';
       document.getElementById('modal-quantidade').textContent = quantidade || '0';
 
-      entradaVencidaPendente = {
+      APP_STATE.entradaVencidaPendente = {
         tipo: 'Entrada',
-        qrCode: qrCodeCompleto,
+        qrCode: APP_STATE.qrCodeCompleto,
         quantidade: quantidade
       };
 
       document.getElementById('modal-vencido').classList.add('active');
     }
 
-    // Confirmar entrada de item vencido
     async function confirmarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
-      if (entradaVencidaPendente) {
-        await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
+      if (APP_STATE.entradaVencidaPendente) {
+        await registrarMovimentacao(
+          APP_STATE.entradaVencidaPendente.tipo, 
+          APP_STATE.entradaVencidaPendente.qrCode, 
+          APP_STATE.entradaVencidaPendente.quantidade
+        );
       }
-      entradaVencidaPendente = null;
+      APP_STATE.entradaVencidaPendente = null;
     }
 
-    // Cancelar entrada de item vencido
     function cancelarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
-      entradaVencidaPendente = null;
+      APP_STATE.entradaVencidaPendente = null;
       DOM_CACHE.btnEntrada.disabled = false;
       DOM_CACHE.btnSaida.disabled = false;
-      startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+      startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
     }
 
-    // Função auxiliar para registrar movimentação
+    // ============================================================
+    // REGISTRAR MOVIMENTAÇÃO
+    // ============================================================
+    
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
       const statusDiv = DOM_CACHE.status;
       statusDiv.innerText = 'Registrando...';
@@ -1026,10 +1069,10 @@
 
         setTimeout(() => {
           document.getElementById('quantidade').value = '';
-          qrCodeCompleto = null;
+          APP_STATE.qrCodeCompleto = null;
           DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
           statusDiv.style.display = 'none';
-          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+          startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
         }, 800);
 
         await carregarTodosOsDados(true);
@@ -1039,7 +1082,7 @@
         statusDiv.className = 'status-erro';
         setTimeout(() => {
           statusDiv.style.display = 'none';
-          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+          startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
         }, 1000);
       } finally {
         DOM_CACHE.btnEntrada.disabled = false;
@@ -1050,7 +1093,7 @@
     async function enviarDados(tipo) {
       const quantidade = document.getElementById('quantidade').value;
       const statusDiv  = DOM_CACHE.status;
-      if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
+      if (!APP_STATE.qrCodeCompleto || !quantidade || quantidade <= 0) {
         statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
         statusDiv.className = 'status-erro';
         statusDiv.style.display = 'block';
@@ -1062,7 +1105,7 @@
       // Se for entrada, verificar se o item está vencido
       if (tipo === 'Entrada') {
         try {
-          const infoItem = await obterInfoItem(qrCodeCompleto);
+          const infoItem = await obterInfoItem(APP_STATE.qrCodeCompleto);
           if (infoItem && verificarSeVencido(infoItem.validade)) {
             mostrarModalVencido(infoItem.item, infoItem.lote, infoItem.validade, quantidade);
             return;
@@ -1071,16 +1114,23 @@
       }
 
       // Se não for vencido ou for saída, registrar normalmente
-      await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
+      await registrarMovimentacao(tipo, APP_STATE.qrCodeCompleto, quantidade);
     }
 
+    // ============================================================
+    // CARREGAMENTO E RENDERIZAÇÃO DE DADOS
+    // ============================================================
+    
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
       if (!isUpdate) overlay.style.display = 'flex';
       try {
         const res = await apiGet('obter');
         if (res.status === 'sucesso') {
-          Object.assign(appData, res.dados);
+          APP_STATE.estoque = res.dados.estoque || [];
+          APP_STATE.alertas = res.dados.alertas || [];
+          APP_STATE.movimentacoes = res.dados.movimentacoes || [];
+          
           if (!isUpdate) mostrarPagina('registrar');
           if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
           if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
@@ -1098,12 +1148,12 @@
 
     function renderizarEstoque() {
       const corpoTabela = document.getElementById('corpo-tabela-estoque');
-      if (!appData.estoque || appData.estoque.length === 0) {
+      if (!APP_STATE.estoque || APP_STATE.estoque.length === 0) {
         corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; 
         return;
       }
       const fragment = document.createDocumentFragment();
-      appData.estoque.forEach(item => {
+      APP_STATE.estoque.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `<td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td>`;
         fragment.appendChild(row);
@@ -1114,12 +1164,12 @@
 
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
-      if (!appData.alertas || appData.alertas.length === 0) {
+      if (!APP_STATE.alertas || APP_STATE.alertas.length === 0) {
         lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
         return;
       }
       const fragment = document.createDocumentFragment();
-      appData.alertas.forEach(item => {
+      APP_STATE.alertas.forEach(item => {
         let liClass = '';
         if (item.tipo === 'Vencido') liClass = 'alert-vencido';
         else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
@@ -1127,7 +1177,6 @@
         const li = document.createElement('li');
         li.className = liClass;
         
-        // Construir conteúdo do alerta com informações detalhadas
         let conteudo = `<strong>${item.tipo}</strong>`;
         
         if (item.item) conteudo += `<br/><strong>Item:</strong> ${item.item}`;
@@ -1146,12 +1195,12 @@
 
     function renderizarMovimentacoes() {
       const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
-      if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
+      if (!APP_STATE.movimentacoes || APP_STATE.movimentacoes.length === 0) {
         corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; 
         return;
       }
       const fragment = document.createDocumentFragment();
-      appData.movimentacoes.forEach(mov => {
+      APP_STATE.movimentacoes.forEach(mov => {
         const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
         const row = document.createElement('tr');
         row.innerHTML = `<td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td>`;
@@ -1173,6 +1222,10 @@
       });
     }
 
+    // ============================================================
+    // NAVEGAÇÃO ENTRE PÁGINAS
+    // ============================================================
+    
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -1180,7 +1233,7 @@
       document.getElementById('nav-' + pageId).classList.add('active');
 
       if (pageId === 'registrar') {
-        startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+        startScannerWithDevice(CAMERA_STATE.rearCameras[CAMERA_STATE.currentRearIndex]?.id || null);
       } else {
         stopScanner();
         if (pageId === 'estoque') renderizarEstoque();
@@ -1189,6 +1242,10 @@
       }
     }
 
+    // ============================================================
+    // INICIALIZAÇÃO DA APLICAÇÃO
+    // ============================================================
+    
     window.addEventListener('load', () => { 
       initDOMCache();
       carregarTodosOsDados(); 
