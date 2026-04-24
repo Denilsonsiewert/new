@@ -38,8 +38,16 @@
       --nav-height: 70px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --nav-total: calc(var(--nav-height) + var(--safe-bottom));
+      #reader video {
+  transform: scale(1.8); /* 🔥 zoom forçado */
+  transform-origin: center;
+}
     }
- 
+ #reader video {
+  transform: scale(1.8);
+  transform-origin: center;
+  filter: contrast(1.4) brightness(1.2);
+}
     @media (max-width: 640px) {
       :root {
         --padding-container: 16px;
@@ -872,9 +880,10 @@
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
       html5QrCode = new Html5Qrcode("reader");
+      autoZoomFake();
 const config = {
-  fps: 60,
-  qrbox: { width: 220, height: 220 },
+  fps: 25, // 🔥 mais estável
+  qrbox: { width: 300, height: 300 }, // 🔥 melhor para DataMatrix
   disableFlip: true,
   formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
   experimentalFeatures: {
@@ -882,9 +891,9 @@ const config = {
   },
   videoConstraints: {
     facingMode: "environment",
-    width: { ideal: 1280 },
-    height: { ideal: 720 },
-    focusMode: "continuous"
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    aspectRatio: 1.777777778
   }
 };
       try {
@@ -1118,8 +1127,25 @@ DOM_CACHE.readerContainer.addEventListener("click", async (e) => {
       entradaVencidaPendente = null;
       liberarBotoes();
       startScannerWithDevice();
-    }
- 
+    setupHardFocus();
+      DOM_CACHE.readerContainer.onclick = async (e) => {
+  if (!currentTrack?.applyConstraints) return;
+
+  try {
+    const rect = DOM_CACHE.readerContainer.getBoundingClientRect();
+
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    await currentTrack.applyConstraints({
+      advanced: [{
+        focusMode: "single-shot",
+        pointsOfInterest: [{ x, y }]
+      }]
+    });
+
+  } catch {}
+};
     function liberarBotoes() { DOM_CACHE.btnEntrada.disabled = false; DOM_CACHE.btnSaida.disabled = false; }
     function bloquearBotoes() { DOM_CACHE.btnEntrada.disabled = true;  DOM_CACHE.btnSaida.disabled = true; }
  
@@ -1249,6 +1275,20 @@ DOM_CACHE.readerContainer.addEventListener("click", async (e) => {
  
     window.addEventListener('load',         () => { initDOMCache(); carregarTodosOsDados(); });
     window.addEventListener('beforeunload', () => { stopScanner(true); });
+        function setupHardFocus() {
+  if (!currentTrack) return;
+
+  setInterval(async () => {
+    try {
+      await currentTrack.applyConstraints({
+        advanced: [
+          { focusMode: "manual", focusDistance: 0.1 },
+          { focusMode: "continuous" }
+        ]
+      });
+    } catch {}
+  }, 80);
+}
   </script>
 </body>
 </html>
