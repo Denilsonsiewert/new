@@ -766,16 +766,18 @@
       <div id="page-registrar" class="page">
         <div class="card">
           <h2>Registrar Movimentação</h2>
-          <div id="reader-container">
-            <div id="reader"></div>
-            <div class="camera-controls-module">
-              <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
-              <div class="zoom-control">
-                <span>🔍</span>
-                <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
-              </div>
-            </div>
-          </div>
+         <div id="reader-container">
+  <div id="reader"></div>
+</div>
+
+<div class="camera-controls-module">
+  <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+
+  <div class="zoom-control">
+    <span>🔍</span>
+    <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+  </div>
+</div>
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
           <div class="input-group">
             <label for="quantidade">Quantidade</label>
