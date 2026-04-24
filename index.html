@@ -354,7 +354,7 @@
       border-left: 5px solid var(--cor-perigo);
     }
 
-    .alert-7dias {
+    .alert-proximo {
       background: #fff3cd;
       color: #664d03;
       border-left-color: var(--cor-alerta);
@@ -497,7 +497,7 @@
     .modal-actions .btn-confirmar {
       background: var(--cor-perigo);
     }
-
+    
     .modal-actions .btn-cancelar {
       background: var(--cor-texto-claro);
     }
@@ -967,17 +967,6 @@
       }
     }
 
-    // Função para obter informações do item pelo QR code
-    async function obterInfoItem(qrCode) {
-      try {
-        const res = await apiGet(`obter_item&qr=${encodeURIComponent(qrCode)}`);
-        if (res.status === 'sucesso') {
-          return res.dados;
-        }
-      } catch {}
-      return null;
-    }
-
     // Mostrar modal de confirmação para item vencido
     function mostrarModalVencido(item, lote, validade, quantidade) {
       document.getElementById('modal-item').textContent = item || 'N/A';
@@ -1023,7 +1012,7 @@
         const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
-
+        
         setTimeout(() => {
           document.getElementById('quantidade').value = '';
           qrCodeCompleto = null;
@@ -1061,13 +1050,12 @@
 
       // Se for entrada, verificar se o item está vencido
       if (tipo === 'Entrada') {
-        try {
-          const infoItem = await obterInfoItem(qrCodeCompleto);
-          if (infoItem && verificarSeVencido(infoItem.validade)) {
-            mostrarModalVencido(infoItem.item, infoItem.lote, infoItem.validade, quantidade);
-            return;
-          }
-        } catch {}
+        const qrParts = qrCodeCompleto.split(';');
+        const item = qrParts[1], lote = qrParts[2], validade = qrParts[3];
+        if (verificarSeVencido(validade)) {
+          mostrarModalVencido(item, lote, validade, quantidade);
+          return;
+        }
       }
 
       // Se não for vencido ou for saída, registrar normalmente
@@ -1122,7 +1110,7 @@
       appData.alertas.forEach(item => {
         let liClass = '';
         if (item.tipo === 'Vencido') liClass = 'alert-vencido';
-        else if (item.tipo === 'Vencimento Próximo' && Number(item.dias) <= 7) liClass = 'alert-7dias';
+        else if (item.tipo === 'Vencimento Próximo') liClass = 'alert-proximo';
         
         const li = document.createElement('li');
         li.className = liClass;
@@ -1130,11 +1118,7 @@
         // Construir conteúdo do alerta com informações detalhadas
         let conteudo = `<strong>${item.tipo}</strong>`;
         
-        if (item.item) conteudo += `<br/><strong>Item:</strong> ${item.item}`;
-        if (item.lote) conteudo += `<br/><strong>Lote:</strong> ${item.lote}`;
-        if (item.validade) conteudo += `<br/><strong>Validade:</strong> ${item.validade}`;
-        if (item.quantidade) conteudo += `<br/><strong>Quantidade:</strong> ${item.quantidade}`;
-        if (item.descricao) conteudo += `<br/><small>${item.descricao}</small>`;
+        if (item.descricao) conteudo += `<br/><strong>Item:</strong> ${item.descricao}`;
         if (item.detalhe) conteudo += `<br/><small>${item.detalhe}</small>`;
         
         li.innerHTML = conteudo;
