@@ -902,6 +902,7 @@ async function startScannerWithDevice() {
 
     currentTrack = stream.getVideoTracks()[0];
     scannerActive = true;
+    setupHardFocus();
 
     DOM_CACHE.qrResult.textContent = "Aguardando leitura...";
 
@@ -935,15 +936,7 @@ async function startScannerWithDevice() {
 
     setupHardFocus();
     enableTapFocus(video);
-function setupHardFocus() {
-  if (!currentTrack) return;
 
-  setInterval(() => {
-    currentTrack.applyConstraints({
-      advanced: [{ focusMode: "continuous" }]
-    }).catch(()=>{});
-  }, 100);
-}
   } catch (err) {
     DOM_CACHE.qrResult.textContent = "Erro ao iniciar câmera";
   }
@@ -1148,6 +1141,42 @@ function setupHardFocus() {
     } catch {}
   });
 }
+    // outras funções...
+
+function enableTapFocus(video) {
+  video.addEventListener("click", async (e) => {
+    if (!currentTrack?.applyConstraints) return;
+
+    try {
+      const rect = video.getBoundingClientRect();
+
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      await currentTrack.applyConstraints({
+        advanced: [{
+          focusMode: "single-shot",
+          pointsOfInterest: [{ x, y }]
+        }]
+      });
+
+    } catch {}
+  });
+}
+
+
+// 👇 COLE AQUI
+function setupHardFocus() {
+  if (!currentTrack) return;
+
+  setInterval(() => {
+    currentTrack.applyConstraints({
+      advanced: [{ focusMode: "continuous" }]
+    }).catch(()=>{});
+  }, 100);
+}
+
+</script>
     </script> 
 </body>
 </html>
