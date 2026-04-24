@@ -497,10 +497,6 @@
     .modal-actions .btn-confirmar {
       background: var(--cor-perigo);
     }
-
-    .modal-actions .btn-cancelar {
-      background: var(--cor-texto-claro);
-    }
   </style>
 </head>
 
@@ -633,17 +629,29 @@
 
     let html5QrCode;
     let currentTrack;
+    let imageCapture = null;
     let flashOn = false;
     let qrCodeCompleto = null;
     let focusIntervalId = null;
     let scannerActive = false;
     let rearCameras = [];
     let currentRearIndex = 0;
+    let autoFocusActive = false;
+    let focusAttempts = 0;
+    let lastZoomNudge = 0;
     let currentZoomValue = 1;
+
+    // Variáveis para controle de entrada vencida
     let entradaVencidaPendente = null;
 
     const appData = { estoque: [], alertas: [], movimentacoes: [] };
 
+    // CACHE DE DADOS - Evita requisições desnecessárias
+    let dataCache = null;
+    let lastDataFetch = 0;
+    const CACHE_DURATION = 5000; // 5 segundos
+
+    // Inicializar cache de DOM
     function initDOMCache() {
       DOM_CACHE.readerContainer = document.getElementById('reader-container');
       DOM_CACHE.reader = document.getElementById('reader');
@@ -660,7 +668,8 @@
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
       if (err.message) return err.message;
-      return String(err);
+      if (err.name || err.code) return `${err.name || ''} ${err.code || ''}`.trim();
+      try { return JSON.stringify(err); } catch { return String(err); }
     }
 
     function beep(duration = 120, frequency = 1100, volume = 0.3) {
@@ -680,67 +689,96 @@
 
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
-      await stopScanner();
+      await stopScanner(true);
 
-      DOM_CACHE.qrResult.textContent = 'Iniciando câmera ultra-rápida...';
+      DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
+      DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
 
       html5QrCode = new Html5Qrcode("reader");
 
+      // OTIMIZAÇÃO: Aumentar FPS para detecção mais rápida
       const config = {
-        fps: 30, // Aumentado para 30 FPS para detecção mais fluida
+        fps: 30,
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
         formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
         experimentalFeatures: { useBarCodeDetectorIfSupported: true }
       };
 
+      const attempts = [];
+
+      if (deviceId) attempts.push({ type: 'cameraId', value: deviceId });
+
       try {
         const cameras = await Html5Qrcode.getCameras();
         const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-        rearCameras = rear.length ? rear : cameras;
-        
-        const targetId = deviceId || (rearCameras.length > 0 ? rearCameras[0].id : null);
+        const candidates = rear.length ? rear : cameras;
+        rearCameras = candidates;
+        if (rearCameras.length > 0 && !deviceId) {
+          currentRearIndex = 0;
+          attempts.push({ type: 'cameraId', value: rearCameras[currentRearIndex].id });
+        }
+      } catch (e) {}
 
-        // Configurações de vídeo otimizadas para foco e resolução
-        const videoConstraints = {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          focusMode: "continuous", // Tenta forçar foco contínuo nativo
-          pointsOfInterest: { x: 0.5, y: 0.5 } // Foca no centro
-        };
+      attempts.push(
+        { type: 'constraints', value: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { type: 'constraints', value: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { type: 'constraints', value: { width: { ideal: 1280 }, height: { ideal: 720 } } }
+      );
 
-        await html5QrCode.start(targetId || { facingMode: "environment" }, config, onScanSuccess);
-        
-        scannerActive = true;
-        DOM_CACHE.qrResult.textContent = 'Aguardando Data Matrix...';
-        DOM_CACHE.readerContainer.classList.add('scanning-active');
+      let lastErr = null;
+      for (const a of attempts) {
+        try {
+          await html5QrCode.start(a.value, config, onScanSuccess);
+          scannerActive = true;
+          DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+          DOM_CACHE.readerContainer.classList.add('scanning-active');
 
-        const videoElem = DOM_CACHE.reader.querySelector("video");
-        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+          const videoElem = DOM_CACHE.reader.querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
 
-        setupTurboFocus();
-        setupZoom();
-      } catch (err) {
-        DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
+          try {
+            const s = currentTrack?.getSettings?.() || {};
+            if (/user|front/i.test(s.facingMode || '')) {
+              await stopScanner(true);
+              if (rearCameras?.length) {
+                await startScannerWithDevice(rearCameras[0].id);
+                return;
+              }
+              await startScannerWithDevice(null);
+              return;
+            }
+          } catch {}
+
+          setupTurboAutofocus();
+          setupImageCapture();
+          setupZoom();
+          return;
+        } catch (err) {
+          lastErr = err;
+          try { await html5QrCode.stop(); } catch {}
+          try { await html5QrCode.clear(); } catch {}
+        }
       }
+
+      const msg = normalizeError(lastErr);
+      DOM_CACHE.qrResult.textContent = `Erro: ${msg}`;
+      DOM_CACHE.readerContainer.classList.remove('scanning-active');
     }
 
     function onScanSuccess(decodedText) {
       if (qrCodeCompleto) return;
       qrCodeCompleto = decodedText;
 
-      beep(100, 1200, 0.4);
-      if (navigator.vibrate) navigator.vibrate(100);
+      beep(120, 1100, 0.3);
+      if (navigator.vibrate) navigator.vibrate(150);
 
-      DOM_CACHE.qrResult.innerHTML = "✔️ <span style='color:var(--cor-sucesso)'>Lido com sucesso!</span>";
-      
-      // Para o scanner para economizar recursos e focar na entrada de dados
+      DOM_CACHE.qrResult.innerText = "✔️ Código lido: " + decodedText;
       stopScanner();
     }
 
-    async function stopScanner() {
+    async function stopScanner(silent = false) {
       try {
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
         if (html5QrCode) {
@@ -750,25 +788,89 @@
       } catch {}
       finally {
         currentTrack = null;
+        imageCapture = null;
         scannerActive = false;
+        autoFocusActive = false;
         DOM_CACHE.readerContainer.classList.remove('scanning-active');
       }
     }
 
-    function setupTurboFocus() {
-      if (!currentTrack || !currentTrack.applyConstraints) return;
+    // OTIMIZAÇÃO DE FOCO: Ciclo agressivo de refoco
+    function setupTurboAutofocus() {
+      if (!currentTrack?.applyConstraints) return;
       
-      // Forçar foco contínuo imediatamente
-      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+      autoFocusActive = true;
+      focusAttempts = 0;
+      lastZoomNudge = 0;
+      
+      // Ativar modo contínuo imediatamente
+      (async () => { 
+        try { 
+          await currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); 
+        } catch {} 
+      })();
       
       clearInterval(focusIntervalId);
       
-      // Ciclo de "manutenção" de foco a cada 2 segundos para garantir que o hardware não "durma"
+      // TURBO FOCUS: Ciclo ultra-rápido de 150ms com nudge de contraste
       focusIntervalId = setInterval(() => {
-        if (currentTrack && scannerActive) {
-          currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+        if (currentTrack && autoFocusActive && scannerActive) {
+          focusAttempts++;
+          
+          // A cada ciclo, aplicar estratégia diferente
+          if (focusAttempts % 3 === 0) {
+            // A cada 3 ciclos: Single-shot para refoco forçado
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+              .then(() => {
+                setTimeout(() => {
+                  if (currentTrack && autoFocusActive) {
+                    currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+                  }
+                }, 60);
+              })
+              .catch(()=>{});
+          } else if (focusAttempts % 2 === 0) {
+            // A cada 2 ciclos: Nudge de zoom para "acordar" o hardware
+            applyZoomNudge();
+          } else {
+            // Ciclos normais: Manter contínuo
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+          }
         }
-      }, 2000);
+      }, 150); // TURBO: 150ms - 6.6x por segundo!
+    }
+
+    async function applyZoomNudge() {
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+        
+        const settings = currentTrack.getSettings?.() || {};
+        const currentZoom = settings.zoom || currentZoomValue || 1;
+        
+        // Nudge imperceptível: +0.01 e volta
+        const nudgedZoom = Math.min(currentZoom + 0.01, caps.zoom.max || 5);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
+        
+        setTimeout(() => {
+          if (currentTrack) {
+            currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(()=>{});
+          }
+        }, 40);
+      } catch {}
+    }
+
+    function setupImageCapture() {
+      try {
+        if (!('ImageCapture' in window) || !currentTrack) return;
+        imageCapture = new ImageCapture(currentTrack);
+        imageCapture.getPhotoCapabilities?.().then(caps => {
+          if (caps?.focusMode && caps.focusMode !== 'none') {
+            imageCapture.setOptions?.({ focusMode: 'continuous' }).catch(()=>{});
+          }
+        }).catch(()=>{});
+      } catch { imageCapture = null; }
     }
 
     function setupZoom() {
@@ -781,12 +883,29 @@
           slider.min = caps.zoom.min ?? 1;
           slider.max = caps.zoom.max ?? 5;
           slider.step = caps.zoom.step || 0.1;
+          const settings = currentTrack.getSettings?.() || {};
+          slider.value = typeof settings.zoom === 'number' ? settings.zoom : slider.min;
           
-          // Aplicar zoom inicial otimizado (2x costuma ser ideal para Data Matrix pequenos)
-          const initialZoom = Math.min(2.0, caps.zoom.max || 2.0);
-          setZoom(initialZoom);
-          slider.value = initialZoom;
+          // Aplicar zoom inicial de 30%
+          applyInitialZoom();
         }
+      } catch {}
+    }
+
+    async function applyInitialZoom() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.zoom) return;
+        
+        const minZoom = caps.zoom.min ?? 1;
+        const maxZoom = caps.zoom.max ?? 5;
+        const zoomRange = maxZoom - minZoom;
+        const initialZoom = minZoom + (zoomRange * 0.3);
+        
+        currentZoomValue = initialZoom;
+        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
+        DOM_CACHE.zoomSlider.value = initialZoom;
       } catch {}
     }
 
@@ -799,30 +918,65 @@
     }
 
     async function toggleFlash() {
-      if (!currentTrack?.getCapabilities) return;
+      if (!currentTrack || !currentTrack.getCapabilities) {
+        alert("Lanterna não suportada.");
+        return;
+      }
       const caps = currentTrack.getCapabilities();
-      if (!caps.torch) return;
-
+      if (!caps.torch) {
+        alert("Lanterna não suportada.");
+        return;
+      }
       flashOn = !flashOn;
-      DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
-      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(()=>{});
+      const btn = DOM_CACHE.btnFlash;
+      if (flashOn) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
+        alert("Falha ao controlar a lanterna.");
+      });
     }
 
+    // OTIMIZAÇÃO: Requisições com timeout e cache
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-      const response = await fetch(url);
-      return response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos de timeout
+      
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+        return response.json();
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
     }
 
     async function apiPost(payload) {
-      const response = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ ...payload, token: API_TOKEN })
-      });
-      return response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos de timeout
+      
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ ...payload, token: API_TOKEN }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+        return response.json();
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
     }
 
+    // Função para verificar se um item está vencido
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -831,18 +985,28 @@
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
         return dataValidade < hoje;
-      } catch { return false; }
+      } catch {
+        return false;
+      }
     }
 
+    // Mostrar modal de confirmação para item vencido
     function mostrarModalVencido(item, lote, validade, quantidade) {
       document.getElementById('modal-item').textContent = item || 'N/A';
       document.getElementById('modal-lote').textContent = lote || 'N/A';
       document.getElementById('modal-validade').textContent = validade || 'N/A';
       document.getElementById('modal-quantidade').textContent = quantidade || '0';
-      entradaVencidaPendente = { tipo: 'Entrada', qrCode: qrCodeCompleto, quantidade: quantidade };
+
+      entradaVencidaPendente = {
+        tipo: 'Entrada',
+        qrCode: qrCodeCompleto,
+        quantidade: quantidade
+      };
+
       document.getElementById('modal-vencido').classList.add('active');
     }
 
+    // Confirmar entrada de item vencido
     async function confirmarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       if (entradaVencidaPendente) {
@@ -851,17 +1015,19 @@
       entradaVencidaPendente = null;
     }
 
+    // Cancelar entrada de item vencido
     function cancelarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       entradaVencidaPendente = null;
       DOM_CACHE.btnEntrada.disabled = false;
       DOM_CACHE.btnSaida.disabled = false;
-      startScannerWithDevice();
+      startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
     }
 
+    // Função auxiliar para registrar movimentação
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
       const statusDiv = DOM_CACHE.status;
-      statusDiv.innerText = 'Processando...';
+      statusDiv.innerText = 'Registrando...';
       statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
 
@@ -870,121 +1036,176 @@
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
         
-        if (res.status === 'sucesso') {
-          setTimeout(() => {
-            document.getElementById('quantidade').value = '';
-            qrCodeCompleto = null;
-            DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
-            statusDiv.style.display = 'none';
-            startScannerWithDevice();
-          }, 1000);
-          await carregarTodosOsDados(true);
-        }
+        setTimeout(() => {
+          document.getElementById('quantidade').value = '';
+          qrCodeCompleto = null;
+          DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
+          statusDiv.style.display = 'none';
+          startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
+        }, 800);
+
+        // OTIMIZAÇÃO: Invalidar cache após registro
+        dataCache = null;
+        lastDataFetch = 0;
+        await carregarTodosOsDados(true);
+
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
-      } finally {
-        DOM_CACHE.btnEntrada.disabled = false;
-        DOM_CACHE.btnSaida.disabled = false;
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+          DOM_CACHE.btnEntrada.disabled = false;
+          DOM_CACHE.btnSaida.disabled = false;
+        }, 1000);
       }
     }
 
     async function enviarDados(tipo) {
       const quantidade = document.getElementById('quantidade').value;
+      const statusDiv  = DOM_CACHE.status;
       if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
-        DOM_CACHE.status.innerText = 'Erro: Leia o código e informe a quantidade.';
-        DOM_CACHE.status.className = 'status-erro';
-        DOM_CACHE.status.style.display = 'block';
+        statusDiv.innerText = 'Erro: Leia um código e informe a quantidade.';
+        statusDiv.className = 'status-erro';
+        statusDiv.style.display = 'block';
         return;
       }
       DOM_CACHE.btnEntrada.disabled = true;
       DOM_CACHE.btnSaida.disabled   = true;
 
+      // Se for entrada, verificar se o item está vencido
       if (tipo === 'Entrada') {
         const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) {
-          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade);
+        const item = qrParts[1], lote = qrParts[2], validade = qrParts[3];
+        if (verificarSeVencido(validade)) {
+          mostrarModalVencido(item, lote, validade, quantidade);
           return;
         }
       }
+
+      // Se não for vencido ou for saída, registrar normalmente
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
+    // OTIMIZAÇÃO: Cache de dados com tempo de expiração
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
+      const agora = Date.now();
+
+      // Se temos cache válido e não é atualização forçada, usar cache
+      if (dataCache && (agora - lastDataFetch) < CACHE_DURATION && !isUpdate) {
+        Object.assign(appData, dataCache);
+        if (!isUpdate) mostrarPagina('registrar');
+        return;
+      }
+
       if (!isUpdate) overlay.style.display = 'flex';
       try {
         const res = await apiGet('obter');
         if (res.status === 'sucesso') {
+          dataCache = res.dados;
+          lastDataFetch = agora;
           Object.assign(appData, res.dados);
           if (!isUpdate) mostrarPagina('registrar');
-          refreshActivePage();
+          if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
+          if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
+          if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
+        } else {
+          throw new Error(res.mensagem);
         }
       } catch (err) {
-        console.error(err);
+        overlay.querySelector('span').textContent = 'Erro ao carregar: ' + normalizeError(err);
+        setTimeout(() => { overlay.style.display = 'none'; }, 2000);
       } finally {
         if (!isUpdate) overlay.style.display = 'none';
       }
     }
 
-    function refreshActivePage() {
-      if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
-      if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
-      if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
-    }
-
     function renderizarEstoque() {
       const corpoTabela = document.getElementById('corpo-tabela-estoque');
-      if (!appData.estoque?.length) {
-        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item.</td></tr>'; 
+      if (!appData.estoque || appData.estoque.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; 
         return;
       }
-      corpoTabela.innerHTML = appData.estoque.map(item => 
-        `<tr><td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td></tr>`
-      ).join('');
+      const fragment = document.createDocumentFragment();
+      appData.estoque.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.item}</td><td>${item.lote || ''}</td><td>${item.validade || ''}</td><td><strong>${item.total}</strong></td>`;
+        fragment.appendChild(row);
+      });
+      corpoTabela.innerHTML = '';
+      corpoTabela.appendChild(fragment);
     }
 
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
-      if (!appData.alertas?.length) {
-        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta.</li>'; 
+      if (!appData.alertas || appData.alertas.length === 0) {
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
         return;
       }
-      lista.innerHTML = appData.alertas.map(item => {
-        const cl = item.tipo === 'Vencido' ? 'alert-vencido' : (item.tipo === 'Vencimento Próximo' ? 'alert-proximo' : '');
-        return `<li class="${cl}"><strong>${item.tipo}</strong><br/>${item.descricao || ''}<br/><small>${item.detalhe || ''}</small></li>`;
-      }).join('');
+      const fragment = document.createDocumentFragment();
+      appData.alertas.forEach(item => {
+        let liClass = '';
+        if (item.tipo === 'Vencido') liClass = 'alert-vencido';
+        else if (item.tipo === 'Vencimento Próximo') liClass = 'alert-proximo';
+        
+        const li = document.createElement('li');
+        li.className = liClass;
+        
+        // Construir conteúdo do alerta com informações detalhadas
+        let conteudo = `<strong>${item.tipo}</strong>`;
+        
+        if (item.descricao) conteudo += `<br/><strong>Item:</strong> ${item.descricao}`;
+        if (item.detalhe) conteudo += `<br/><small>${item.detalhe}</small>`;
+        
+        li.innerHTML = conteudo;
+        fragment.appendChild(li);
+      });
+      lista.innerHTML = '';
+      lista.appendChild(fragment);
     }
 
     function renderizarMovimentacoes() {
       const corpoTabela = document.getElementById('corpo-tabela-movimentacoes');
-      if (!appData.movimentacoes?.length) {
-        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação.</td></tr>'; 
+      if (!appData.movimentacoes || appData.movimentacoes.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; 
         return;
       }
-      corpoTabela.innerHTML = appData.movimentacoes.map(mov => 
-        `<tr><td>${mov.dataHora}</td><td class="${mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida'}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`
-      ).join('');
+      const fragment = document.createDocumentFragment();
+      appData.movimentacoes.forEach(mov => {
+        const classeTipo = mov.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-saida';
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${mov.dataHora}</td><td class="${classeTipo}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td>`;
+        fragment.appendChild(row);
+      });
+      corpoTabela.innerHTML = '';
+      corpoTabela.appendChild(fragment);
     }
 
     function filtrarTabela(idTabela, input) {
       const filtro = input.value.toUpperCase();
-      const linhas = document.getElementById(idTabela).querySelectorAll('tbody tr');
-      linhas.forEach(row => {
-        row.style.display = row.textContent.toUpperCase().includes(filtro) ? '' : 'none';
+      const tabela = document.getElementById(idTabela);
+      const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+      
+      requestAnimationFrame(() => {
+        for (let i = 0; i < linhas.length; i++) {
+          linhas[i].style.display = (linhas[i].textContent.toUpperCase().indexOf(filtro) > -1) ? '' : 'none';
+        }
       });
     }
 
     function mostrarPagina(pageId) {
-      document.querySelectorAll('.page, .nav-link').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       document.getElementById('page-' + pageId).classList.add('active');
       document.getElementById('nav-' + pageId).classList.add('active');
 
       if (pageId === 'registrar') {
-        startScannerWithDevice();
+        startScannerWithDevice(rearCameras[currentRearIndex]?.id || null);
       } else {
         stopScanner();
-        refreshActivePage();
+        if (pageId === 'estoque') renderizarEstoque();
+        if (pageId === 'alertas') renderizarAlertas();
+        if (pageId === 'movimentacoes') renderizarMovimentacoes();
       }
     }
 
@@ -993,5 +1214,6 @@
       carregarTodosOsDados(); 
     });
   </script>
+
 </body>
 </html>
