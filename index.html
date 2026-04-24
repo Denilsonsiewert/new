@@ -432,7 +432,43 @@
     button:active:not(:disabled) { transform: scale(.97); }
     button.saida { background: var(--cor-perigo); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
- 
+ /* ─── INPUTS (CORREÇÃO VISUAL) ───────────────────────── */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.input-group input {
+  width: 100%;
+  height: var(--input-height);
+  padding: 0 16px;
+  font-size: 1rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--borda-cor);
+  background: #fff;
+  color: var(--cor-texto);
+  transition: all 0.2s ease;
+}
+
+.input-group input:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.15);
+  outline: none;
+}
+
+#quantidade {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
     /* ─── STATUS ─────────────────────────────────────────────────────────────── */
     #status {
       margin-top: 16px;
