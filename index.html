@@ -63,25 +63,18 @@
     }
  
     body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-      font-size: var(--font-size-base);
-      background: var(--cor-fundo);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      touch-action: manipulation;
- 
-      /* Layout em coluna ocupando toda a altura real da tela */
-      display: flex;
-      flex-direction: column;
-      min-height: 100%;
-      min-height: 100dvh; /* suporte a dvh quando disponível */
- 
-      /* NUNCA use overflow:hidden no body — impede scroll no mobile */
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--font-size-base);
+  background: var(--cor-fundo);
+
+  display: flex;
+  flex-direction: column;
+
+  height: 100vh; /* trava altura */
+  overflow: hidden; /* ❗ remove scroll daqui */
+}
  
     /* ─── HEADER ─────────────────────────────────────────────────────────────── */
     .app-header {
@@ -114,20 +107,11 @@
     }
  
     /* ─── CONTEÚDO PRINCIPAL ─────────────────────────────────────────────────── */
-    .app-main {
-      flex: 1 1 auto;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
- 
-      padding: var(--padding-container);
-      /* Padding inferior = altura da nav + safe area + folga extra */
-      padding-bottom: calc(var(--nav-total) + 24px);
- 
-      display: flex;
-      justify-content: center;
-    }
+.app-main {
+  flex: 1;
+  overflow-y: auto; /* scroll fica aqui */
+  -webkit-overflow-scrolling: touch;
+}
  
     .content-wrapper {
       width: 100%;
