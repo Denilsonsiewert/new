@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
  
   <style>
     :root {
@@ -38,16 +38,8 @@
       --nav-height: 70px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --nav-total: calc(var(--nav-height) + var(--safe-bottom));
-      #reader video {
-  transform: scale(1.8); /* 🔥 zoom forçado */
-  transform-origin: center;
-}
     }
- #reader video {
-  transform: scale(1.8);
-  transform-origin: center;
-  filter: contrast(1.4) brightness(1.2);
-}
+ 
     @media (max-width: 640px) {
       :root {
         --padding-container: 16px;
@@ -62,7 +54,11 @@
       box-sizing: border-box;
       -webkit-tap-highlight-color: rgba(0,0,0,0.1);
     }
- 
+ #reader video {
+  transform: scale(2);
+  transform-origin: center;
+  filter: contrast(1.5) brightness(1.2);
+}
     /* ─── RESET CRÍTICO PARA MOBILE ─────────────────────────────────────────── */
     html {
       margin: 0;
@@ -873,213 +869,86 @@
     }
  
     /* ── Scanner ──────────────────────────────────────────────────────────── */
-    async function startScannerWithDevice(deviceId = null) {
-      if (scannerActive) return;
-      await stopScanner(true);
-      DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
-      DOM_CACHE.status.style.display = 'none';
-      DOM_CACHE.readerContainer.classList.remove('scanning-active');
-      html5QrCode = new Html5Qrcode("reader");
-      autoZoomFake();
-const config = {
-  fps: 25, // 🔥 mais estável
-  qrbox: { width: 300, height: 300 }, // 🔥 melhor para DataMatrix
-  disableFlip: true,
-  formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-  experimentalFeatures: {
-    useBarCodeDetectorIfSupported: true
-  },
-  videoConstraints: {
-    facingMode: "environment",
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-    aspectRatio: 1.777777778
-  }
-};
-      try {
-        const cameras = await Html5Qrcode.getCameras();
-        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-        rearCameras = rear.length ? rear : cameras;
-        const targetId = deviceId || (rearCameras.length > 0 ? rearCameras[0].id : null);
-        await html5QrCode.start(targetId || { facingMode: "environment" }, config, onScanSuccess);
-        scannerActive = true;
-        DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
-        DOM_CACHE.readerContainer.classList.add('scanning-active');
-        const videoElem = DOM_CACHE.reader.querySelector("video");
-        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-    function setupTurboAutofocus() {
-  if (!currentTrack?.applyConstraints) return;
+async function startScannerWithDevice() {
+  if (scannerActive) return;
 
-  autoFocusActive = true;
+  await stopScanner(true);
 
-  clearInterval(focusIntervalId);
+  DOM_CACHE.qrResult.textContent = "Iniciando câmera...";
+  DOM_CACHE.readerContainer.classList.add("scanning-active");
 
-  focusIntervalId = setInterval(async () => {
-    if (!currentTrack || !scannerActive) return;
-
-    try {
-      // alterna modos agressivamente
-      await currentTrack.applyConstraints({
-        advanced: [{ focusMode: "single-shot" }]
-      });
-
-      await new Promise(r => setTimeout(r, 80));
-
-      await currentTrack.applyConstraints({
-        advanced: [{ focusMode: "continuous" }]
-      });
-
-      // micro zoom pra forçar foco
-      const caps = currentTrack.getCapabilities?.();
-      if (caps?.zoom) {
-        const z = currentTrack.getSettings().zoom || 1;
-
-        await currentTrack.applyConstraints({
-          advanced: [{ zoom: z + 0.02 }]
-        });
-
-        await currentTrack.applyConstraints({
-          advanced: [{ zoom: z }]
-        });
-      }
-
-    } catch {}
-
-  }, 90); // 🔥 mais rápido
-}
- 
-    function onScanSuccess(decodedText) {
-      if (qrCodeCompleto) return;
-      qrCodeCompleto = decodedText;
-      beep(80, 1200, 0.4);
-      if (navigator.vibrate) navigator.vibrate(100);
-      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Código lido!</strong>";
-      stopScanner();
-    }
- 
-    async function stopScanner(silent = false) {
-      try {
-        if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
-        if (html5QrCode) {
-          await html5QrCode.stop().catch(() => {});
-          await html5QrCode.clear().catch(() => {});
-        }
-      } catch {}
-      finally {
-        currentTrack = null;
-        scannerActive = false;
-        autoFocusActive = false;
-        DOM_CACHE.readerContainer.classList.remove('scanning-active');
-      }
-    }
- 
-    function setupTurboAutofocus() {
-      if (!currentTrack?.applyConstraints) return;
-      autoFocusActive = true;
-      focusAttempts = 0;
-      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-      clearInterval(focusIntervalId);
-      focusIntervalId = setInterval(() => {
-        if (currentTrack && autoFocusActive && scannerActive) {
-          focusAttempts++;
-          if (focusAttempts % 3 === 0) {
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
-              .then(() => { setTimeout(() => { if (currentTrack && autoFocusActive) currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {}); }, 50); })
-              .catch(() => {});
-          } else if (focusAttempts % 2 === 0) {
-            applyZoomNudge();
-          } else {
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-          }
-        }
-      }, 120);
-    }
- 
-    async function applyZoomNudge() {
-      try {
-        if (!currentTrack?.getCapabilities) return;
-        const caps = currentTrack.getCapabilities();
-        if (!caps?.zoom) return;
-        const settings = currentTrack.getSettings?.() || {};
-        const currentZoom = settings.zoom || currentZoomValue || 1;
-        const nudgedZoom = Math.min(currentZoom + 0.01, caps.zoom.max || 5);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
-        setTimeout(() => { if (currentTrack) currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {}); }, 30);
-      } catch {}
-    }
- 
-    function setupZoom() {
-      const slider = DOM_CACHE.zoomSlider;
-      if (!currentTrack?.getCapabilities) return;
-      try {
-        const caps = currentTrack.getCapabilities();
-        if (caps.zoom) {
-          slider.min  = caps.zoom.min ?? 1;
-          slider.max  = caps.zoom.max ?? 5;
-          slider.step = caps.zoom.step || 0.1;
-          applyInitialZoom();
-        }
-      } catch {}
-    }
- 
-    async function applyInitialZoom() {
-      if (!currentTrack?.getCapabilities) return;
-      try {
-        const caps = currentTrack.getCapabilities();
-        if (!caps.zoom) return;
-        const minZoom = caps.zoom.min ?? 1;
-        const maxZoom = caps.zoom.max ?? 5;
-        const initialZoom = minZoom + ((maxZoom - minZoom) * 0.3);
-        currentZoomValue = initialZoom;
-        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
-        DOM_CACHE.zoomSlider.value = initialZoom;
-      } catch {}
-    }
- 
-    async function setZoom(value) {
-      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
-      try {
-        currentZoomValue = parseFloat(value);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
-      } catch {}
-    }
- 
-    async function toggleFlash() {
-      if (!currentTrack?.getCapabilities) return;
-      const caps = currentTrack.getCapabilities();
-      if (!caps.torch) return;
-      flashOn = !flashOn;
-      DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
-      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
-    }
- // 👉 FOCO POR TOQUE NA TELA
-DOM_CACHE.readerContainer.addEventListener("click", async (e) => {
-  if (!currentTrack?.applyConstraints) return;
+  const codeReader = new ZXing.BrowserMultiFormatReader();
 
   try {
-    const rect = DOM_CACHE.readerContainer.getBoundingClientRect();
+    const video = document.createElement("video");
+    video.setAttribute("autoplay", true);
+    video.setAttribute("playsinline", true);
+    video.style.width = "100%";
+    video.style.height = "100%";
+    video.style.objectFit = "cover";
 
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    DOM_CACHE.reader.innerHTML = "";
+    DOM_CACHE.reader.appendChild(video);
 
-    await currentTrack.applyConstraints({
-      advanced: [{
-        focusMode: "single-shot",
-        pointsOfInterest: [{ x, y }]
-      }]
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
     });
 
-    // volta pro contínuo depois
-    setTimeout(() => {
-      currentTrack.applyConstraints({
-        advanced: [{ focusMode: "continuous" }]
-      }).catch(()=>{});
-    }, 200);
+    video.srcObject = stream;
 
+    currentTrack = stream.getVideoTracks()[0];
+    scannerActive = true;
+
+    DOM_CACHE.qrResult.textContent = "Aguardando leitura...";
+
+    // 🔥 LOOP ULTRA RÁPIDO
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function scanLoop() {
+      if (!scannerActive) return;
+
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        try {
+          const result = ZXing.BrowserMultiFormatReader.decodeFromCanvas(canvas);
+
+          if (result && result.text) {
+            onScanSuccess(result.text);
+            return;
+          }
+        } catch {}
+      }
+
+      requestAnimationFrame(scanLoop);
+    }
+
+    scanLoop();
+
+    setupHardFocus();
+    enableTapFocus(video);
+function setupHardFocus() {
+  if (!currentTrack) return;
+
+  setInterval(() => {
+    currentTrack.applyConstraints({
+      advanced: [{ focusMode: "continuous" }]
+    }).catch(()=>{});
+  }, 100);
+}
   } catch (err) {
-    console.log("Foco por toque não suportado");
+    DOM_CACHE.qrResult.textContent = "Erro ao iniciar câmera";
   }
-});
+}
+ 
     /* ── API ──────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
@@ -1127,25 +996,8 @@ DOM_CACHE.readerContainer.addEventListener("click", async (e) => {
       entradaVencidaPendente = null;
       liberarBotoes();
       startScannerWithDevice();
-    setupHardFocus();
-      DOM_CACHE.readerContainer.onclick = async (e) => {
-  if (!currentTrack?.applyConstraints) return;
-
-  try {
-    const rect = DOM_CACHE.readerContainer.getBoundingClientRect();
-
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-
-    await currentTrack.applyConstraints({
-      advanced: [{
-        focusMode: "single-shot",
-        pointsOfInterest: [{ x, y }]
-      }]
-    });
-
-  } catch {}
-};
+    }
+ 
     function liberarBotoes() { DOM_CACHE.btnEntrada.disabled = false; DOM_CACHE.btnSaida.disabled = false; }
     function bloquearBotoes() { DOM_CACHE.btnEntrada.disabled = true;  DOM_CACHE.btnSaida.disabled = true; }
  
@@ -1275,20 +1127,27 @@ DOM_CACHE.readerContainer.addEventListener("click", async (e) => {
  
     window.addEventListener('load',         () => { initDOMCache(); carregarTodosOsDados(); });
     window.addEventListener('beforeunload', () => { stopScanner(true); });
-        function setupHardFocus() {
-  if (!currentTrack) return;
+  
+  function enableTapFocus(video) {
+  video.addEventListener("click", async (e) => {
+    if (!currentTrack?.applyConstraints) return;
 
-  setInterval(async () => {
     try {
+      const rect = video.getBoundingClientRect();
+
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
       await currentTrack.applyConstraints({
-        advanced: [
-          { focusMode: "manual", focusDistance: 0.1 },
-          { focusMode: "continuous" }
-        ]
+        advanced: [{
+          focusMode: "single-shot",
+          pointsOfInterest: [{ x, y }]
+        }]
       });
+
     } catch {}
-  }, 80);
+  });
 }
-  </script>
+    </script> 
 </body>
 </html>
