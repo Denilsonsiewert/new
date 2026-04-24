@@ -872,13 +872,21 @@
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
       html5QrCode = new Html5Qrcode("reader");
-      const config = {
-        fps: 30,
-        qrbox: { width: 250, height: 250 },
-        disableFlip: true,
-        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-      };
+const config = {
+  fps: 60,
+  qrbox: { width: 220, height: 220 },
+  disableFlip: true,
+  formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
+  experimentalFeatures: {
+    useBarCodeDetectorIfSupported: true
+  },
+  videoConstraints: {
+    facingMode: "environment",
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+    focusMode: "continuous"
+  }
+};
       try {
         const cameras = await Html5Qrcode.getCameras();
         const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
@@ -890,12 +898,46 @@
         DOM_CACHE.readerContainer.classList.add('scanning-active');
         const videoElem = DOM_CACHE.reader.querySelector("video");
         currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-        setupTurboAutofocus();
-        setupZoom();
-      } catch (err) {
-        DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
+    function setupTurboAutofocus() {
+  if (!currentTrack?.applyConstraints) return;
+
+  autoFocusActive = true;
+
+  clearInterval(focusIntervalId);
+
+  focusIntervalId = setInterval(async () => {
+    if (!currentTrack || !scannerActive) return;
+
+    try {
+      // alterna modos agressivamente
+      await currentTrack.applyConstraints({
+        advanced: [{ focusMode: "single-shot" }]
+      });
+
+      await new Promise(r => setTimeout(r, 80));
+
+      await currentTrack.applyConstraints({
+        advanced: [{ focusMode: "continuous" }]
+      });
+
+      // micro zoom pra forçar foco
+      const caps = currentTrack.getCapabilities?.();
+      if (caps?.zoom) {
+        const z = currentTrack.getSettings().zoom || 1;
+
+        await currentTrack.applyConstraints({
+          advanced: [{ zoom: z + 0.02 }]
+        });
+
+        await currentTrack.applyConstraints({
+          advanced: [{ zoom: z }]
+        });
       }
-    }
+
+    } catch {}
+
+  }, 90); // 🔥 mais rápido
+}
  
     function onScanSuccess(decodedText) {
       if (qrCodeCompleto) return;
@@ -1001,7 +1043,34 @@
       DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
       await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
     }
- 
+ // 👉 FOCO POR TOQUE NA TELA
+DOM_CACHE.readerContainer.addEventListener("click", async (e) => {
+  if (!currentTrack?.applyConstraints) return;
+
+  try {
+    const rect = DOM_CACHE.readerContainer.getBoundingClientRect();
+
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    await currentTrack.applyConstraints({
+      advanced: [{
+        focusMode: "single-shot",
+        pointsOfInterest: [{ x, y }]
+      }]
+    });
+
+    // volta pro contínuo depois
+    setTimeout(() => {
+      currentTrack.applyConstraints({
+        advanced: [{ focusMode: "continuous" }]
+      }).catch(()=>{});
+    }, 200);
+
+  } catch (err) {
+    console.log("Foco por toque não suportado");
+  }
+});
     /* ── API ──────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
