@@ -113,7 +113,7 @@
       font-weight: 600; color: var(--cor-texto);
     }
  
-    /* LEITOR QR OTIMIZADO */
+    /* LEITOR QR OTIMIZADO PARA DATAMATRIX PEQUENO */
     #reader-container {
       position: relative; width: 100%; max-width: 400px;
       margin: 0 auto 16px; background: #000;
@@ -123,19 +123,19 @@
     }
     #reader-container.scanning-active {
       border-color: var(--verde);
-      box-shadow: 0 0 0 3px rgba(40,167,69,0.25);
+      box-shadow: 0 0 0 3px rgba(40,167,69,0.25), 0 0 20px rgba(40,167,69,0.15);
     }
     #reader { width: 100%; height: 100%; display: block; }
     #reader video, #reader canvas {
       width: 100%; height: 100%; display: block; object-fit: cover;
     }
  
-    /* CONTROLES DA CÂMERA */
+    /* CONTROLES DA CÂMERA - SEM ZOOM, COM FOCO E LANTERNA */
     .camera-controls-module {
       position: relative; margin: 0 auto 20px;
       width: 100%; max-width: 400px;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; padding: 12px 16px;
       border-radius: 16px; background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(10px);
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
@@ -143,72 +143,92 @@
     @media (max-width: 480px) {
       .camera-controls-module {
         flex-direction: row; align-items: center;
-        justify-content: space-between; gap: 10px;
+        justify-content: center; gap: 12px;
         padding: 10px 12px; bottom: 10px;
         max-width: calc(100% - 20px);
       }
     }
  
     .control-btn {
-      width: clamp(48px, 12vw, 56px); height: clamp(48px, 12vw, 56px);
-      border-radius: 50%; font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+      width: clamp(52px, 14vw, 60px); height: clamp(52px, 14vw, 60px);
+      border-radius: 50%; font-size: clamp(1.3rem, 4vw, 1.6rem);
       background: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.3); color: white;
+      border: 2px solid rgba(255, 255, 255, 0.35); color: white;
       display: flex; align-items: center; justify-content: center;
-      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-      cursor: pointer; flex: 0 0 auto; -webkit-tap-highlight-color: transparent;
-      outline: none; touch-action: manipulation;
-      min-width: 48px; min-height: 48px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.15s ease; cursor: pointer; flex: 0 0 auto;
+      -webkit-tap-highlight-color: transparent; outline: none;
+      touch-action: manipulation; min-width: 52px; min-height: 52px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      position: relative;
     }
-    .control-btn:hover { background: rgba(255, 255, 255, 0.28); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
-    .control-btn:active { transform: scale(0.88); background: rgba(255, 255, 255, 0.35); }
+    .control-btn:hover { 
+      background: rgba(255, 255, 255, 0.3); 
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+    .control-btn:active { 
+      transform: scale(0.92); 
+      background: rgba(255, 255, 255, 0.4); 
+    }
     .control-btn.active {
       background: linear-gradient(135deg, var(--cor-primaria), #0073c9);
-      border-color: #0073c9; box-shadow: 0 6px 20px rgba(0, 115, 201, 0.4);
+      border-color: #0073c9; 
+      box-shadow: 0 0 0 3px rgba(0, 115, 201, 0.3), 0 6px 20px rgba(0, 115, 201, 0.4);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 115, 201, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(0, 115, 201, 0); }
     }
  
-    .zoom-control {
-      display: flex; align-items: center; gap: clamp(8px, 2.5vw, 12px);
-      flex: 1; min-width: 0;
+    /* Botão de modo macro para DataMatrix muito pequenos */
+    .control-btn.macro-mode {
+      background: linear-gradient(135deg, #6f42c1, #5a32a3);
+      border-color: #5a32a3;
     }
-    @media (max-width: 480px) {
-      .zoom-control { width: 100%; justify-content: center; }
+    .control-btn.macro-mode.active {
+      background: linear-gradient(135deg, #9b7fbd, #8a6ab3);
+      box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.3), 0 6px 20px rgba(111, 66, 193, 0.4);
     }
-    .zoom-control span { color: white; font-size: clamp(1rem, 2.8vw, 1.1rem); flex-shrink: 0; }
-    .zoom-control input[type="range"] {
-      flex: 1; height: 6px; appearance: none; -webkit-appearance: none;
-      background: rgba(255, 255, 255, 0.25); border-radius: 4px;
-      outline: none; min-width: 100px; touch-action: none;
-      transition: background 0.2s ease;
+ 
+    /* Indicador de foco aprimorado */
+    .focus-indicator {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px; height: 120px;
+      border: 2px solid rgba(40, 167, 69, 0.8);
+      border-radius: 8px; pointer-events: none;
+      z-index: 10; display: none;
+      box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.3);
     }
-    .zoom-control input[type="range"]:hover { background: rgba(255, 255, 255, 0.35); }
-    .zoom-control input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 26px; height: 26px;
-      background: linear-gradient(135deg, #fff, #f0f0f0);
-      border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer; transition: box-shadow 0.2s ease, transform 0.1s ease;
+    .focus-indicator.active { display: block; animation: focusPulse 0.3s ease-out; }
+    @keyframes focusPulse {
+      0% { width: 80px; height: 80px; opacity: 1; }
+      50% { width: 140px; height: 140px; opacity: 0.7; }
+      100% { width: 120px; height: 120px; opacity: 1; }
     }
-    .zoom-control input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
-    .zoom-control input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.1); }
-    .zoom-control input[type="range"]::-moz-range-thumb {
-      width: 26px; height: 26px; background: linear-gradient(135deg, #fff, #f0f0f0);
-      border-radius: 50%; border: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer; transition: box-shadow 0.2s ease, transform 0.1s ease;
-    }
-    .zoom-control input[type="range"]::-moz-range-thumb:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
-    .zoom-control input[type="range"]::-moz-range-thumb:active { transform: scale(1.1); }
-
-    /* Status de Foco */
+    
+    /* Status de Foco otimizado */
     .focus-status {
-      position: absolute; top: 10px; right: 10px;
-      background: rgba(0,0,0,0.7); color: white;
-      padding: 4px 8px; border-radius: 4px;
-      font-size: 0.8rem; z-index: 5;
-      display: none;
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(0,0,0,0.85); color: white;
+      padding: 6px 12px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; z-index: 15;
+      display: none; backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .focus-status.active { display: block; animation: blink 0.5s; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .focus-status.active { 
+      display: flex; align-items: center; gap: 6px;
+      animation: statusBlink 0.4s ease; 
+    }
+    .focus-status.active::before {
+      content: "🎯"; font-size: 1rem;
+    }
+    @keyframes statusBlink { 
+      0%, 100% { opacity: 1; transform: scale(1); } 
+      50% { opacity: 0.85; transform: scale(0.98); } 
+    }
  
     .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 3vw, 16px); margin-bottom: 20px; }
     @media (max-width: 480px) { .button-group { grid-template-columns: 1fr; gap: 14px; } }
@@ -216,16 +236,28 @@
     button {
       padding: clamp(14px, 4vw, 18px); font-weight: 700; border-radius: 12px;
       border: none; cursor: pointer; background: var(--cor-primaria); color: white;
-      transition: opacity .15s ease, transform .1s ease;
+      transition: opacity .15s ease, transform .1s ease, box-shadow .15s ease;
       font-size: clamp(1rem, 3.5vw, 1.1rem); -webkit-tap-highlight-color: transparent;
       outline: none; min-height: var(--button-height); min-width: 44px;
       touch-action: manipulation; display: flex; align-items: center;
       justify-content: center; font-family: inherit;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    button:hover:not(:disabled) { opacity: .9; }
-    button:active:not(:disabled) { transform: scale(.97); }
+    button:hover:not(:disabled) { 
+      opacity: .92; 
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    button:active:not(:disabled) { 
+      transform: scale(.98) translateY(0); 
+    }
     button.saida { background: var(--cor-perigo); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:disabled { 
+      opacity: 0.55; 
+      cursor: not-allowed; 
+      transform: none !important;
+      box-shadow: none !important;
+    }
  
     .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
     .input-group label { font-size: 0.9rem; font-weight: 600; color: var(--cor-texto); }
@@ -233,10 +265,13 @@
       width: 100%; height: var(--input-height); padding: 0 16px;
       font-size: 1rem; border-radius: 12px; border: 1.5px solid var(--borda-cor);
       background: #fff; color: var(--cor-texto); transition: all 0.2s ease;
+      font-weight: 500;
     }
     .input-group input:focus {
       border-color: var(--cor-primaria);
-      box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.15); outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.2); 
+      outline: none;
+      border-width: 2px;
     }
     #quantidade { text-align: center; font-weight: 700; font-size: 1.2rem; }
  
@@ -245,11 +280,12 @@
       padding: clamp(14px, 3.5vw, 16px); border-radius: 12px;
       font-weight: 600; display: none; animation: slideDown .2s ease;
       font-size: clamp(1rem, 3vw, 1.05rem);
+      text-align: center;
     }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; }
-    .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; }
-    .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
+    .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; border-left: 4px solid var(--cor-sucesso); }
+    .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; border-left: 4px solid var(--cor-perigo); }
+    .status-info    { background: #d1ecf1; color: #0c5460; display: block; border-left: 4px solid #0c5460; }
  
     .table-wrapper {
       overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -302,6 +338,11 @@
       border-radius: 12px; border: 2px solid var(--borda-cor);
       min-height: 56px; display: flex; align-items: center;
       justify-content: center; font-size: clamp(0.95rem, 3vw, 1.05rem);
+      transition: all 0.2s ease;
+    }
+    .qr-result.success {
+      background: #d1e7dd; border-color: var(--cor-sucesso);
+      color: var(--cor-sucesso); font-size: 1.1rem;
     }
  
     .modal-overlay {
@@ -341,6 +382,20 @@
     }
     .modal-actions .btn-confirmar { background: var(--cor-perigo); }
     .modal-actions .btn-cancelar  { background: var(--cor-texto-claro); }
+ 
+    /* Área de toque para foco manual no vídeo */
+    #reader-container.touch-focus {
+      cursor: crosshair;
+    }
+    #reader-container.touch-focus::after {
+      content: "Toque para focar";
+      position: absolute; bottom: 8px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: white;
+      padding: 4px 10px; border-radius: 12px;
+      font-size: 0.75rem; z-index: 5;
+      pointer-events: none; opacity: 0.9;
+    }
  
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -407,25 +462,28 @@
         </div>
       </div>
  
-      <!-- REGISTRAR -->
+      <!-- REGISTRAR - OTIMIZADO PARA DATAMATRIX PEQUENO -->
       <div id="page-registrar" class="page">
         <div class="card">
           <h2>Registrar Movimentação</h2>
           <div id="reader-container">
             <div id="reader"></div>
-            <div class="focus-status" id="focusStatus">🎯 Focando...</div>
+            <div class="focus-indicator" id="focusIndicator"></div>
+            <div class="focus-status" id="focusStatus">Focando...</div>
           </div>
 
           <div class="camera-controls-module">
+            <!-- Botão de Lanterna/Torch -->
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+            
+            <!-- Botão de Foco Manual Rápido -->
             <div id="btnFocus" class="control-btn" onclick="triggerManualFocus()" title="Focar Agora">🎯</div>
-            <div class="zoom-control">
-              <span>🔍</span>
-              <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
-            </div>
+            
+            <!-- Botão de Modo Macro para DataMatrix muito pequenos -->
+            <div id="btnMacro" class="control-btn macro-mode" onclick="toggleMacroMode()" title="Modo Macro (códigos pequenos)">🔬</div>
           </div>
           
-          <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
+          <div id="qr-result" class="qr-result">Aponte para o Data Matrix pequeno</div>
           <div class="input-group">
             <label for="quantidade">Quantidade</label>
             <input type="number" id="quantidade" placeholder="Ex: 5" min="1" inputmode="numeric" />
@@ -477,27 +535,31 @@
  
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
-      zoomSlider: null, btnFlash: null, btnFocus: null, btnEntrada: null, btnSaida: null,
-      loadingOverlay: null, focusStatus: null
+      btnFlash: null, btnFocus: null, btnMacro: null, btnEntrada: null, btnSaida: null,
+      loadingOverlay: null, focusStatus: null, focusIndicator: null
     };
  
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], currentRearIndex = 0;
-    let currentZoomValue = 1, isLowEndDevice = false;
+    let isLowEndDevice = false, macroMode = false;
     let entradaVencidaPendente = null, registroEmProgresso = false;
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
     const CACHE_DURATION = 3000;
 
-    // ===== NOVO: Sistema de Autofocus Inteligente =====
-    let focusManager = {
+    // ===== SISTEMA DE AUTOFOCUS INTELIGENTE PARA DATAMATRIX PEQUENO =====
+    const focusManager = {
       lastFocusTime: 0,
-      focusInterval: 3000, // Refoca a cada 3 segundos
+      focusInterval: 200, // Intervalo ultra-rápido: 200ms para DataMatrix pequeno
       isManualFocusActive: false,
       lastContrast: 0,
-      contrastThreshold: 15,
+      contrastThreshold: 8, // Limite mais sensível para detectar foco em códigos pequenos
       focusAttempts: 0,
-      maxAttempts: 3
+      maxAttempts: 5,
+      regionWidth: 80, // Região central menor para foco preciso
+      regionHeight: 80,
+      macroZoom: 2.5, // Zoom padrão para modo macro
+      normalZoom: 1.2 // Zoom padrão normal
     };
  
     /* ── Utilitários ─────────────────────────────────────────────────────── */
@@ -506,13 +568,14 @@
       DOM_CACHE.reader          = document.getElementById('reader');
       DOM_CACHE.qrResult        = document.getElementById('qr-result');
       DOM_CACHE.status          = document.getElementById('status');
-      DOM_CACHE.zoomSlider      = document.getElementById('zoomSlider');
       DOM_CACHE.btnFlash        = document.getElementById('btnFlash');
       DOM_CACHE.btnFocus        = document.getElementById('btnFocus');
+      DOM_CACHE.btnMacro        = document.getElementById('btnMacro');
       DOM_CACHE.btnEntrada      = document.getElementById('btnEntrada');
       DOM_CACHE.btnSaida        = document.getElementById('btnSaida');
       DOM_CACHE.loadingOverlay  = document.getElementById('loading-overlay');
       DOM_CACHE.focusStatus     = document.getElementById('focusStatus');
+      DOM_CACHE.focusIndicator  = document.getElementById('focusIndicator');
     }
  
     function normalizeError(err) {
@@ -541,25 +604,38 @@
       return mem <= 2 || cores <= 2;
     }
 
-    // ===== NOVO: Calcula contraste da imagem para detecção de foco =====
-    function calculateImageContrast(canvas) {
+    // ===== CÁLCULO DE CONTRASTE OTIMIZADO PARA CÓDIGOS PEQUENOS =====
+    function calculateImageContrast(canvas, regionX, regionY, regionW, regionH) {
       try {
         const ctx = canvas.getContext('2d');
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Analisa apenas a região central onde o DataMatrix geralmente aparece
+        const imgData = ctx.getImageData(regionX, regionY, regionW, regionH);
         const data = imgData.data;
         
+        // Calcula brilho médio
         let brightness = 0;
         for (let i = 0; i < data.length; i += 4) {
           brightness += (data[i] + data[i+1] + data[i+2]) / 3;
         }
         brightness /= (data.length / 4);
         
-        let contrast = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          const pixelBrightness = (data[i] + data[i+1] + data[i+2]) / 3;
-          contrast += Math.abs(pixelBrightness - brightness);
+        // Calcula contraste com peso maior para bordas (importante para DataMatrix)
+        let contrast = 0, edgeWeight = 0;
+        const w = regionW, h = regionH;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
+            const pixelBrightness = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+            
+            // Peso maior para pixels nas bordas (onde estão os padrões do DataMatrix)
+            const isEdge = (x < 5 || x > w-6 || y < 5 || y > h-6);
+            const weight = isEdge ? 2.5 : 1;
+            
+            contrast += Math.abs(pixelBrightness - brightness) * weight;
+            edgeWeight += weight;
+          }
         }
-        contrast /= (data.length / 4);
+        contrast /= edgeWeight;
         
         return contrast;
       } catch {
@@ -567,7 +643,7 @@
       }
     }
 
-    // ===== NOVO: Foco automático inteligente baseado em contraste =====
+    // ===== AUTOFOCUS AGRESSIVO PARA DATAMATRIX PEQUENO =====
     async function autoFocusIfNeeded() {
       if (!scannerActive || !currentTrack || focusManager.isManualFocusActive) return;
       
@@ -578,51 +654,70 @@
         const video = DOM_CACHE.reader.querySelector('video');
         if (!video || video.readyState !== HTMLMediaElement.HAVE_ENOUGH_DATA) return;
         
-        // Cria canvas para análise de contraste
+        // Região central menor para foco preciso em códigos pequenos
+        const regionW = focusManager.regionWidth;
+        const regionH = focusManager.regionHeight;
+        const regionX = Math.floor((video.videoWidth - regionW) / 2);
+        const regionY = Math.floor((video.videoHeight - regionH) / 2);
+        
+        // Canvas pequeno para análise rápida
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = 100;
-        canvas.height = 100;
-        ctx.drawImage(video, video.width/2 - 50, video.height/2 - 50, 100, 100, 0, 0, 100, 100);
+        canvas.width = regionW;
+        canvas.height = regionH;
+        ctx.drawImage(video, regionX, regionY, regionW, regionH, 0, 0, regionW, regionH);
         
-        const contrast = calculateImageContrast(canvas);
+        const contrast = calculateImageContrast(canvas, 0, 0, regionW, regionH);
         const contrastDiff = Math.abs(contrast - focusManager.lastContrast);
         
-        // Se contraste está baixo ou mudando muito, refoca
-        if (contrast < 20 || contrastDiff > focusManager.contrastThreshold) {
+        // Gatilhos mais sensíveis para DataMatrix pequeno
+        const needsFocus = contrast < 25 || contrastDiff > focusManager.contrastThreshold || focusManager.focusAttempts > 0;
+        
+        if (needsFocus) {
           focusManager.lastFocusTime = now;
-          focusManager.focusAttempts = 0;
           showFocusIndicator();
           
-          // Tenta aplicar foco
           if (currentTrack.applyConstraints) {
             try {
               const caps = currentTrack.getCapabilities?.();
               if (caps?.focusMode) {
-                // Prioridade: manual > single-shot > continuous
-                if (caps.focusMode.includes('manual')) {
-                  await currentTrack.applyConstraints({ 
-                    advanced: [{ focusMode: 'manual', focusDistance: 0.3 }] 
-                  });
-                } else if (caps.focusMode.includes('single-shot')) {
+                // Prioridade ABSOLUTA para single-shot em códigos pequenos
+                if (caps.focusMode.includes('single-shot')) {
                   await currentTrack.applyConstraints({ 
                     advanced: [{ focusMode: 'single-shot' }] 
                   });
+                  // Volta para continuous após foco rápido
                   setTimeout(() => {
-                    if (currentTrack) {
+                    if (currentTrack && caps.focusMode.includes('continuous')) {
                       currentTrack.applyConstraints({ 
                         advanced: [{ focusMode: 'continuous' }] 
                       }).catch(() => {});
                     }
-                  }, 300);
+                  }, 150);
                 } else if (caps.focusMode.includes('continuous')) {
                   await currentTrack.applyConstraints({ 
                     advanced: [{ focusMode: 'continuous' }] 
                   });
+                } else if (caps.focusMode.includes('manual')) {
+                  // Foco manual com distância otimizada para close-up
+                  const focusDistance = macroMode ? 0.05 : 0.15;
+                  await currentTrack.applyConstraints({ 
+                    advanced: [{ focusMode: 'manual', focusDistance: focusDistance }] 
+                  });
+                  // Libera após foco
+                  setTimeout(() => {
+                    if (currentTrack && caps.focusMode.includes('continuous')) {
+                      currentTrack.applyConstraints({ 
+                        advanced: [{ focusMode: 'continuous' }] 
+                      }).catch(() => {});
+                    }
+                  }, 200);
                 }
               }
+              focusManager.focusAttempts = 0;
             } catch (e) {
               console.warn('Auto-focus falhou:', e);
+              focusManager.focusAttempts++;
             }
           }
         }
@@ -634,21 +729,28 @@
     }
 
     function showFocusIndicator() {
-      const indicator = DOM_CACHE.focusStatus;
+      const indicator = DOM_CACHE.focusIndicator;
+      const status = DOM_CACHE.focusStatus;
+      
       if (indicator) {
         indicator.classList.remove('active');
-        void indicator.offsetWidth;
+        void indicator.offsetWidth; // Force reflow
         indicator.classList.add('active');
-        setTimeout(() => indicator.classList.remove('active'), 500);
+      }
+      if (status) {
+        status.classList.remove('active');
+        void status.offsetWidth;
+        status.classList.add('active');
+        setTimeout(() => status.classList.remove('active'), 400);
       }
     }
  
-    /* ── Scanner OTIMIZADO ───────────────────────────────────────────────── */
+    /* ── Scanner SUPER OTIMIZADO PARA DATAMATRIX PEQUENO ───────────────── */
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
       
-      DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
+      DOM_CACHE.qrResult.textContent = 'Preparando câmera para DataMatrix...';
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
       
@@ -660,29 +762,39 @@
       html5QrCode = new Html5Qrcode("reader");
       isLowEndDevice = detectLowEndDevice();
       
-      // ===== NOVO: FPS mais alto para detecção melhorada =====
-      const targetFPS = isLowEndDevice ? 20 : 30;
+      // FPS mais alto para detecção responsiva de códigos pequenos
+      const targetFPS = isLowEndDevice ? 25 : 30;
+      
+      // QR Box MENOR e centralizado para foco em DataMatrix pequeno
+      const qrBoxSize = macroMode ? 140 : 180;
       
       const config = {
         fps: targetFPS,
-        qrbox: { width: 200, height: 200 }, // QR Box menor para melhor foco
+        qrbox: { width: qrBoxSize, height: qrBoxSize }, // Box menor = foco mais preciso
         disableFlip: true,
-        // ===== NOVO: Suporta múltiplos formatos =====
         formatsToSupport: [
-          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.DATA_MATRIX, // Prioridade máxima para DataMatrix
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.AZTEC
         ],
         rememberLastUsedCamera: true,
         experimentalFeatures: { 
           useBarCodeDetectorIfSupported: !isLowEndDevice 
+        },
+        // Configurações extras para códigos pequenos
+        aspectRatio: 1.0,
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: targetFPS, max: targetFPS }
         }
       };
       
       try {
         const cameras = await Html5Qrcode.getCameras();
+        // Filtra câmeras traseiras com melhor qualidade
         const rearWithAF = cameras.filter(c => 
-          /back|rear|environment|traseir/i.test(c.label || '')
+          /back|rear|environment|traseir|principal/i.test(c.label?.toLowerCase() || '')
         );
         rearCameras = rearWithAF.length ? rearWithAF : cameras;
         
@@ -690,9 +802,9 @@
         
         const videoConstraints = {
           facingMode: { exact: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: targetFPS }
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: targetFPS, max: targetFPS }
         };
         
         await html5QrCode.start(
@@ -702,30 +814,38 @@
         );
         
         scannerActive = true;
-        DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+        DOM_CACHE.qrResult.textContent = 'Aponte para o Data Matrix pequeno';
         DOM_CACHE.readerContainer.classList.add('scanning-active');
+        
+        // Habilita toque para foco manual
+        DOM_CACHE.readerContainer.classList.add('touch-focus');
+        DOM_CACHE.readerContainer.addEventListener('click', handleTouchFocus);
         
         const videoElem = DOM_CACHE.reader.querySelector("video");
         currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
         
         if (currentTrack) {
           setupCameraCapabilities();
-          setupZoom();
           
-          // ===== NOVO: Inicia foco contínuo inteligente =====
+          // Aplica zoom inicial otimizado para close-up
+          await applyInitialZoom();
+          
+          // ===== INICIA FOCO CONTÍNUO ULTRA-RÁPIDO =====
           focusManager.lastFocusTime = Date.now();
           focusManager.isManualFocusActive = false;
+          focusManager.focusAttempts = 0;
           enableSmartAutofocus();
         }
         
       } catch (err) {
         console.warn('Tentativa 1 falhou, tentando fallback...', err);
         try {
+          // Fallback com configurações mais compatíveis
           await html5QrCode.start(
             { facingMode: "environment" },
             { 
               fps: 20, 
-              qrbox: { width: 180, height: 180 },
+              qrbox: { width: 160, height: 160 },
               formatsToSupport: [
                 Html5QrcodeSupportedFormats.DATA_MATRIX,
                 Html5QrcodeSupportedFormats.QR_CODE
@@ -736,10 +856,14 @@
           scannerActive = true;
           DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
           DOM_CACHE.readerContainer.classList.add('scanning-active');
+          
+          DOM_CACHE.readerContainer.classList.add('touch-focus');
+          DOM_CACHE.readerContainer.addEventListener('click', handleTouchFocus);
+          
           const videoElem = DOM_CACHE.reader.querySelector("video");
           currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
           if (currentTrack) {
-            setupZoom();
+            await applyInitialZoom();
             focusManager.lastFocusTime = Date.now();
             enableSmartAutofocus();
           }
@@ -750,26 +874,49 @@
       }
     }
 
-    // ===== NOVO: Ativa foco inteligente com intervalo =====
+    // ===== FOCO POR TOQUE NA TELA =====
+    function handleTouchFocus(event) {
+      if (!scannerActive || !currentTrack?.applyConstraints) return;
+      
+      // Previne conflito com outros eventos
+      event.preventDefault();
+      event.stopPropagation();
+      
+      triggerManualFocus();
+    }
+
+    // ===== FOCO CONTÍNUO INTELIGENTE COM INTERVALO ULTRA-RÁPIDO =====
     function enableSmartAutofocus() {
-      const focusInterval = setInterval(() => {
+      // Limpa intervalos anteriores
+      if (window.focusIntervalId) {
+        clearInterval(window.focusIntervalId);
+      }
+      
+      // Intervalo de 200ms para resposta imediata em códigos pequenos
+      window.focusIntervalId = setInterval(() => {
         if (!scannerActive) {
-          clearInterval(focusInterval);
+          clearInterval(window.focusIntervalId);
           return;
         }
         autoFocusIfNeeded();
-      }, 500);
+      }, focusManager.focusInterval);
     }
     
     function setupCameraCapabilities() {
       if (!currentTrack?.getCapabilities) return;
       try {
         const caps = currentTrack.getCapabilities();
+        
+        // Gerencia visibilidade do botão de lanterna
         if (!caps.torch) {
           DOM_CACHE.btnFlash.style.display = 'none';
+        } else {
+          DOM_CACHE.btnFlash.style.display = 'flex';
         }
-        if (!caps.zoom) {
-          DOM_CACHE.zoomSlider.disabled = true;
+        
+        // Gerencia botão de modo macro
+        if (!caps.zoom || !caps.focusMode) {
+          DOM_CACHE.btnMacro.style.display = 'none';
         }
       } catch {}
     }
@@ -777,14 +924,32 @@
     function onScanSuccess(decodedText) {
       if (qrCodeCompleto || !scannerActive) return;
       qrCodeCompleto = decodedText;
-      beep(80, 1200, 0.4);
-      if (navigator.vibrate) navigator.vibrate(100);
-      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Código lido!</strong>";
+      
+      // Feedback multimodal imediato
+      beep(100, 1400, 0.5); // Som mais agudo e longo para confirmação
+      if (navigator.vibrate) navigator.vibrate([50, 30, 50]); // Vibração em padrão
+      
+      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Data Matrix lido!</strong>";
+      DOM_CACHE.qrResult.classList.add('success');
+      
+      // Para scanner após leitura bem-sucedida
       stopScanner();
     }
  
     async function stopScanner(silent = false) {
       try {
+        // Limpa intervalo de foco
+        if (window.focusIntervalId) {
+          clearInterval(window.focusIntervalId);
+          window.focusIntervalId = null;
+        }
+        
+        // Remove listener de toque
+        if (DOM_CACHE.readerContainer) {
+          DOM_CACHE.readerContainer.removeEventListener('click', handleTouchFocus);
+          DOM_CACHE.readerContainer.classList.remove('touch-focus');
+        }
+        
         if (html5QrCode && scannerActive) {
           await html5QrCode.stop().catch(() => {});
         }
@@ -803,6 +968,7 @@
       }
     }
  
+    // ===== FOCO MANUAL ULTRA-RÁPIDO =====
     async function triggerManualFocus() {
       if (!currentTrack?.applyConstraints) {
         showFocusIndicator();
@@ -814,79 +980,153 @@
       
       try {
         const caps = currentTrack.getCapabilities?.();
-        if (caps?.focusMode?.includes('manual')) {
-          await currentTrack.applyConstraints({ 
-            advanced: [{ focusMode: 'manual', focusDistance: 0.3 }] 
-          });
-        } else if (caps?.focusMode?.includes('single-shot')) {
+        if (!caps?.focusMode) {
+          // Fallback: tenta forçar foco via zoom
+          if (caps?.zoom) {
+            const currentZoom = focusManager.lastZoom || 1;
+            await currentTrack.applyConstraints({ 
+              advanced: [{ zoom: currentZoom * 1.1 }] 
+            });
+            setTimeout(async () => {
+              if (currentTrack) {
+                await currentTrack.applyConstraints({ 
+                  advanced: [{ zoom: currentZoom }] 
+                });
+              }
+              focusManager.isManualFocusActive = false;
+            }, 100);
+          }
+          return;
+        }
+        
+        // Estratégia otimizada para DataMatrix pequeno
+        if (caps.focusMode.includes('single-shot')) {
+          // Single-shot é o mais rápido para foco instantâneo
           await currentTrack.applyConstraints({ 
             advanced: [{ focusMode: 'single-shot' }] 
           });
-        } else {
+        } else if (caps.focusMode.includes('manual')) {
+          // Foco manual com distância otimizada
+          const focusDistance = macroMode ? 0.03 : 0.1;
+          await currentTrack.applyConstraints({ 
+            advanced: [{ focusMode: 'manual', focusDistance: focusDistance }] 
+          });
+          // Libera após foco rápido
+          setTimeout(async () => {
+            if (currentTrack && caps.focusMode.includes('continuous')) {
+              await currentTrack.applyConstraints({ 
+                advanced: [{ focusMode: 'continuous' }] 
+              });
+            }
+          }, 120);
+        } else if (caps.focusMode.includes('continuous')) {
+          // Força reavaliação do foco contínuo
           await currentTrack.applyConstraints({ 
             advanced: [{ focusMode: 'continuous' }] 
           });
         }
         
-        // Volta para autofocus após 1 segundo
+        // Reset para próximo foco automático
         setTimeout(() => {
           focusManager.isManualFocusActive = false;
-          focusManager.lastFocusTime = 0; // Força refoco rápido
-        }, 1000);
+          focusManager.lastFocusTime = 0; // Força refoco imediato
+          focusManager.focusAttempts = 0;
+        }, 150);
       } catch (e) {
         console.warn('Foco manual falhou:', e);
         focusManager.isManualFocusActive = false;
+        showFocusIndicator(); // Feedback visual mesmo com erro
+      }
+    }
+    
+    // ===== MODO MACRO PARA DATAMATRIX MUITO PEQUENOS =====
+    function toggleMacroMode() {
+      macroMode = !macroMode;
+      DOM_CACHE.btnMacro.classList.toggle('active', macroMode);
+      
+      // Ajusta configurações para modo macro
+      if (macroMode) {
+        focusManager.regionWidth = 60; // Região ainda menor
+        focusManager.regionHeight = 60;
+        focusManager.contrastThreshold = 5; // Mais sensível
+        DOM_CACHE.qrResult.textContent = 'Modo Macro: Aponte bem próximo ao Data Matrix';
+      } else {
+        focusManager.regionWidth = 80;
+        focusManager.regionHeight = 80;
+        focusManager.contrastThreshold = 8;
+        DOM_CACHE.qrResult.textContent = 'Aponte para o Data Matrix pequeno';
+      }
+      
+      // Reaplica zoom se possível
+      if (currentTrack?.getCapabilities?.().zoom) {
+        applyInitialZoom();
+      }
+      
+      // Força refoco imediato
+      focusManager.lastFocusTime = 0;
+      if (scannerActive) {
+        autoFocusIfNeeded();
       }
     }
  
-    function setupZoom() {
-      const slider = DOM_CACHE.zoomSlider;
-      if (!currentTrack?.getCapabilities) return;
-      try {
-        const caps = currentTrack.getCapabilities();
-        if (caps.zoom) {
-          slider.min  = caps.zoom.min ?? 1;
-          slider.max  = caps.zoom.max ?? 5;
-          slider.step = caps.zoom.step || 0.1;
-          applyInitialZoom();
-        }
-      } catch {}
-    }
- 
+    // ===== ZOOM OTIMIZADO PARA CLOSE-UP (SEM CONTROLE VISUAL) =====
     async function applyInitialZoom() {
       if (!currentTrack?.getCapabilities) return;
       try {
         const caps = currentTrack.getCapabilities();
         if (!caps.zoom) return;
+        
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
-        const initialZoom = minZoom + ((maxZoom - minZoom) * 0.15);
-        currentZoomValue = initialZoom;
-        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
-        DOM_CACHE.zoomSlider.value = initialZoom;
-      } catch {}
+        
+        // Zoom inicial otimizado para leitura de códigos pequenos
+        const targetZoom = macroMode ? 
+          Math.min(focusManager.macroZoom, maxZoom) : 
+          Math.min(focusManager.normalZoom, maxZoom);
+        
+        focusManager.lastZoom = targetZoom;
+        await currentTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+      } catch (e) {
+        console.warn('Zoom inicial falhou:', e);
+      }
     }
  
-    async function setZoom(value) {
-      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
-      try {
-        currentZoomValue = parseFloat(value);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
-      } catch {}
-    }
- 
+    // ===== CONTROLE DE LANTERNA/TORCH APRIMORADO =====
     async function toggleFlash() {
       if (!currentTrack?.getCapabilities) return;
       const caps = currentTrack.getCapabilities();
       if (!caps.torch) return;
+      
       flashOn = !flashOn;
       DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
+      
+      // Feedback visual imediato
+      if (flashOn) {
+        DOM_CACHE.btnFlash.title = "Desligar lanterna";
+        DOM_CACHE.readerContainer.style.boxShadow = "0 0 0 3px rgba(255, 215, 0, 0.4), 0 0 25px rgba(255, 215, 0, 0.2)";
+      } else {
+        DOM_CACHE.btnFlash.title = "Lanterna";
+        DOM_CACHE.readerContainer.style.boxShadow = "";
+      }
+      
       try {
         await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+        
+        // Ajusta exposição se disponível (melhora leitura com lanterna)
+        if (caps.exposureMode?.includes('manual') && flashOn) {
+          await currentTrack.applyConstraints({ 
+            advanced: [{ exposureMode: 'manual', exposureTime: 5000 }] 
+          }).catch(() => {});
+        } else if (caps.exposureMode?.includes('continuous')) {
+          await currentTrack.applyConstraints({ 
+            advanced: [{ exposureMode: 'continuous' }] 
+          }).catch(() => {});
+        }
       } catch (e) {
         console.warn('Flash falhou:', e);
         flashOn = false;
         DOM_CACHE.btnFlash.classList.remove('active');
+        DOM_CACHE.btnFlash.title = "Lanterna (não suportada)";
       }
     }
  
@@ -960,7 +1200,8 @@
     function resetarFormulario() {
       document.getElementById('quantidade').value = '';
       qrCodeCompleto = null;
-      DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
+      DOM_CACHE.qrResult.textContent = 'Aponte para o Data Matrix pequeno';
+      DOM_CACHE.qrResult.classList.remove('success');
       DOM_CACHE.status.style.display = 'none';
       registroEmProgresso = false;
       liberarBotoes();
@@ -1116,7 +1357,12 @@
       document.querySelector('.app-main').scrollTop = 0;
       
       if (pageId === 'registrar') {
-        setTimeout(() => startScannerWithDevice(), 100);
+        // Pequeno delay para garantir que o DOM está pronto
+        setTimeout(() => {
+          // Reseta modo macro ao entrar na página
+          if (macroMode) toggleMacroMode();
+          startScannerWithDevice(); 
+        }, 100);
       } else { 
         stopScanner(); 
         refreshActivePage(); 
@@ -1140,6 +1386,22 @@
         startScannerWithDevice();
       }
     });
+    
+    // Otimização para dispositivos móveis: previne zoom acidental na tela
+    document.addEventListener('touchstart', function(event) {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    }, { passive: false });
+    
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
   </script>
 </body>
 </html>
