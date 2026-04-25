@@ -2,254 +2,1144 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <title>Controle de Estoque - WEG</title>
+ 
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
+ 
   <style>
     :root {
-      --primary: #00579d; --success: #198754; --danger: #dc3545;
-      --bg: #f0f2f5; --card: #fff; --text: #1f2937; --muted: #6b7280;
-      --border: #e5e7eb; --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --cor-primaria: #00579d;
+      --cor-sucesso: #198754;
+      --cor-perigo: #dc3545;
+      --cor-alerta: #ffc107;
+      --cor-fundo: #f4f6f9;
+      --cor-container: #ffffff;
+      --cor-texto: #1f1f1f;
+      --cor-texto-claro: #6c757d;
+      --borda-cor: #d8dde3;
+      --sombra-suave: 0 4px 12px rgba(0,0,0,0.06);
+      --sombra-media: 0 6px 18px rgba(0,0,0,0.08);
+      --verde: #28a745;
+      --padding-container: 20px;
+      --font-size-base: 18px;
+      --button-height: 56px;
+      --input-height: 56px;
+      --nav-height: 70px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --nav-total: calc(var(--nav-height) + var(--safe-bottom));
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+ 
+    @media (max-width: 640px) {
+      :root {
+        --padding-container: 16px;
+        --font-size-base: 16px;
+        --button-height: 52px;
+        --input-height: 52px;
+        --nav-height: 65px;
+      }
+    }
+ 
+    * { box-sizing: border-box; -webkit-tap-highlight-color: rgba(0,0,0,0.1); }
+    
+    html { margin: 0; padding: 0; height: 100%; }
+    
     body {
-      margin: 0; font-family: 'Inter', system-ui, sans-serif; font-size: 16px;
-      background: var(--bg); color: var(--text); height: 100vh;
-      display: flex; flex-direction: column; overflow: hidden;
+      margin: 0; padding: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: var(--font-size-base);
+      background: var(--cor-fundo);
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
     }
-    header {
-      background: var(--card); padding: 12px 16px; box-shadow: var(--shadow);
-      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+ 
+    .app-header {
+      background: white; padding: 12px var(--padding-container);
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      z-index: 101; flex-shrink: 0;
       padding-top: max(12px, env(safe-area-inset-top, 12px));
     }
-    header img { height: 36px; }
-    header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
-
-    main { flex: 1; overflow-y: auto; padding: 16px; }
-    .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
-    h2 { margin: 0 0 16px; font-size: 1.2rem; font-weight: 600; text-align: center; }
-
-    /* SCANNER ULTRA-RÁPIDO */
-    #scanner-wrap { position: relative; width: 100%; max-width: 320px; margin: 0 auto 16px; background: #000; border-radius: 12px; overflow: hidden; }
+ 
+    .app-header img { height: clamp(32px, 8vw, 44px); width: auto; }
+    .app-header h1 {
+      margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.9rem);
+      font-weight: 700; color: var(--cor-primaria);
+      letter-spacing: -0.5px; text-align: center; line-height: 1.2;
+    }
+ 
+    .app-main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .content-wrapper { width: 100%; max-width: 900px; margin: 0 auto; padding: 20px; }
+ 
+    .app-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-height) + var(--safe-bottom));
+      background: #fff; box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      align-items: flex-start; z-index: 1000;
+      border-top: 2px solid var(--borda-cor);
+      padding-bottom: var(--safe-bottom);
+    }
+ 
+    .nav-link {
+      border: none; background: none; cursor: pointer;
+      padding: 10px 6px; height: var(--nav-height);
+      color: var(--cor-texto-claro); transition: color 0.2s ease, background 0.2s ease;
+      font-weight: 600; font-size: clamp(0.72rem, 2.8vw, 0.88rem);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 4px; -webkit-tap-highlight-color: transparent;
+      outline: none; position: relative;
+    }
+    .nav-link:active { background: rgba(0, 87, 157, 0.05); }
+    .nav-link .icon { font-size: clamp(1.3rem, 5.5vw, 1.55rem); line-height: 1; }
+    .nav-link.active { color: var(--cor-primaria); }
+ 
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn .1s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+ 
+    .card {
+      background: var(--cor-container); padding: clamp(18px, 4.5vw, 24px);
+      border-radius: 16px; border: 1px solid var(--borda-cor);
+      box-shadow: var(--sombra-suave); margin-bottom: 20px;
+    }
+    h2 {
+      text-align: center; margin: 0 0 20px;
+      font-size: clamp(1.2rem, 5vw, 1.5rem);
+      font-weight: 600; color: var(--cor-texto);
+    }
+ 
+    /* LEITOR QR OTIMIZADO */
+    #reader-container {
+      position: relative; width: 100%; max-width: 400px;
+      margin: 0 auto 16px; background: #000;
+      border-radius: 16px; overflow: hidden;
+      border: 3px solid #777; box-shadow: var(--sombra-media);
+      transition: border-color 0.2s ease; aspect-ratio: 1/1;
+    }
+    #reader-container.scanning-active {
+      border-color: var(--verde);
+      box-shadow: 0 0 0 3px rgba(40,167,69,0.25);
+    }
     #reader { width: 100%; height: 100%; display: block; }
-    #reader video { width: 100%; height: 100%; object-fit: cover; }
-    
-    .scan-guide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-    .scan-box {
-      width: 180px; height: 180px; border: 3px solid rgba(25,135,84,0.8);
-      border-radius: 8px; box-shadow: 0 0 0 999px rgba(0,0,0,0.3);
-      transition: border-color 0.1s;
+    #reader video, #reader canvas {
+      width: 100%; height: 100%; display: block; object-fit: cover;
     }
-    .scan-box.scanning { border-color: var(--primary); animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+ 
+    /* CONTROLES DA CÂMERA */
+    .camera-controls-module {
+      position: relative; margin: 0 auto 20px;
+      width: 100%; max-width: 400px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 16px;
+      border-radius: 16px; background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    }
+    @media (max-width: 480px) {
+      .camera-controls-module {
+        flex-direction: row; align-items: center;
+        justify-content: space-between; gap: 10px;
+        padding: 10px 12px; bottom: 10px;
+        max-width: calc(100% - 20px);
+      }
+    }
+ 
+    .control-btn {
+      width: clamp(48px, 12vw, 56px); height: clamp(48px, 12vw, 56px);
+      border-radius: 50%; font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3); color: white;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+      cursor: pointer; flex: 0 0 auto; -webkit-tap-highlight-color: transparent;
+      outline: none; touch-action: manipulation;
+      min-width: 48px; min-height: 48px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .control-btn:hover { background: rgba(255, 255, 255, 0.28); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
+    .control-btn:active { transform: scale(0.88); background: rgba(255, 255, 255, 0.35); }
+    .control-btn.active {
+      background: linear-gradient(135deg, var(--cor-primaria), #0073c9);
+      border-color: #0073c9; box-shadow: 0 6px 20px rgba(0, 115, 201, 0.4);
+    }
+ 
+    .zoom-control {
+      display: flex; align-items: center; gap: clamp(8px, 2.5vw, 12px);
+      flex: 1; min-width: 0;
+    }
+    @media (max-width: 480px) {
+      .zoom-control { width: 100%; justify-content: center; }
+    }
+    .zoom-control span { color: white; font-size: clamp(1rem, 2.8vw, 1.1rem); flex-shrink: 0; }
+    .zoom-control input[type="range"] {
+      flex: 1; height: 6px; appearance: none; -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.25); border-radius: 4px;
+      outline: none; min-width: 100px; touch-action: none;
+      transition: background 0.2s ease;
+    }
+    .zoom-control input[type="range"]:hover { background: rgba(255, 255, 255, 0.35); }
+    .zoom-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 26px; height: 26px;
+      background: linear-gradient(135deg, #fff, #f0f0f0);
+      border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer; transition: box-shadow 0.2s ease, transform 0.1s ease;
+    }
+    .zoom-control input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+    .zoom-control input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.1); }
+    .zoom-control input[type="range"]::-moz-range-thumb {
+      width: 26px; height: 26px; background: linear-gradient(135deg, #fff, #f0f0f0);
+      border-radius: 50%; border: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer; transition: box-shadow 0.2s ease, transform 0.1s ease;
+    }
+    .zoom-control input[type="range"]::-moz-range-thumb:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+    .zoom-control input[type="range"]::-moz-range-thumb:active { transform: scale(1.1); }
 
-    .step-indicator {
-      text-align: center; padding: 8px; margin-bottom: 12px; border-radius: 8px;
-      font-weight: 600; font-size: 0.95rem; background: #f3f4f6;
-      transition: background 0.2s;
+    /* Status de Foco */
+    .focus-status {
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(0,0,0,0.7); color: white;
+      padding: 4px 8px; border-radius: 4px;
+      font-size: 0.8rem; z-index: 5;
+      display: none;
     }
-    .step-active { background: var(--primary); color: white; }
-    .step-done { background: var(--success); color: white; }
-
-    .result-line {
-      display: flex; justify-content: space-between; padding: 10px 0;
-      border-bottom: 1px solid var(--border); font-size: 0.9rem;
+    .focus-status.active { display: block; animation: blink 0.5s; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+ 
+    .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 3vw, 16px); margin-bottom: 20px; }
+    @media (max-width: 480px) { .button-group { grid-template-columns: 1fr; gap: 14px; } }
+ 
+    button {
+      padding: clamp(14px, 4vw, 18px); font-weight: 700; border-radius: 12px;
+      border: none; cursor: pointer; background: var(--cor-primaria); color: white;
+      transition: opacity .15s ease, transform .1s ease;
+      font-size: clamp(1rem, 3.5vw, 1.1rem); -webkit-tap-highlight-color: transparent;
+      outline: none; min-height: var(--button-height); min-width: 44px;
+      touch-action: manipulation; display: flex; align-items: center;
+      justify-content: center; font-family: inherit;
     }
-    .result-line strong { color: var(--primary); }
-    .result-line.sent { opacity: 0.6; }
-
-    /* TOAST RÁPIDO */
-    #toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.85); color: white; padding: 10px 20px;
-      border-radius: 24px; font-size: 0.9rem; font-weight: 500;
-      opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999;
+    button:hover:not(:disabled) { opacity: .9; }
+    button:active:not(:disabled) { transform: scale(.97); }
+    button.saida { background: var(--cor-perigo); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+ 
+    .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .input-group label { font-size: 0.9rem; font-weight: 600; color: var(--cor-texto); }
+    .input-group input {
+      width: 100%; height: var(--input-height); padding: 0 16px;
+      font-size: 1rem; border-radius: 12px; border: 1.5px solid var(--borda-cor);
+      background: #fff; color: var(--cor-texto); transition: all 0.2s ease;
     }
-    #toast.show { opacity: 1; }
-
-    nav {
-      position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
-      display: flex; border-top: 1px solid var(--border); height: 60px; z-index: 100;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+    .input-group input:focus {
+      border-color: var(--cor-primaria);
+      box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.15); outline: none;
     }
-    .nav-btn { flex: 1; border: none; background: none; color: var(--muted); font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
-    .nav-btn.active { color: var(--primary); }
-    .nav-btn span { font-size: 1.3rem; }
+    #quantidade { text-align: center; font-weight: 700; font-size: 1.2rem; }
+ 
+    #status {
+      margin-top: 16px; margin-bottom: 8px;
+      padding: clamp(14px, 3.5vw, 16px); border-radius: 12px;
+      font-weight: 600; display: none; animation: slideDown .2s ease;
+      font-size: clamp(1rem, 3vw, 1.05rem);
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; }
+    .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; }
+    .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
+ 
+    .table-wrapper {
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      border-radius: 10px; margin: 0 calc(-1 * var(--padding-container));
+      padding: 0 var(--padding-container);
+    }
+    .styled-table {
+      width: 100%; border-collapse: collapse;
+      font-size: clamp(0.9rem, 2.8vw, 1rem); background: white; min-width: 460px;
+    }
+    .styled-table thead tr { background: var(--cor-primaria); color: white; text-align: left; }
+    .styled-table td, .styled-table th { padding: clamp(12px, 3vw, 16px) clamp(10px, 2.5vw, 14px); white-space: nowrap; }
+    .styled-table tbody tr { border-bottom: 1px solid var(--borda-cor); transition: background .1s ease; }
+    .styled-table tbody tr:hover { background: #f9f9f9; }
+    .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
+    .tipo-saida   { color: var(--cor-perigo);  font-weight: 600; }
+ 
+    .alert-list { list-style: none; padding: 0; margin: 0; }
+    .alert-list li {
+      padding: clamp(14px, 3.5vw, 18px); margin-bottom: 12px;
+      border-radius: 12px; background: #f8f9fa;
+      border-left: 5px solid #d0d0d0; color: var(--cor-texto);
+      font-size: clamp(0.95rem, 2.8vw, 1.05rem); line-height: 1.6;
+    }
+    .alert-vencido {
+      background: #f8d7da; color: #8a1c21;
+      border: 2px solid var(--cor-perigo); border-left: 5px solid var(--cor-perigo);
+    }
+    .alert-proximo {
+      background: #fff3cd; color: #664d03;
+      border: 2px solid var(--cor-alerta); border-left: 5px solid var(--cor-alerta);
+    }
+    .placeholder {
+      text-align: center; padding: clamp(28px, 8vw, 40px);
+      color: var(--cor-texto-claro); font-size: clamp(0.9rem, 2.5vw, 1rem);
+    }
+ 
+    .loading-overlay {
+      position: fixed; inset: 0; background: rgba(255,255,255,0.95);
+      display: flex; flex-direction: column; gap: 12px;
+      align-items: center; justify-content: center; z-index: 9999;
+      font-weight: 600; color: var(--cor-texto);
+      backdrop-filter: blur(2px); font-size: clamp(0.95rem, 2.5vw, 1rem);
+    }
+ 
+    .qr-result {
+      text-align: center; padding: clamp(14px, 3.5vw, 18px);
+      margin-top: 16px; margin-bottom: 20px; font-weight: 600;
+      color: var(--cor-texto); background: #f8f9fa;
+      border-radius: 12px; border: 2px solid var(--borda-cor);
+      min-height: 56px; display: flex; align-items: center;
+      justify-content: center; font-size: clamp(0.95rem, 3vw, 1.05rem);
+    }
+ 
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 10000; backdrop-filter: blur(2px);
+      padding: var(--padding-container);
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: white; border-radius: 16px;
+      padding: clamp(20px, 5vw, 28px); max-width: 420px; width: 100%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: slideUp 0.25s ease;
+      max-height: 90dvh; max-height: 90vh; overflow-y: auto;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header {
+      font-size: clamp(1.05rem, 4vw, 1.2rem); font-weight: 700;
+      color: var(--cor-perigo); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px; line-height: 1.3;
+    }
+    .modal-body { margin-bottom: 20px; color: var(--cor-texto); line-height: 1.6; font-size: clamp(0.9rem, 2.5vw, 1rem); }
+    .modal-info-box {
+      background: #f8f9fa; padding: clamp(10px, 3vw, 14px);
+      border-radius: 8px; margin: 12px 0; border-left: 4px solid var(--cor-alerta);
+    }
+    .modal-info-box div {
+      display: flex; justify-content: space-between; padding: 4px 0;
+      font-size: clamp(0.85rem, 2.2vw, 0.95rem); gap: 10px; flex-wrap: wrap;
+    }
+    .modal-info-box strong { font-weight: 600; flex-shrink: 0; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 2.5vw, 14px); }
+    @media (max-width: 400px) { .modal-actions { grid-template-columns: 1fr; } }
+    .modal-actions button {
+      padding: clamp(12px, 3vw, 14px); font-size: clamp(0.9rem, 2.5vw, 0.95rem);
+      border-radius: 8px; min-height: 48px;
+    }
+    .modal-actions .btn-confirmar { background: var(--cor-perigo); }
+    .modal-actions .btn-cancelar  { background: var(--cor-texto-claro); }
+ 
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
   </style>
 </head>
+ 
 <body>
-  <header>
-    <img src="./logo-weg.png" alt="WEG">
-    <h1>Leitura Rápida - Estoque</h1>
+  <header class="app-header">
+    <img src="./logo-weg.png" alt="WEG Logo">
+    <h1>Controle de Estoque de Tintas</h1>
   </header>
-
-  <main>
-    <div class="card">
-      <div id="stepInfo" class="step-indicator step-active">PASSO 1: Escaneie o ITEM</div>
-      
-      <div id="scanner-wrap">
-        <div id="reader"></div>
-        <div class="scan-guide"><div id="scanBox" class="scan-box scanning"></div></div>
+ 
+  <div id="loading-overlay" class="loading-overlay">
+    <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#00579d">
+      <g fill="none" fill-rule="evenodd">
+        <g transform="translate(1 1)" stroke-width="2">
+          <circle stroke-opacity=".5" cx="18" cy="18" r="18"/>
+          <path d="M36 18c0-9.94-8.06-18-18-18">
+            <animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/>
+          </path>
+        </g>
+      </g>
+    </svg>
+    <span>Carregando...</span>
+  </div>
+ 
+  <!-- Modal de Confirmação para Item Vencido -->
+  <div id="modal-vencido" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">⚠️ Atenção: Item Vencido</div>
+      <div class="modal-body">
+        <p>Você está tentando dar entrada de um item que já está <strong>vencido</strong>.</p>
+        <p>Deseja realmente registrar a entrada deste item?</p>
+        <div class="modal-info-box">
+          <div><strong>Item:</strong> <span id="modal-item"></span></div>
+          <div><strong>Lote:</strong> <span id="modal-lote"></span></div>
+          <div><strong>Validade:</strong> <span id="modal-validade"></span></div>
+          <div><strong>Quantidade:</strong> <span id="modal-quantidade"></span></div>
+        </div>
       </div>
+      <div class="modal-actions">
+        <button class="btn-confirmar" onclick="confirmarEntradaVencida()">Confirmar Entrada</button>
+        <button class="btn-cancelar" onclick="cancelarEntradaVencida()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+ 
+  <main class="app-main">
+    <div class="content-wrapper">
+      <!-- ESTOQUE -->
+      <div id="page-estoque" class="page active">
+        <div class="card">
+          <h2>Consulta de Estoque</h2>
+          <div class="input-group">
+            <input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." />
+          </div>
+          <div class="table-wrapper">
+            <table id="tabela-estoque" class="styled-table">
+              <thead><tr><th>Item</th><th>Lote</th><th>Validade</th><th>Total</th></tr></thead>
+              <tbody id="corpo-tabela-estoque"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- REGISTRAR -->
+      <div id="page-registrar" class="page">
+        <div class="card">
+          <h2>Registrar Movimentação</h2>
+          <div id="reader-container">
+            <div id="reader"></div>
+            <div class="focus-status" id="focusStatus">🎯 Focando...</div>
+          </div>
 
-      <div id="scanData">
-        <div class="result-line" id="lineItem"><span>Item:</span> <strong>—</strong></div>
-        <div class="result-line" id="lineQty"><span>Quantidade:</span> <strong>—</strong></div>
+          <div class="camera-controls-module">
+            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+            <div id="btnFocus" class="control-btn" onclick="triggerManualFocus()" title="Focar Agora">🎯</div>
+            <div class="zoom-control">
+              <span>🔍</span>
+              <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+            </div>
+          </div>
+          
+          <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
+          <div class="input-group">
+            <label for="quantidade">Quantidade</label>
+            <input type="number" id="quantidade" placeholder="Ex: 5" min="1" inputmode="numeric" />
+          </div>
+          <div class="button-group">
+            <button id="btnEntrada" onclick="enviarDados('Entrada')">Entrada</button>
+            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">Saída</button>
+          </div>
+          <div id="status"></div>
+        </div>
+      </div>
+ 
+      <!-- HISTÓRICO -->
+      <div id="page-movimentacoes" class="page">
+        <div class="card">
+          <h2>Últimas Movimentações</h2>
+          <div class="input-group">
+            <input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..." />
+          </div>
+          <div class="table-wrapper">
+            <table id="tabela-movimentacoes" class="styled-table">
+              <thead><tr><th>Data e Hora</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Validade</th><th>Qtd</th></tr></thead>
+              <tbody id="corpo-tabela-movimentacoes"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- ALERTAS -->
+      <div id="page-alertas" class="page">
+        <div class="card">
+          <h2>Alertas de Estoque</h2>
+          <ul id="lista-alertas" class="alert-list"></ul>
+        </div>
       </div>
     </div>
   </main>
-
-  <div id="toast"></div>
-
-  <nav>
-    <button class="nav-btn active" onclick="showPage('scan')"><span>📷</span>Scanner</button>
-    <button class="nav-btn" onclick="showPage('history')"><span>📋</span>Histórico</button>
-    <button class="nav-btn" onclick="showPage('alerts')"><span>⚠️</span>Alertas</button>
+ 
+  <nav class="app-nav">
+    <button id="nav-estoque"       class="nav-link active" onclick="mostrarPagina('estoque')">      <span class="icon">📦</span><span>Estoque</span></button>
+    <button id="nav-registrar"     class="nav-link"        onclick="mostrarPagina('registrar')">    <span class="icon">📷</span><span>Registrar</span></button>
+    <button id="nav-movimentacoes" class="nav-link"        onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
+    <button id="nav-alertas"       class="nav-link"        onclick="mostrarPagina('alertas')">      <span class="icon">⚠️</span><span>Alertas</span></button>
   </nav>
-
+ 
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-
-    let html5QrCode = null, videoTrack = null, isScanning = false;
-    let scanState = { step: 1, item: '', qty: '' };
-    let lastScanTs = 0;
-    const SCAN_COOLDOWN = 400; // ms mínimo entre leituras
-
-    const UI = {
-      stepInfo: document.getElementById('stepInfo'),
-      scanBox: document.getElementById('scanBox'),
-      lineItem: document.getElementById('lineItem'),
-      lineQty: document.getElementById('lineQty'),
-      toast: document.getElementById('toast')
+ 
+    const DOM_CACHE = {
+      readerContainer: null, reader: null, qrResult: null, status: null,
+      zoomSlider: null, btnFlash: null, btnFocus: null, btnEntrada: null, btnSaida: null,
+      loadingOverlay: null, focusStatus: null
     };
+ 
+    let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
+    let scannerActive = false, rearCameras = [], currentRearIndex = 0;
+    let currentZoomValue = 1, isLowEndDevice = false;
+    let entradaVencidaPendente = null, registroEmProgresso = false;
+    let appData = { estoque: [], alertas: [], movimentacoes: [] };
+    let dataCache = null, lastDataFetch = 0;
+    const CACHE_DURATION = 3000;
 
-    function toast(msg, type='info') {
-      UI.toast.textContent = msg;
-      UI.toast.style.background = type === 'success' ? '#198754' : type === 'error' ? '#dc3545' : 'rgba(0,0,0,0.85)';
-      UI.toast.classList.add('show');
-      setTimeout(() => UI.toast.classList.remove('show'), 1500);
+    // ===== NOVO: Sistema de Autofocus Inteligente =====
+    let focusManager = {
+      lastFocusTime: 0,
+      focusInterval: 3000, // Refoca a cada 3 segundos
+      isManualFocusActive: false,
+      lastContrast: 0,
+      contrastThreshold: 15,
+      focusAttempts: 0,
+      maxAttempts: 3
+    };
+ 
+    /* ── Utilitários ─────────────────────────────────────────────────────── */
+    function initDOMCache() {
+      DOM_CACHE.readerContainer = document.getElementById('reader-container');
+      DOM_CACHE.reader          = document.getElementById('reader');
+      DOM_CACHE.qrResult        = document.getElementById('qr-result');
+      DOM_CACHE.status          = document.getElementById('status');
+      DOM_CACHE.zoomSlider      = document.getElementById('zoomSlider');
+      DOM_CACHE.btnFlash        = document.getElementById('btnFlash');
+      DOM_CACHE.btnFocus        = document.getElementById('btnFocus');
+      DOM_CACHE.btnEntrada      = document.getElementById('btnEntrada');
+      DOM_CACHE.btnSaida        = document.getElementById('btnSaida');
+      DOM_CACHE.loadingOverlay  = document.getElementById('loading-overlay');
+      DOM_CACHE.focusStatus     = document.getElementById('focusStatus');
     }
-
-    /* === SCANNER PERSISTENTE E INSTANTÂNEO === */
-    async function initScanner() {
-      if (isScanning) return;
-      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-
+ 
+    function normalizeError(err) {
+      if (!err) return 'Erro desconhecido.';
+      if (typeof err === 'string') return err;
+      if (err.message) return err.message;
+      return String(err);
+    }
+ 
+    function beep(duration = 80, frequency = 1200, volume = 0.4) {
       try {
-        await html5QrCode.start(
-          { facingMode: { exact: "environment" } },
-          {
-            fps: 15,
-            qrbox: { width: 180, height: 180 },
-            disableFlip: true,
-            formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-          },
-          onCodeDetected
-        );
-        isScanning = true;
-        UI.scanBox.classList.add('scanning');
+        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine'; osc.frequency.value = frequency;
+        gain.gain.value = volume;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + duration / 1000);
+      } catch {}
+    }
+    
+    // Detecta se é dispositivo de baixo desempenho
+    function detectLowEndDevice() {
+      const mem = navigator.deviceMemory || 4;
+      const cores = navigator.hardwareConcurrency || 2;
+      return mem <= 2 || cores <= 2;
+    }
+
+    // ===== NOVO: Calcula contraste da imagem para detecção de foco =====
+    function calculateImageContrast(canvas) {
+      try {
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
         
-        // Aplica foco contínuo nativo uma vez só
-        const video = document.querySelector('#reader video');
-        videoTrack = video?.srcObject?.getVideoTracks?.()[0];
-        if (videoTrack?.applyConstraints) {
-          videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous', exposureMode: 'continuous' }] }).catch(()=>{});
+        let brightness = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          brightness += (data[i] + data[i+1] + data[i+2]) / 3;
         }
-      } catch (e) {
-        toast('Câmera indisponível', 'error');
-        console.error(e);
+        brightness /= (data.length / 4);
+        
+        let contrast = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const pixelBrightness = (data[i] + data[i+1] + data[i+2]) / 3;
+          contrast += Math.abs(pixelBrightness - brightness);
+        }
+        contrast /= (data.length / 4);
+        
+        return contrast;
+      } catch {
+        return 0;
       }
     }
 
-    function stopScanner() {
-      if (html5QrCode && isScanning) {
-        html5QrCode.stop().catch(()=>{});
-        isScanning = false;
-        UI.scanBox.classList.remove('scanning');
-      }
-    }
-
-    function onCodeDetected(decodedText) {
+    // ===== NOVO: Foco automático inteligente baseado em contraste =====
+    async function autoFocusIfNeeded() {
+      if (!scannerActive || !currentTrack || focusManager.isManualFocusActive) return;
+      
       const now = Date.now();
-      if (now - lastScanTs < SCAN_COOLDOWN) return; // Evita leituras duplas acidentais
-      lastScanTs = now;
-
-      // Vibração e som instantâneos
-      navigator.vibrate?.(30);
-      try { new AudioContext().createOscillator().connect(new GainNode(new AudioContext())).start().stop(0.1); } catch {}
-
-      // Atualiza estado
-      if (scanState.step === 1) {
-        scanState.item = decodedText;
-        scanState.step = 2;
-        UI.lineItem.querySelector('strong').textContent = decodedText;
-        UI.stepInfo.textContent = 'PASSO 2: Escaneie a QUANTIDADE';
-        UI.stepInfo.className = 'step-indicator step-active';
-        UI.scanBox.style.borderColor = '#00579d';
-      } else if (scanState.step === 2) {
-        scanState.qty = decodedText;
-        scanState.step = 0; // 0 = pronto para enviar
-        UI.lineQty.querySelector('strong').textContent = decodedText;
-        UI.stepInfo.textContent = 'ENVIANDO...';
-        UI.stepInfo.style.background = '#ffc107';
-        UI.scanBox.style.borderColor = '#ffc107';
-        sendToAPI();
-      }
-    }
-
-    async function sendToAPI() {
-      const payload = { action: 'registrar', tipo: 'Entrada', qrCodeCompleto: scanState.item, quantidade: scanState.qty, token: API_TOKEN };
+      if (now - focusManager.lastFocusTime < focusManager.focusInterval) return;
       
       try {
-        // Dispara em background, não bloqueia scanner
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST', headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (data.status === 'sucesso') {
-          toast('✅ Registrado com sucesso!', 'success');
-          UI.lineItem.classList.add('sent');
-          UI.lineQty.classList.add('sent');
-        } else {
-          toast('⚠️ Erro: ' + data.mensagem, 'error');
+        const video = DOM_CACHE.reader.querySelector('video');
+        if (!video || video.readyState !== HTMLMediaElement.HAVE_ENOUGH_DATA) return;
+        
+        // Cria canvas para análise de contraste
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 100;
+        canvas.height = 100;
+        ctx.drawImage(video, video.width/2 - 50, video.height/2 - 50, 100, 100, 0, 0, 100, 100);
+        
+        const contrast = calculateImageContrast(canvas);
+        const contrastDiff = Math.abs(contrast - focusManager.lastContrast);
+        
+        // Se contraste está baixo ou mudando muito, refoca
+        if (contrast < 20 || contrastDiff > focusManager.contrastThreshold) {
+          focusManager.lastFocusTime = now;
+          focusManager.focusAttempts = 0;
+          showFocusIndicator();
+          
+          // Tenta aplicar foco
+          if (currentTrack.applyConstraints) {
+            try {
+              const caps = currentTrack.getCapabilities?.();
+              if (caps?.focusMode) {
+                // Prioridade: manual > single-shot > continuous
+                if (caps.focusMode.includes('manual')) {
+                  await currentTrack.applyConstraints({ 
+                    advanced: [{ focusMode: 'manual', focusDistance: 0.3 }] 
+                  });
+                } else if (caps.focusMode.includes('single-shot')) {
+                  await currentTrack.applyConstraints({ 
+                    advanced: [{ focusMode: 'single-shot' }] 
+                  });
+                  setTimeout(() => {
+                    if (currentTrack) {
+                      currentTrack.applyConstraints({ 
+                        advanced: [{ focusMode: 'continuous' }] 
+                      }).catch(() => {});
+                    }
+                  }, 300);
+                } else if (caps.focusMode.includes('continuous')) {
+                  await currentTrack.applyConstraints({ 
+                    advanced: [{ focusMode: 'continuous' }] 
+                  });
+                }
+              }
+            } catch (e) {
+              console.warn('Auto-focus falhou:', e);
+            }
+          }
         }
+        
+        focusManager.lastContrast = contrast;
       } catch (e) {
-        toast('❌ Falha na conexão', 'error');
-      } finally {
-        // Reset imediato para próximo ciclo
-        setTimeout(resetForNext, 300);
+        console.warn('Erro ao analisar contraste:', e);
       }
     }
 
-    function resetForNext() {
-      scanState = { step: 1, item: '', qty: '' };
-      UI.lineItem.querySelector('strong').textContent = '—';
-      UI.lineQty.querySelector('strong').textContent = '—';
-      UI.lineItem.classList.remove('sent');
-      UI.lineQty.classList.remove('sent');
-      UI.stepInfo.textContent = 'PASSO 1: Escaneie o ITEM';
-      UI.stepInfo.className = 'step-indicator step-active';
-      UI.scanBox.style.borderColor = 'rgba(25,135,84,0.8)';
+    function showFocusIndicator() {
+      const indicator = DOM_CACHE.focusStatus;
+      if (indicator) {
+        indicator.classList.remove('active');
+        void indicator.offsetWidth;
+        indicator.classList.add('active');
+        setTimeout(() => indicator.classList.remove('active'), 500);
+      }
+    }
+ 
+    /* ── Scanner OTIMIZADO ───────────────────────────────────────────────── */
+    async function startScannerWithDevice(deviceId = null) {
+      if (scannerActive) return;
+      await stopScanner(true);
+      
+      DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
+      DOM_CACHE.status.style.display = 'none';
+      DOM_CACHE.readerContainer.classList.remove('scanning-active');
+      
+      if (html5QrCode) {
+        try { await html5QrCode.clear(); } catch {}
+        html5QrCode = null;
+      }
+      
+      html5QrCode = new Html5Qrcode("reader");
+      isLowEndDevice = detectLowEndDevice();
+      
+      // ===== NOVO: FPS mais alto para detecção melhorada =====
+      const targetFPS = isLowEndDevice ? 20 : 30;
+      
+      const config = {
+        fps: targetFPS,
+        qrbox: { width: 200, height: 200 }, // QR Box menor para melhor foco
+        disableFlip: true,
+        // ===== NOVO: Suporta múltiplos formatos =====
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.AZTEC
+        ],
+        rememberLastUsedCamera: true,
+        experimentalFeatures: { 
+          useBarCodeDetectorIfSupported: !isLowEndDevice 
+        }
+      };
+      
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        const rearWithAF = cameras.filter(c => 
+          /back|rear|environment|traseir/i.test(c.label || '')
+        );
+        rearCameras = rearWithAF.length ? rearWithAF : cameras;
+        
+        const targetId = deviceId || (rearCameras.length > 0 ? rearCameras[0].id : null);
+        
+        const videoConstraints = {
+          facingMode: { exact: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: targetFPS }
+        };
+        
+        await html5QrCode.start(
+          targetId ? { deviceId: { exact: targetId } } : videoConstraints,
+          config,
+          onScanSuccess
+        );
+        
+        scannerActive = true;
+        DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+        DOM_CACHE.readerContainer.classList.add('scanning-active');
+        
+        const videoElem = DOM_CACHE.reader.querySelector("video");
+        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+        
+        if (currentTrack) {
+          setupCameraCapabilities();
+          setupZoom();
+          
+          // ===== NOVO: Inicia foco contínuo inteligente =====
+          focusManager.lastFocusTime = Date.now();
+          focusManager.isManualFocusActive = false;
+          enableSmartAutofocus();
+        }
+        
+      } catch (err) {
+        console.warn('Tentativa 1 falhou, tentando fallback...', err);
+        try {
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            { 
+              fps: 20, 
+              qrbox: { width: 180, height: 180 },
+              formatsToSupport: [
+                Html5QrcodeSupportedFormats.DATA_MATRIX,
+                Html5QrcodeSupportedFormats.QR_CODE
+              ]
+            },
+            onScanSuccess
+          );
+          scannerActive = true;
+          DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+          DOM_CACHE.readerContainer.classList.add('scanning-active');
+          const videoElem = DOM_CACHE.reader.querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+          if (currentTrack) {
+            setupZoom();
+            focusManager.lastFocusTime = Date.now();
+            enableSmartAutofocus();
+          }
+        } catch (err2) {
+          DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err2)}`;
+          console.error('Falha no fallback:', err2);
+        }
+      }
     }
 
-    /* === NAVEGAÇÃO LEVE === */
-    function showPage(page) {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      event.currentTarget.classList.add('active');
-      if (page === 'scan') initScanner(); else stopScanner();
+    // ===== NOVO: Ativa foco inteligente com intervalo =====
+    function enableSmartAutofocus() {
+      const focusInterval = setInterval(() => {
+        if (!scannerActive) {
+          clearInterval(focusInterval);
+          return;
+        }
+        autoFocusIfNeeded();
+      }, 500);
     }
-
-    // Inicia automaticamente ao carregar
-    window.addEventListener('load', initScanner);
-    window.addEventListener('beforeunload', stopScanner);
-    document.addEventListener('visibilitychange', () => document.hidden ? stopScanner() : initScanner());
+    
+    function setupCameraCapabilities() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.torch) {
+          DOM_CACHE.btnFlash.style.display = 'none';
+        }
+        if (!caps.zoom) {
+          DOM_CACHE.zoomSlider.disabled = true;
+        }
+      } catch {}
+    }
+ 
+    function onScanSuccess(decodedText) {
+      if (qrCodeCompleto || !scannerActive) return;
+      qrCodeCompleto = decodedText;
+      beep(80, 1200, 0.4);
+      if (navigator.vibrate) navigator.vibrate(100);
+      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Código lido!</strong>";
+      stopScanner();
+    }
+ 
+    async function stopScanner(silent = false) {
+      try {
+        if (html5QrCode && scannerActive) {
+          await html5QrCode.stop().catch(() => {});
+        }
+        if (currentTrack) {
+          currentTrack.enabled = false;
+          currentTrack.stop();
+        }
+      } catch (e) {
+        console.warn('Erro ao parar scanner:', e);
+      } finally {
+        currentTrack = null;
+        scannerActive = false;
+        DOM_CACHE.readerContainer.classList.remove('scanning-active');
+        DOM_CACHE.btnFlash?.classList.remove('active');
+        flashOn = false;
+      }
+    }
+ 
+    async function triggerManualFocus() {
+      if (!currentTrack?.applyConstraints) {
+        showFocusIndicator();
+        return;
+      }
+      
+      focusManager.isManualFocusActive = true;
+      showFocusIndicator();
+      
+      try {
+        const caps = currentTrack.getCapabilities?.();
+        if (caps?.focusMode?.includes('manual')) {
+          await currentTrack.applyConstraints({ 
+            advanced: [{ focusMode: 'manual', focusDistance: 0.3 }] 
+          });
+        } else if (caps?.focusMode?.includes('single-shot')) {
+          await currentTrack.applyConstraints({ 
+            advanced: [{ focusMode: 'single-shot' }] 
+          });
+        } else {
+          await currentTrack.applyConstraints({ 
+            advanced: [{ focusMode: 'continuous' }] 
+          });
+        }
+        
+        // Volta para autofocus após 1 segundo
+        setTimeout(() => {
+          focusManager.isManualFocusActive = false;
+          focusManager.lastFocusTime = 0; // Força refoco rápido
+        }, 1000);
+      } catch (e) {
+        console.warn('Foco manual falhou:', e);
+        focusManager.isManualFocusActive = false;
+      }
+    }
+ 
+    function setupZoom() {
+      const slider = DOM_CACHE.zoomSlider;
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (caps.zoom) {
+          slider.min  = caps.zoom.min ?? 1;
+          slider.max  = caps.zoom.max ?? 5;
+          slider.step = caps.zoom.step || 0.1;
+          applyInitialZoom();
+        }
+      } catch {}
+    }
+ 
+    async function applyInitialZoom() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.zoom) return;
+        const minZoom = caps.zoom.min ?? 1;
+        const maxZoom = caps.zoom.max ?? 5;
+        const initialZoom = minZoom + ((maxZoom - minZoom) * 0.15);
+        currentZoomValue = initialZoom;
+        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
+        DOM_CACHE.zoomSlider.value = initialZoom;
+      } catch {}
+    }
+ 
+    async function setZoom(value) {
+      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
+      try {
+        currentZoomValue = parseFloat(value);
+        await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
+      } catch {}
+    }
+ 
+    async function toggleFlash() {
+      if (!currentTrack?.getCapabilities) return;
+      const caps = currentTrack.getCapabilities();
+      if (!caps.torch) return;
+      flashOn = !flashOn;
+      DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
+      try {
+        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+      } catch (e) {
+        console.warn('Flash falhou:', e);
+        flashOn = false;
+        DOM_CACHE.btnFlash.classList.remove('active');
+      }
+    }
+ 
+    /* ── API ──────────────────────────────────────────────────────────────── */
+    async function apiGet(action) {
+      const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+ 
+    async function apiPost(payload) {
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ ...payload, token: API_TOKEN })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+ 
+    /* ── Validade / Modal ─────────────────────────────────────────────────── */
+    function verificarSeVencido(validade) {
+      if (!validade) return false;
+      try {
+        const [dia, mes, ano] = validade.split('/');
+        const dataValidade = new Date(ano, mes - 1, dia);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        return dataValidade < hoje;
+      } catch { return false; }
+    }
+ 
+    function mostrarModalVencido(item, lote, validade, quantidade) {
+      document.getElementById('modal-item').textContent = item || 'N/A';
+      document.getElementById('modal-lote').textContent = lote || 'N/A';
+      document.getElementById('modal-validade').textContent = validade || 'N/A';
+      document.getElementById('modal-quantidade').textContent = quantidade || '0';
+      entradaVencidaPendente = { tipo: 'Entrada', qrCode: qrCodeCompleto, quantidade };
+      document.getElementById('modal-vencido').classList.add('active');
+    }
+ 
+    async function confirmarEntradaVencida() {
+      document.getElementById('modal-vencido').classList.remove('active');
+      if (entradaVencidaPendente) {
+        await registrarMovimentacao(
+          entradaVencidaPendente.tipo, 
+          entradaVencidaPendente.qrCode, 
+          entradaVencidaPendente.quantidade
+        );
+      }
+      entradaVencidaPendente = null;
+    }
+ 
+    function cancelarEntradaVencida() {
+      document.getElementById('modal-vencido').classList.remove('active');
+      entradaVencidaPendente = null;
+      liberarBotoes();
+      startScannerWithDevice();
+    }
+ 
+    function liberarBotoes() { 
+      DOM_CACHE.btnEntrada.disabled = false; 
+      DOM_CACHE.btnSaida.disabled = false; 
+    }
+    function bloquearBotoes() { 
+      DOM_CACHE.btnEntrada.disabled = true;  
+      DOM_CACHE.btnSaida.disabled = true; 
+    }
+ 
+    function resetarFormulario() {
+      document.getElementById('quantidade').value = '';
+      qrCodeCompleto = null;
+      DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
+      DOM_CACHE.status.style.display = 'none';
+      registroEmProgresso = false;
+      liberarBotoes();
+    }
+ 
+    /* ── Movimentação ─────────────────────────────────────────────────────── */
+    async function registrarMovimentacao(tipo, qrCode, quantidade) {
+      if (registroEmProgresso) return;
+      registroEmProgresso = true;
+      bloquearBotoes();
+      
+      const statusDiv = DOM_CACHE.status;
+      statusDiv.innerText = 'Registrando...';
+      statusDiv.className = 'status-info';
+      statusDiv.style.display = 'block';
+      
+      try {
+        const res = await apiPost({ 
+          action: 'registrar', 
+          tipo, 
+          qrCodeCompleto: qrCode, 
+          quantidade 
+        });
+        
+        statusDiv.innerText = res.mensagem;
+        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
+        
+        if (res.status === 'sucesso') {
+          dataCache = null; 
+          lastDataFetch = 0;
+          setTimeout(() => { 
+            resetarFormulario(); 
+            startScannerWithDevice(); 
+          }, 600);
+          carregarTodosOsDados(true);
+        } else { 
+          liberarBotoes(); 
+          registroEmProgresso = false; 
+        }
+      } catch (err) {
+        statusDiv.innerText = 'Erro: ' + normalizeError(err);
+        statusDiv.className = 'status-erro';
+        liberarBotoes();
+        registroEmProgresso = false;
+      }
+    }
+ 
+    async function enviarDados(tipo) {
+      if (registroEmProgresso) return;
+      const quantidade = document.getElementById('quantidade').value;
+      
+      if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
+        DOM_CACHE.status.innerText = 'Erro: Leia um código e informe a quantidade.';
+        DOM_CACHE.status.className = 'status-erro';
+        DOM_CACHE.status.style.display = 'block';
+        return;
+      }
+      
+      if (tipo === 'Entrada') {
+        const qrParts = qrCodeCompleto.split(';');
+        if (verificarSeVencido(qrParts[3])) { 
+          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); 
+          return; 
+        }
+      }
+      await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
+    }
+ 
+    /* ── Dados / Render ───────────────────────────────────────────────────── */
+    async function carregarTodosOsDados(isUpdate = false) {
+      const overlay = DOM_CACHE.loadingOverlay;
+      const agora = Date.now();
+      
+      if (dataCache && (agora - lastDataFetch) < CACHE_DURATION && !isUpdate) {
+        Object.assign(appData, dataCache);
+        if (!isUpdate) mostrarPagina('estoque');
+        return;
+      }
+      
+      if (!isUpdate) overlay.style.display = 'flex';
+      
+      try {
+        const res = await apiGet('obter');
+        if (res.status === 'sucesso') {
+          dataCache = res.dados; 
+          lastDataFetch = agora;
+          Object.assign(appData, res.dados);
+          if (!isUpdate) mostrarPagina('estoque');
+          refreshActivePage();
+        } else { 
+          throw new Error(res.mensagem); 
+        }
+      } catch (err) {
+        overlay.querySelector('span').textContent = 'Erro: ' + normalizeError(err);
+        setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+      } finally { 
+        if (!isUpdate) overlay.style.display = 'none'; 
+      }
+    }
+ 
+    function refreshActivePage() {
+      if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
+      if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
+      if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
+    }
+ 
+    function renderizarEstoque() {
+      const tbody = document.getElementById('corpo-tabela-estoque');
+      if (!appData.estoque?.length) { 
+        tbody.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; 
+        return; 
+      }
+      tbody.innerHTML = appData.estoque.map(item =>
+        `<tr><td>${item.item}</td><td>${item.lote||''}</td><td>${item.validade||''}</td><td><strong>${item.total}</strong></td></tr>`
+      ).join('');
+    }
+ 
+    function renderizarAlertas() {
+      const lista = document.getElementById('lista-alertas');
+      if (!appData.alertas?.length) { 
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
+        return; 
+      }
+      lista.innerHTML = appData.alertas.map(item => {
+        const cl = item.tipo === 'Vencido' ? 'alert-vencido' : (item.tipo === 'Vencimento Próximo' ? 'alert-proximo' : '');
+        return `<li class="${cl}"><strong>${item.tipo}</strong><br/><strong>Item:</strong> ${item.descricao||''}<br/><small>${item.detalhe||''}</small></li>`;
+      }).join('');
+    }
+ 
+    function renderizarMovimentacoes() {
+      const tbody = document.getElementById('corpo-tabela-movimentacoes');
+      if (!appData.movimentacoes?.length) { 
+        tbody.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; 
+        return; 
+      }
+      tbody.innerHTML = appData.movimentacoes.map(mov =>
+        `<tr><td>${mov.dataHora}</td><td class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`
+      ).join('');
+    }
+ 
+    function filtrarTabela(idTabela, input) {
+      const filtro = input.value.toUpperCase();
+      const linhas = document.getElementById(idTabela).querySelectorAll('tbody tr');
+      requestAnimationFrame(() => {
+        linhas.forEach(row => row.style.display = row.textContent.toUpperCase().includes(filtro) ? '' : 'none');
+      });
+    }
+ 
+    function mostrarPagina(pageId) {
+      document.querySelectorAll('.page, .nav-link').forEach(el => el.classList.remove('active'));
+      document.getElementById('page-' + pageId).classList.add('active');
+      document.getElementById('nav-' + pageId).classList.add('active');
+      document.querySelector('.app-main').scrollTop = 0;
+      
+      if (pageId === 'registrar') {
+        setTimeout(() => startScannerWithDevice(), 100);
+      } else { 
+        stopScanner(); 
+        refreshActivePage(); 
+      }
+    }
+ 
+    // Event listeners
+    window.addEventListener('load', () => { 
+      initDOMCache(); 
+      carregarTodosOsDados(); 
+    });
+    
+    window.addEventListener('beforeunload', () => { 
+      stopScanner(true); 
+    });
+    
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && scannerActive) {
+        stopScanner(true);
+      } else if (!document.hidden && document.getElementById('page-registrar').classList.contains('active')) {
+        startScannerWithDevice();
+      }
+    });
   </script>
 </body>
 </html>
