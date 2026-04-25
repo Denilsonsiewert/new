@@ -9,7 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <!-- ZXing.js - Motor ultrarrápido para Data Matrix -->
+  <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
  
   <style>
     :root {
@@ -54,30 +55,21 @@
       -webkit-tap-highlight-color: rgba(0,0,0,0.1);
     }
  
-    html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
+    html { margin: 0; padding: 0; height: 100%; }
  
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: 'Inter', sans-serif;
       font-size: var(--font-size-base);
       background: var(--cor-fundo);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
     }
  
     .app-header {
       background: white;
       padding: 12px var(--padding-container);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       gap: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       z-index: 101;
@@ -116,9 +108,7 @@
  
     .app-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       height: calc(var(--nav-height) + var(--safe-bottom));
       background: #fff;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
@@ -132,41 +122,27 @@
     }
  
     .nav-link {
-      border: none;
-      background: none;
-      cursor: pointer;
+      border: none; background: none; cursor: pointer;
       padding: 10px 6px;
       height: var(--nav-height);
       color: var(--cor-texto-claro);
       transition: color 0.2s ease, background 0.2s ease;
       font-weight: 600;
       font-size: clamp(0.72rem, 2.8vw, 0.88rem);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
       gap: 4px;
       -webkit-tap-highlight-color: transparent;
       outline: none;
       position: relative;
     }
  
-    .nav-link:active {
-      background: rgba(0, 87, 157, 0.05);
-    }
- 
-    .nav-link .icon {
-      font-size: clamp(1.3rem, 5.5vw, 1.55rem);
-      line-height: 1;
-    }
- 
-    .nav-link.active {
-      color: var(--cor-primaria);
-    }
+    .nav-link:active { background: rgba(0, 87, 157, 0.05); }
+    .nav-link .icon { font-size: clamp(1.3rem, 5.5vw, 1.55rem); line-height: 1; }
+    .nav-link.active { color: var(--cor-primaria); }
  
     .page { display: none; }
     .page.active { display: block; animation: fadeIn .1s ease; }
- 
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
  
     .card {
@@ -189,14 +165,14 @@
     #reader-container {
       position: relative;
       width: 100%;
-      max-width: 340px;
+      max-width: 360px;
       margin: 0 auto 16px;
       background: #000;
       border-radius: 16px;
       overflow: hidden;
-      border: 3px solid #777;
+      border: 3px solid #555;
       box-shadow: var(--sombra-media);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
       aspect-ratio: 1;
     }
  
@@ -207,30 +183,38 @@
 
     #reader-container.focusing {
       border-color: #ffc107;
-      box-shadow: 0 0 0 3px rgba(255,193,7,0.25);
+      box-shadow: 0 0 0 3px rgba(255,193,7,0.3);
+    }
+
+    #reader-container.locked {
+      border-color: var(--verde);
+      box-shadow: 0 0 10px 2px rgba(40,167,69,0.4);
+      animation: pulse-locked 0.4s ease;
+    }
+
+    @keyframes pulse-locked {
+      0%, 100% { box-shadow: 0 0 10px 2px rgba(40,167,69,0.4); }
+      50% { box-shadow: 0 0 20px 4px rgba(40,167,69,0.6); }
     }
  
-    #reader {
+    #video, #canvas {
       width: 100%;
       height: 100%;
       display: block;
-    }
- 
-    #reader video, #reader canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
       -webkit-user-select: none;
       user-select: none;
       pointer-events: none;
+    }
+
+    #canvas {
+      display: none;
     }
  
     .camera-controls-module {
       position: relative;
       margin: 0 auto 20px;
       width: 100%;
-      max-width: 340px;
+      max-width: 360px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -250,48 +234,51 @@
       font-size: 0.85rem;
       font-weight: 600;
       white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .focus-indicator {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      background: #999;
-      animation: pulse-normal 0.3s infinite;
+      background: #666;
+      transition: background 0.1s ease;
     }
 
     .focus-indicator.focusing {
       background: #ffc107;
-      animation: pulse-focus 0.2s infinite;
+      box-shadow: 0 0 8px #ffc107;
+      animation: pulse-focus 0.15s infinite;
     }
 
     .focus-indicator.success {
       background: var(--verde);
-      animation: none;
-    }
-
-    @keyframes pulse-normal {
-      0%, 100% { opacity: 0.6; }
-      50% { opacity: 1; }
+      box-shadow: 0 0 12px var(--verde);
     }
 
     @keyframes pulse-focus {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.2); }
+      50% { opacity: 0.6; transform: scale(1.3); }
+    }
+
+    .speed-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      flex: 0 0 auto;
     }
  
     @media (max-width: 480px) {
       .camera-controls-module {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
         gap: 10px;
         padding: 10px 12px;
         max-width: calc(100% - 20px);
       }
-      .camera-info {
-        font-size: 0.75rem;
-      }
+      .camera-info { font-size: 0.75rem; }
+      .speed-badge { font-size: 0.7rem; }
     }
 
     .control-btn {
@@ -341,10 +328,7 @@
     }
 
     @media (max-width: 480px) {
-      .zoom-control { 
-        width: 100%; 
-        justify-content: center; 
-      }
+      .zoom-control { width: 100%; justify-content: center; }
     }
 
     .zoom-control span {
@@ -636,7 +620,6 @@
       width: 100%;
       box-shadow: 0 10px 40px rgba(0,0,0,0.2);
       animation: slideUp 0.25s ease;
-      max-height: 90dvh;
       max-height: 90vh;
       overflow-y: auto;
     }
@@ -774,7 +757,8 @@
         <div class="card">
           <h2>Registrar Movimentação</h2>
           <div id="reader-container">
-            <div id="reader"></div>
+            <video id="video" playsinline autoplay muted></video>
+            <canvas id="canvas"></canvas>
           </div>
 
           <div class="camera-controls-module">
@@ -782,6 +766,8 @@
               <span class="focus-indicator" id="focusIndicator"></span>
               <span id="cameraStatus">Pronto</span>
             </div>
+
+            <span class="speed-badge" id="speedBadge">0 FPS</span>
 
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
 
@@ -839,23 +825,32 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
- 
+
+    /* ── Globals ─────────────────────────────────────────────────────────── */
     const DOM_CACHE = {
-      readerContainer: null, reader: null, qrResult: null, status: null,
-      zoomSlider: null, btnFlash: null, btnEntrada: null, btnSaida: null, 
-      loadingOverlay: null, focusIndicator: null, cameraStatus: null
+      video: null, canvas: null, ctx: null, reader: null,
+      qrResult: null, status: null, zoomSlider: null, btnFlash: null,
+      btnEntrada: null, btnSaida: null, loadingOverlay: null,
+      focusIndicator: null, cameraStatus: null, speedBadge: null,
+      readerContainer: null
     };
- 
-    let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
-    let focusIntervalId = null, scannerActive = false, rearCameras = [], currentRearIndex = 0;
-    let autoFocusActive = false, focusAttempts = 0, currentZoomValue = 1;
+
+    let scannerActive = false, qrCodeCompleto = null;
+    let flashOn = false, currentTrack = null;
     let entradaVencidaPendente = null, registroEmProgresso = false;
     let isTablet = false, deviceType = 'phone';
-    let consecutiveFocusSuccess = 0;
+    let currentZoomValue = 1, focusIntervalId = null;
+    let frameCount = 0, lastFpsTime = Date.now();
+    let autoFocusActive = false, focusAttempts = 0;
+    let cameraLocked = false;
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
     const CACHE_DURATION = 3000;
+
+    /* ZXing vars */
+    let codeReader = null;
+    let scanningPromise = null;
 
     /* ── Detecção de Dispositivo ─────────────────────────────────────────── */
     function detectDeviceType() {
@@ -867,24 +862,23 @@
 
       isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
       deviceType = isTablet ? 'tablet' : 'phone';
-      
       console.log(`🖥️ Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
     }
 
-    function getOptimalQRBoxSize() {
-      if (isTablet) return { width: 280, height: 280 };
-      return { width: 240, height: 240 };
+    function getOptimalFPS() {
+      return isTablet ? 90 : 60;
     }
 
-    function getOptimalFPS() {
-      if (isTablet) return 45;
-      return 30;
+    function getOptimalHeights() {
+      return isTablet ? { h: 800, w: 800 } : { h: 720, w: 720 };
     }
- 
-    /* ── Utilitários ─────────────────────────────────────────────────────── */
+
+    /* ── Init ────────────────────────────────────────────────────────────── */
     function initDOMCache() {
+      DOM_CACHE.video           = document.getElementById('video');
+      DOM_CACHE.canvas          = document.getElementById('canvas');
+      DOM_CACHE.ctx             = DOM_CACHE.canvas.getContext('2d', { alpha: false, willReadFrequently: true });
       DOM_CACHE.readerContainer = document.getElementById('reader-container');
-      DOM_CACHE.reader          = document.getElementById('reader');
       DOM_CACHE.qrResult        = document.getElementById('qr-result');
       DOM_CACHE.status          = document.getElementById('status');
       DOM_CACHE.zoomSlider      = document.getElementById('zoomSlider');
@@ -894,15 +888,18 @@
       DOM_CACHE.loadingOverlay  = document.getElementById('loading-overlay');
       DOM_CACHE.focusIndicator  = document.getElementById('focusIndicator');
       DOM_CACHE.cameraStatus    = document.getElementById('cameraStatus');
+      DOM_CACHE.speedBadge      = document.getElementById('speedBadge');
+
+      codeReader = new ZXing.BrowserMultiFormatReader();
     }
- 
+
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
       if (err.message) return err.message;
       return String(err);
     }
- 
+
     function beep(duration = 80, frequency = 1200, volume = 0.4) {
       try {
         const ctx  = new (window.AudioContext || window.webkitAudioContext)();
@@ -930,177 +927,203 @@
       } else if (status === 'success') {
         indicator.classList.add('success');
         statusText.textContent = 'Focado ✓';
+      } else if (status === 'locked') {
+        indicator.classList.add('success');
+        statusText.textContent = 'Bloqueado ✓';
       } else {
         statusText.textContent = 'Pronto';
       }
     }
- 
-    /* ── Scanner ──────────────────────────────────────────────────────────── */
-    async function startScannerWithDevice(deviceId = null) {
+
+    function updateFPS() {
+      frameCount++;
+      const now = Date.now();
+      const elapsed = now - lastFpsTime;
+      
+      if (elapsed >= 500) {
+        const fps = Math.round((frameCount / elapsed) * 1000);
+        DOM_CACHE.speedBadge.textContent = `${fps} FPS`;
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+    }
+
+    /* ── Scanner (ZXing) ─────────────────────────────────────────────────── */
+    async function startScannerWithDevice() {
       if (scannerActive) return;
       await stopScanner(true);
+
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
       updateFocusIndicator('default');
 
-      html5QrCode = new Html5Qrcode("reader");
-      
-      const qrbox = getOptimalQRBoxSize();
-      const fps = getOptimalFPS();
-      
-      const config = {
-        fps: fps,
-        qrbox: qrbox,
-        disableFlip: true,
-        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-        experimentalFeatures: { 
-          useBarCodeDetectorIfSupported: true
-        },
-        aspectRatio: 1.0
-      };
-
       try {
-        const cameras = await Html5Qrcode.getCameras();
-        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
-        rearCameras = rear.length ? rear : cameras;
-        const targetId = deviceId || (rearCameras.length > 0 ? rearCameras[0].id : null);
-        
-        await html5QrCode.start(targetId || { facingMode: "environment" }, config, onScanSuccess);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 1280 },
+            focusMode: [{ ideal: 'continuous' }]
+          }
+        });
+
+        DOM_CACHE.video.srcObject = stream;
+
+        currentTrack = stream.getVideoTracks()[0];
+
+        await new Promise(resolve => {
+          DOM_CACHE.video.onloadedmetadata = () => {
+            DOM_CACHE.video.play();
+            resolve();
+          };
+        });
+
         scannerActive = true;
+        cameraLocked = false;
         DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
         DOM_CACHE.readerContainer.classList.add('scanning-active');
-        
-        const videoElem = DOM_CACHE.reader.querySelector("video");
-        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-        
+
         setupTurboAutofocus();
         setupZoom();
+        startScanLoop();
+
       } catch (err) {
         DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
         updateFocusIndicator('error');
       }
     }
- 
+
+    function startScanLoop() {
+      function scanFrame() {
+        if (!scannerActive) return;
+
+        try {
+          const videoWidth = DOM_CACHE.video.videoWidth;
+          const videoHeight = DOM_CACHE.video.videoHeight;
+
+          if (videoWidth && videoHeight) {
+            DOM_CACHE.canvas.width = videoWidth;
+            DOM_CACHE.canvas.height = videoHeight;
+
+            DOM_CACHE.ctx.drawImage(DOM_CACHE.video, 0, 0, videoWidth, videoHeight);
+
+            const imageData = DOM_CACHE.ctx.getImageData(0, 0, videoWidth, videoHeight);
+
+            try {
+              const result = ZXing.BrowserMultiFormatReader.prototype.decodeFromImageData(
+                codeReader,
+                imageData
+              );
+
+              if (result && result.text) {
+                onScanSuccess(result.text);
+                return;
+              }
+            } catch {}
+          }
+
+          updateFPS();
+        } catch {}
+
+        requestAnimationFrame(scanFrame);
+      }
+
+      requestAnimationFrame(scanFrame);
+    }
+
     function onScanSuccess(decodedText) {
-      if (qrCodeCompleto) return;
+      if (qrCodeCompleto || cameraLocked) return;
+      
       qrCodeCompleto = decodedText;
+      cameraLocked = true;
+      
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
+      
       DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Código lido!</strong>";
-      updateFocusIndicator('success');
+      DOM_CACHE.readerContainer.classList.add('locked');
+      updateFocusIndicator('locked');
+      
       stopScanner();
     }
- 
+
     async function stopScanner(silent = false) {
       try {
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
-        if (html5QrCode) {
-          await html5QrCode.stop().catch(() => {});
-          await html5QrCode.clear().catch(() => {});
+        
+        if (DOM_CACHE.video?.srcObject) {
+          DOM_CACHE.video.srcObject.getTracks().forEach(track => track.stop());
+          DOM_CACHE.video.srcObject = null;
         }
       } catch {}
       finally {
         currentTrack = null;
         scannerActive = false;
         autoFocusActive = false;
-        consecutiveFocusSuccess = 0;
-        DOM_CACHE.readerContainer.classList.remove('scanning-active');
+        DOM_CACHE.readerContainer.classList.remove('scanning-active', 'locked', 'focusing');
         updateFocusIndicator('default');
       }
     }
- 
+
     function setupTurboAutofocus() {
       if (!currentTrack?.applyConstraints) return;
       
       autoFocusActive = true;
       focusAttempts = 0;
-      consecutiveFocusSuccess = 0;
       
-      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
       
       clearInterval(focusIntervalId);
       
-      // Para tablets: intervalo maior (200ms), para phones: intervalo padrão (100ms)
-      const focusInterval = isTablet ? 200 : 100;
-      
       focusIntervalId = setInterval(() => {
-        if (currentTrack && autoFocusActive && scannerActive) {
+        if (currentTrack && autoFocusActive && scannerActive && !cameraLocked) {
           focusAttempts++;
           
           updateFocusIndicator('focusing');
           
-          // Padrão adaptativo baseado no tipo de dispositivo
           if (isTablet) {
-            // Tablet: menos agressivo
-            if (focusAttempts % 4 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+            if (focusAttempts % 5 === 0) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
                 .then(() => {
-                  consecutiveFocusSuccess++;
-                  if (consecutiveFocusSuccess >= 2) {
-                    updateFocusIndicator('success');
-                    setTimeout(() => { 
-                      if (autoFocusActive) updateFocusIndicator('focusing'); 
-                    }, 500);
-                  }
+                  updateFocusIndicator('success');
+                  setTimeout(() => { 
+                    if (autoFocusActive) updateFocusIndicator('focusing'); 
+                  }, 400);
                   setTimeout(() => {
                     if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
                     }
                   }, 80);
                 })
-                .catch(() => { consecutiveFocusSuccess = 0; });
-            } else if (focusAttempts % 2 === 0) {
-              applyZoomNudge();
+                .catch(() => {});
             } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+              currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
             }
           } else {
-            // Phone: mais agressivo
-            if (focusAttempts % 3 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+            if (focusAttempts % 2 === 0) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
                 .then(() => {
-                  consecutiveFocusSuccess++;
-                  if (consecutiveFocusSuccess >= 2) {
-                    updateFocusIndicator('success');
-                    setTimeout(() => { 
-                      if (autoFocusActive) updateFocusIndicator('focusing'); 
-                    }, 400);
-                  }
+                  updateFocusIndicator('success');
+                  setTimeout(() => { 
+                    if (autoFocusActive) updateFocusIndicator('focusing'); 
+                  }, 300);
                   setTimeout(() => {
                     if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
                     }
                   }, 50);
                 })
-                .catch(() => { consecutiveFocusSuccess = 0; });
-            } else if (focusAttempts % 2 === 0) {
-              applyZoomNudge();
+                .catch(() => {});
             } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+              currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
             }
           }
         }
-      }, focusInterval);
+      }, isTablet ? 180 : 100);
     }
- 
-    async function applyZoomNudge() {
-      try {
-        if (!currentTrack?.getCapabilities) return;
-        const caps = currentTrack.getCapabilities();
-        if (!caps?.zoom) return;
-        
-        const settings = currentTrack.getSettings?.() || {};
-        const currentZoom = settings.zoom || currentZoomValue || 1;
-        const nudgedZoom = Math.min(currentZoom + 0.02, caps.zoom.max || 5);
-        
-        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
-        setTimeout(() => { 
-          if (currentTrack) currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {}); 
-        }, 40);
-      } catch {}
-    }
- 
+
     function setupZoom() {
       const slider = DOM_CACHE.zoomSlider;
       if (!currentTrack?.getCapabilities) return;
@@ -1114,7 +1137,7 @@
         }
       } catch {}
     }
- 
+
     async function applyInitialZoom() {
       if (!currentTrack?.getCapabilities) return;
       try {
@@ -1123,17 +1146,14 @@
         
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
-        
-        // Tablets começam com mais zoom
-        const zoomPercentage = isTablet ? 0.4 : 0.25;
-        const initialZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
+        const initialZoom = minZoom + ((maxZoom - minZoom) * 0.35);
         
         currentZoomValue = initialZoom;
         await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
         DOM_CACHE.zoomSlider.value = initialZoom;
       } catch {}
     }
- 
+
     async function setZoom(value) {
       if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
       try {
@@ -1141,7 +1161,7 @@
         await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
       } catch {}
     }
- 
+
     async function toggleFlash() {
       if (!currentTrack?.getCapabilities) return;
       const caps = currentTrack.getCapabilities();
@@ -1150,13 +1170,13 @@
       DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
       await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
     }
- 
-    /* ── API ──────────────────────────────────────────────────────────────── */
+
+    /* ── API ─────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
       return await (await fetch(url)).json();
     }
- 
+
     async function apiPost(payload) {
       return await (await fetch(WEB_APP_URL, {
         method: 'POST',
@@ -1164,8 +1184,8 @@
         body: JSON.stringify({ ...payload, token: API_TOKEN })
       })).json();
     }
- 
-    /* ── Validade / Modal ─────────────────────────────────────────────────── */
+
+    /* ── Validade / Modal ────────────────────────────────────────────────── */
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -1176,7 +1196,7 @@
         return dataValidade < hoje;
       } catch { return false; }
     }
- 
+
     function mostrarModalVencido(item, lote, validade, quantidade) {
       document.getElementById('modal-item').textContent      = item || 'N/A';
       document.getElementById('modal-lote').textContent      = lote || 'N/A';
@@ -1185,34 +1205,36 @@
       entradaVencidaPendente = { tipo: 'Entrada', qrCode: qrCodeCompleto, quantidade };
       document.getElementById('modal-vencido').classList.add('active');
     }
- 
+
     async function confirmarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       if (entradaVencidaPendente)
         await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
       entradaVencidaPendente = null;
     }
- 
+
     function cancelarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       entradaVencidaPendente = null;
       liberarBotoes();
+      cameraLocked = false;
       startScannerWithDevice();
     }
- 
+
     function liberarBotoes() { DOM_CACHE.btnEntrada.disabled = false; DOM_CACHE.btnSaida.disabled = false; }
     function bloquearBotoes() { DOM_CACHE.btnEntrada.disabled = true;  DOM_CACHE.btnSaida.disabled = true; }
- 
+
     function resetarFormulario() {
       document.getElementById('quantidade').value = '';
       qrCodeCompleto = null;
       DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
       DOM_CACHE.status.style.display = 'none';
       registroEmProgresso = false;
+      cameraLocked = false;
       liberarBotoes();
     }
- 
-    /* ── Movimentação ─────────────────────────────────────────────────────── */
+
+    /* ── Movimentação ────────────────────────────────────────────────────── */
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
       if (registroEmProgresso) return;
       registroEmProgresso = true;
@@ -1237,7 +1259,7 @@
         registroEmProgresso = false;
       }
     }
- 
+
     async function enviarDados(tipo) {
       if (registroEmProgresso) return;
       const quantidade = document.getElementById('quantidade').value;
@@ -1253,8 +1275,8 @@
       }
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
- 
-    /* ── Dados / Render ───────────────────────────────────────────────────── */
+
+    /* ── Dados / Render ──────────────────────────────────────────────────── */
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
       const agora   = Date.now();
@@ -1277,13 +1299,13 @@
         setTimeout(() => { overlay.style.display = 'none'; }, 2000);
       } finally { if (!isUpdate) overlay.style.display = 'none'; }
     }
- 
+
     function refreshActivePage() {
       if (document.getElementById('page-alertas').classList.contains('active'))       renderizarAlertas();
       if (document.getElementById('page-estoque').classList.contains('active'))       renderizarEstoque();
       if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
     }
- 
+
     function renderizarEstoque() {
       const tbody = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque?.length) { tbody.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return; }
@@ -1291,7 +1313,7 @@
         `<tr><td>${item.item}</td><td>${item.lote||''}</td><td>${item.validade||''}</td><td><strong>${item.total}</strong></td></tr>`
       ).join('');
     }
- 
+
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
       if (!appData.alertas?.length) { lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return; }
@@ -1300,7 +1322,7 @@
         return `<li class="${cl}"><strong>${item.tipo}</strong><br/><strong>Item:</strong> ${item.descricao||''}<br/><small>${item.detalhe||''}</small></li>`;
       }).join('');
     }
- 
+
     function renderizarMovimentacoes() {
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
       if (!appData.movimentacoes?.length) { tbody.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return; }
@@ -1308,7 +1330,7 @@
         `<tr><td>${mov.dataHora}</td><td class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`
       ).join('');
     }
- 
+
     function filtrarTabela(idTabela, input) {
       const filtro = input.value.toUpperCase();
       const linhas = document.getElementById(idTabela).querySelectorAll('tbody tr');
@@ -1316,7 +1338,7 @@
         linhas.forEach(row => row.style.display = row.textContent.toUpperCase().includes(filtro) ? '' : 'none');
       });
     }
- 
+
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page, .nav-link').forEach(el => el.classList.remove('active'));
       document.getElementById('page-' + pageId).classList.add('active');
@@ -1325,7 +1347,7 @@
       if (pageId === 'registrar') startScannerWithDevice();
       else { stopScanner(); refreshActivePage(); }
     }
- 
+
     window.addEventListener('load', () => { 
       detectDeviceType();
       initDOMCache(); 
