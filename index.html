@@ -9,8 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- ZXing.js - Motor ultrarrápido para Data Matrix -->
-  <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
  
   <style>
     :root {
@@ -18,23 +17,18 @@
       --cor-sucesso: #198754;
       --cor-perigo: #dc3545;
       --cor-alerta: #ffc107;
- 
       --cor-fundo: #f4f6f9;
       --cor-container: #ffffff;
       --cor-texto: #1f1f1f;
       --cor-texto-claro: #6c757d;
- 
       --borda-cor: #d8dde3;
       --sombra-suave: 0 4px 12px rgba(0,0,0,0.06);
       --sombra-media: 0 6px 18px rgba(0,0,0,0.08);
- 
       --verde: #28a745;
- 
       --padding-container: 20px;
       --font-size-base: 18px;
       --button-height: 56px;
       --input-height: 56px;
- 
       --nav-height: 70px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --nav-total: calc(var(--nav-height) + var(--safe-bottom));
@@ -50,13 +44,10 @@
       }
     }
  
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: rgba(0,0,0,0.1);
-    }
- 
+    * { box-sizing: border-box; -webkit-tap-highlight-color: rgba(0,0,0,0.1); }
+    
     html { margin: 0; padding: 0; height: 100%; }
- 
+    
     body {
       margin: 0; padding: 0;
       font-family: 'Inter', sans-serif;
@@ -67,76 +58,42 @@
     }
  
     .app-header {
-      background: white;
-      padding: 12px var(--padding-container);
+      background: white; padding: 12px var(--padding-container);
       display: flex; align-items: center; justify-content: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      z-index: 101;
-      flex-shrink: 0;
+      gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      z-index: 101; flex-shrink: 0;
       padding-top: max(12px, env(safe-area-inset-top, 12px));
     }
  
-    .app-header img {
-      height: clamp(32px, 8vw, 44px);
-      width: auto;
-    }
- 
+    .app-header img { height: clamp(32px, 8vw, 44px); width: auto; }
     .app-header h1 {
-      margin: 0;
-      font-size: clamp(1.1rem, 4.5vw, 1.9rem);
-      font-weight: 700;
-      color: var(--cor-primaria);
-      letter-spacing: -0.5px;
-      text-align: center;
-      line-height: 1.2;
+      margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.9rem);
+      font-weight: 700; color: var(--cor-primaria);
+      letter-spacing: -0.5px; text-align: center; line-height: 1.2;
     }
  
-    .app-main {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      will-change: scroll-position;
-    }
- 
-    .content-wrapper {
-      width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+    .app-main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .content-wrapper { width: 100%; max-width: 900px; margin: 0 auto; padding: 20px; }
  
     .app-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
+      position: fixed; bottom: 0; left: 0; right: 0;
       height: calc(var(--nav-height) + var(--safe-bottom));
-      background: #fff;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      align-items: flex-start;
-      z-index: 1000;
+      background: #fff; box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      align-items: flex-start; z-index: 1000;
       border-top: 2px solid var(--borda-cor);
-      padding-top: 0;
       padding-bottom: var(--safe-bottom);
     }
  
     .nav-link {
       border: none; background: none; cursor: pointer;
-      padding: 10px 6px;
-      height: var(--nav-height);
-      color: var(--cor-texto-claro);
-      transition: color 0.2s ease, background 0.2s ease;
-      font-weight: 600;
-      font-size: clamp(0.72rem, 2.8vw, 0.88rem);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 4px;
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
-      position: relative;
+      padding: 10px 6px; height: var(--nav-height);
+      color: var(--cor-texto-claro); transition: color 0.2s ease, background 0.2s ease;
+      font-weight: 600; font-size: clamp(0.72rem, 2.8vw, 0.88rem);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 4px; -webkit-tap-highlight-color: transparent;
+      outline: none; position: relative;
     }
- 
     .nav-link:active { background: rgba(0, 87, 157, 0.05); }
     .nav-link .icon { font-size: clamp(1.3rem, 5.5vw, 1.55rem); line-height: 1; }
     .nav-link.active { color: var(--cor-primaria); }
@@ -146,551 +103,252 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
  
     .card {
-      background: var(--cor-container);
-      padding: clamp(18px, 4.5vw, 24px);
-      border-radius: 16px;
-      border: 1px solid var(--borda-cor);
-      box-shadow: var(--sombra-suave);
-      margin-bottom: 20px;
+      background: var(--cor-container); padding: clamp(18px, 4.5vw, 24px);
+      border-radius: 16px; border: 1px solid var(--borda-cor);
+      box-shadow: var(--sombra-suave); margin-bottom: 20px;
     }
- 
     h2 {
-      text-align: center;
-      margin: 0 0 20px;
+      text-align: center; margin: 0 0 20px;
       font-size: clamp(1.2rem, 5vw, 1.5rem);
-      font-weight: 600;
-      color: var(--cor-texto);
+      font-weight: 600; color: var(--cor-texto);
     }
  
+    /* LEITOR QR OTIMIZADO */
     #reader-container {
-      position: relative;
-      width: 100%;
-      max-width: 360px;
-      margin: 0 auto 16px;
-      background: #000;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 3px solid #555;
-      box-shadow: var(--sombra-media);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-      aspect-ratio: 1;
+      position: relative; width: 100%; max-width: 400px;
+      margin: 0 auto 16px; background: #000;
+      border-radius: 16px; overflow: hidden;
+      border: 3px solid #777; box-shadow: var(--sombra-media);
+      transition: border-color 0.2s ease; aspect-ratio: 4/3;
     }
- 
     #reader-container.scanning-active {
       border-color: var(--verde);
       box-shadow: 0 0 0 3px rgba(40,167,69,0.25);
     }
-
-    #reader-container.focusing {
-      border-color: #ffc107;
-      box-shadow: 0 0 0 3px rgba(255,193,7,0.3);
-    }
-
-    #reader-container.locked {
-      border-color: var(--verde);
-      box-shadow: 0 0 10px 2px rgba(40,167,69,0.4);
-      animation: pulse-locked 0.4s ease;
-    }
-
-    @keyframes pulse-locked {
-      0%, 100% { box-shadow: 0 0 10px 2px rgba(40,167,69,0.4); }
-      50% { box-shadow: 0 0 20px 4px rgba(40,167,69,0.6); }
+    #reader { width: 100%; height: 100%; display: block; }
+    #reader video, #reader canvas {
+      width: 100%; height: 100%; display: block; object-fit: cover;
     }
  
-    #video, #canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      -webkit-user-select: none;
-      user-select: none;
-      pointer-events: none;
-    }
-
-    #canvas {
-      display: none;
-    }
- 
+    /* CONTROLES DA CÂMERA */
     .camera-controls-module {
-      position: relative;
-      margin: 0 auto 20px;
-      width: 100%;
-      max-width: 360px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 16px;
-      background: rgba(0, 0, 0, 0.85);
+      position: relative; margin: 0 auto 20px;
+      width: 100%; max-width: 400px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 16px;
+      border-radius: 16px; background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(10px);
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
     }
-
-    .camera-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 600;
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
-
-    .focus-indicator {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #666;
-      transition: background 0.1s ease;
-    }
-
-    .focus-indicator.focusing {
-      background: #ffc107;
-      box-shadow: 0 0 8px #ffc107;
-      animation: pulse-focus 0.15s infinite;
-    }
-
-    .focus-indicator.success {
-      background: var(--verde);
-      box-shadow: 0 0 12px var(--verde);
-    }
-
-    @keyframes pulse-focus {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(1.3); }
-    }
-
-    .speed-badge {
-      background: rgba(255, 255, 255, 0.15);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      flex: 0 0 auto;
-    }
- 
     @media (max-width: 480px) {
       .camera-controls-module {
-        gap: 10px;
-        padding: 10px 12px;
+        flex-direction: row; align-items: center;
+        justify-content: space-between; gap: 10px;
+        padding: 10px 12px; bottom: 10px;
         max-width: calc(100% - 20px);
       }
-      .camera-info { font-size: 0.75rem; }
-      .speed-badge { font-size: 0.7rem; }
     }
-
+ 
     .control-btn {
-      width: clamp(48px, 12vw, 56px);
-      height: clamp(48px, 12vw, 56px);
-      border-radius: 50%;
-      font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+      width: clamp(48px, 12vw, 56px); height: clamp(48px, 12vw, 56px);
+      border-radius: 50%; font-size: clamp(1.2rem, 3.5vw, 1.5rem);
       background: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border: 2px solid rgba(255, 255, 255, 0.3); color: white;
+      display: flex; align-items: center; justify-content: center;
       transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-      cursor: pointer;
-      flex: 0 0 auto;
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
-      touch-action: manipulation;
-      min-width: 48px;
-      min-height: 48px;
+      cursor: pointer; flex: 0 0 auto; -webkit-tap-highlight-color: transparent;
+      outline: none; touch-action: manipulation;
+      min-width: 48px; min-height: 48px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
-
-    .control-btn:hover {
-      background: rgba(255, 255, 255, 0.28);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    }
-
-    .control-btn:active { 
-      transform: scale(0.88);
-      background: rgba(255, 255, 255, 0.35);
-    }
-
+    .control-btn:hover { background: rgba(255, 255, 255, 0.28); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
+    .control-btn:active { transform: scale(0.88); background: rgba(255, 255, 255, 0.35); }
     .control-btn.active {
       background: linear-gradient(135deg, var(--cor-primaria), #0073c9);
-      border-color: #0073c9;
-      box-shadow: 0 6px 20px rgba(0, 115, 201, 0.4);
+      border-color: #0073c9; box-shadow: 0 6px 20px rgba(0, 115, 201, 0.4);
     }
-
+ 
     .zoom-control {
-      display: flex;
-      align-items: center;
-      gap: clamp(8px, 2.5vw, 12px);
-      flex: 1;
-      min-width: 0;
+      display: flex; align-items: center; gap: clamp(8px, 2.5vw, 12px);
+      flex: 1; min-width: 0;
     }
-
     @media (max-width: 480px) {
       .zoom-control { width: 100%; justify-content: center; }
     }
-
-    .zoom-control span {
-      color: white;
-      font-size: clamp(1rem, 2.8vw, 1.1rem);
-      flex-shrink: 0;
-    }
-
+    .zoom-control span { color: white; font-size: clamp(1rem, 2.8vw, 1.1rem); flex-shrink: 0; }
     .zoom-control input[type="range"] {
-      flex: 1;
-      height: 6px;
-      appearance: none;
-      -webkit-appearance: none;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 4px;
-      outline: none;
-      min-width: 100px;
-      touch-action: none;
+      flex: 1; height: 6px; appearance: none; -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.25); border-radius: 4px;
+      outline: none; min-width: 100px; touch-action: none;
       transition: background 0.2s ease;
     }
-
-    .zoom-control input[type="range"]:hover {
-      background: rgba(255, 255, 255, 0.35);
-    }
-
+    .zoom-control input[type="range"]:hover { background: rgba(255, 255, 255, 0.35); }
     .zoom-control input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 26px;
-      height: 26px;
+      -webkit-appearance: none; width: 26px; height: 26px;
       background: linear-gradient(135deg, #fff, #f0f0f0);
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      transition: box-shadow 0.2s ease, transform 0.1s ease;
+      border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer; transition: box-shadow 0.2s ease, transform 0.1s ease;
     }
-
-    .zoom-control input[type="range"]::-webkit-slider-thumb:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    .zoom-control input[type="range"]::-webkit-slider-thumb:active {
-      transform: scale(1.1);
-    }
-
+    .zoom-control input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+    .zoom-control input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.1); }
     .zoom-control input[type="range"]::-moz-range-thumb {
-      width: 26px;
-      height: 26px;
-      background: linear-gradient(135deg, #fff, #f0f0f0);
-      border-radius: 50%;
-      border: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      transition: box-shadow 0.2s ease, transform 0.1s ease;
+      width: 26px; height: 26px; background: linear-gradient(135deg, #fff, #f0f0f0);
+      border-radius: 50%; border: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer; transition: box-shadow 0.2s ease, transform 0.1s ease;
     }
-
-    .zoom-control input[type="range"]::-moz-range-thumb:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    .zoom-control input[type="range"]::-moz-range-thumb:active {
-      transform: scale(1.1);
-    }
+    .zoom-control input[type="range"]::-moz-range-thumb:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+    .zoom-control input[type="range"]::-moz-range-thumb:active { transform: scale(1.1); }
  
-    .button-group {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: clamp(12px, 3vw, 16px);
-      margin-bottom: 20px;
-    }
- 
-    @media (max-width: 480px) {
-      .button-group {
-        grid-template-columns: 1fr;
-        gap: 14px;
-      }
-    }
+    .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 3vw, 16px); margin-bottom: 20px; }
+    @media (max-width: 480px) { .button-group { grid-template-columns: 1fr; gap: 14px; } }
  
     button {
-      padding: clamp(14px, 4vw, 18px);
-      font-weight: 700;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      background: var(--cor-primaria);
-      color: white;
+      padding: clamp(14px, 4vw, 18px); font-weight: 700; border-radius: 12px;
+      border: none; cursor: pointer; background: var(--cor-primaria); color: white;
       transition: opacity .15s ease, transform .1s ease;
-      font-size: clamp(1rem, 3.5vw, 1.1rem);
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
-      min-height: var(--button-height);
-      min-width: 44px;
-      touch-action: manipulation;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: inherit;
+      font-size: clamp(1rem, 3.5vw, 1.1rem); -webkit-tap-highlight-color: transparent;
+      outline: none; min-height: var(--button-height); min-width: 44px;
+      touch-action: manipulation; display: flex; align-items: center;
+      justify-content: center; font-family: inherit;
     }
- 
     button:hover:not(:disabled) { opacity: .9; }
     button:active:not(:disabled) { transform: scale(.97); }
     button.saida { background: var(--cor-perigo); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-
-    .input-group label {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--cor-texto);
-    }
-
+ 
+    .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .input-group label { font-size: 0.9rem; font-weight: 600; color: var(--cor-texto); }
     .input-group input {
-      width: 100%;
-      height: var(--input-height);
-      padding: 0 16px;
-      font-size: 1rem;
-      border-radius: 12px;
-      border: 1.5px solid var(--borda-cor);
-      background: #fff;
-      color: var(--cor-texto);
-      transition: all 0.2s ease;
+      width: 100%; height: var(--input-height); padding: 0 16px;
+      font-size: 1rem; border-radius: 12px; border: 1.5px solid var(--borda-cor);
+      background: #fff; color: var(--cor-texto); transition: all 0.2s ease;
     }
-
     .input-group input:focus {
       border-color: var(--cor-primaria);
-      box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.15);
-      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.15); outline: none;
     }
-
-    #quantidade {
-      text-align: center;
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-
+    #quantidade { text-align: center; font-weight: 700; font-size: 1.2rem; }
+ 
     #status {
-      margin-top: 16px;
-      margin-bottom: 8px;
-      padding: clamp(14px, 3.5vw, 16px);
-      border-radius: 12px;
-      font-weight: 600;
-      display: none;
-      animation: slideDown .2s ease;
+      margin-top: 16px; margin-bottom: 8px;
+      padding: clamp(14px, 3.5vw, 16px); border-radius: 12px;
+      font-weight: 600; display: none; animation: slideDown .2s ease;
       font-size: clamp(1rem, 3vw, 1.05rem);
     }
- 
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
- 
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
     .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; }
     .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
  
     .table-wrapper {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      border-radius: 10px;
-      margin: 0 calc(-1 * var(--padding-container));
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      border-radius: 10px; margin: 0 calc(-1 * var(--padding-container));
       padding: 0 var(--padding-container);
     }
- 
     .styled-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: clamp(0.9rem, 2.8vw, 1rem);
-      background: white;
-      min-width: 460px;
+      width: 100%; border-collapse: collapse;
+      font-size: clamp(0.9rem, 2.8vw, 1rem); background: white; min-width: 460px;
     }
- 
-    .styled-table thead tr {
-      background: var(--cor-primaria);
-      color: white;
-      text-align: left;
-    }
- 
-    .styled-table td,
-    .styled-table th {
-      padding: clamp(12px, 3vw, 16px) clamp(10px, 2.5vw, 14px);
-      white-space: nowrap;
-    }
- 
-    .styled-table tbody tr {
-      border-bottom: 1px solid var(--borda-cor);
-      transition: background .1s ease;
-    }
- 
+    .styled-table thead tr { background: var(--cor-primaria); color: white; text-align: left; }
+    .styled-table td, .styled-table th { padding: clamp(12px, 3vw, 16px) clamp(10px, 2.5vw, 14px); white-space: nowrap; }
+    .styled-table tbody tr { border-bottom: 1px solid var(--borda-cor); transition: background .1s ease; }
     .styled-table tbody tr:hover { background: #f9f9f9; }
- 
     .tipo-entrada { color: var(--cor-sucesso); font-weight: 600; }
     .tipo-saida   { color: var(--cor-perigo);  font-weight: 600; }
  
-    .alert-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
- 
+    .alert-list { list-style: none; padding: 0; margin: 0; }
     .alert-list li {
-      padding: clamp(14px, 3.5vw, 18px);
-      margin-bottom: 12px;
-      border-radius: 12px;
-      background: #f8f9fa;
-      border-left: 5px solid #d0d0d0;
-      color: var(--cor-texto);
-      font-size: clamp(0.95rem, 2.8vw, 1.05rem);
-      line-height: 1.6;
+      padding: clamp(14px, 3.5vw, 18px); margin-bottom: 12px;
+      border-radius: 12px; background: #f8f9fa;
+      border-left: 5px solid #d0d0d0; color: var(--cor-texto);
+      font-size: clamp(0.95rem, 2.8vw, 1.05rem); line-height: 1.6;
     }
- 
     .alert-vencido {
-      background: #f8d7da;
-      color: #8a1c21;
-      border: 2px solid var(--cor-perigo);
-      border-left: 5px solid var(--cor-perigo);
+      background: #f8d7da; color: #8a1c21;
+      border: 2px solid var(--cor-perigo); border-left: 5px solid var(--cor-perigo);
     }
- 
     .alert-proximo {
-      background: #fff3cd;
-      color: #664d03;
-      border: 2px solid var(--cor-alerta);
-      border-left: 5px solid var(--cor-alerta);
+      background: #fff3cd; color: #664d03;
+      border: 2px solid var(--cor-alerta); border-left: 5px solid var(--cor-alerta);
     }
- 
     .placeholder {
-      text-align: center;
-      padding: clamp(28px, 8vw, 40px);
-      color: var(--cor-texto-claro);
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      text-align: center; padding: clamp(28px, 8vw, 40px);
+      color: var(--cor-texto-claro); font-size: clamp(0.9rem, 2.5vw, 1rem);
     }
  
     .loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.95);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      font-weight: 600;
-      color: var(--cor-texto);
-      backdrop-filter: blur(2px);
-      font-size: clamp(0.95rem, 2.5vw, 1rem);
+      position: fixed; inset: 0; background: rgba(255,255,255,0.95);
+      display: flex; flex-direction: column; gap: 12px;
+      align-items: center; justify-content: center; z-index: 9999;
+      font-weight: 600; color: var(--cor-texto);
+      backdrop-filter: blur(2px); font-size: clamp(0.95rem, 2.5vw, 1rem);
     }
  
     .qr-result {
-      text-align: center;
-      padding: clamp(14px, 3.5vw, 18px);
-      margin-top: 16px;
-      margin-bottom: 20px;
-      font-weight: 600;
-      color: var(--cor-texto);
-      background: #f8f9fa;
-      border-radius: 12px;
-      border: 2px solid var(--borda-cor);
-      min-height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: clamp(0.95rem, 3vw, 1.05rem);
+      text-align: center; padding: clamp(14px, 3.5vw, 18px);
+      margin-top: 16px; margin-bottom: 20px; font-weight: 600;
+      color: var(--cor-texto); background: #f8f9fa;
+      border-radius: 12px; border: 2px solid var(--borda-cor);
+      min-height: 56px; display: flex; align-items: center;
+      justify-content: center; font-size: clamp(0.95rem, 3vw, 1.05rem);
     }
  
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      backdrop-filter: blur(2px);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 10000; backdrop-filter: blur(2px);
       padding: var(--padding-container);
     }
- 
     .modal-overlay.active { display: flex; }
- 
     .modal-content {
-      background: white;
-      border-radius: 16px;
-      padding: clamp(20px, 5vw, 28px);
-      max-width: 420px;
-      width: 100%;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      animation: slideUp 0.25s ease;
-      max-height: 90vh;
-      overflow-y: auto;
+      background: white; border-radius: 16px;
+      padding: clamp(20px, 5vw, 28px); max-width: 420px; width: 100%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: slideUp 0.25s ease;
+      max-height: 90dvh; max-height: 90vh; overflow-y: auto;
     }
- 
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
- 
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .modal-header {
-      font-size: clamp(1.05rem, 4vw, 1.2rem);
-      font-weight: 700;
-      color: var(--cor-perigo);
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      line-height: 1.3;
+      font-size: clamp(1.05rem, 4vw, 1.2rem); font-weight: 700;
+      color: var(--cor-perigo); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px; line-height: 1.3;
     }
- 
-    .modal-body {
-      margin-bottom: 20px;
-      color: var(--cor-texto);
-      line-height: 1.6;
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
-    }
- 
+    .modal-body { margin-bottom: 20px; color: var(--cor-texto); line-height: 1.6; font-size: clamp(0.9rem, 2.5vw, 1rem); }
     .modal-info-box {
-      background: #f8f9fa;
-      padding: clamp(10px, 3vw, 14px);
-      border-radius: 8px;
-      margin: 12px 0;
-      border-left: 4px solid var(--cor-alerta);
+      background: #f8f9fa; padding: clamp(10px, 3vw, 14px);
+      border-radius: 8px; margin: 12px 0; border-left: 4px solid var(--cor-alerta);
     }
- 
     .modal-info-box div {
-      display: flex;
-      justify-content: space-between;
-      padding: 4px 0;
-      font-size: clamp(0.85rem, 2.2vw, 0.95rem);
-      gap: 10px;
-      flex-wrap: wrap;
+      display: flex; justify-content: space-between; padding: 4px 0;
+      font-size: clamp(0.85rem, 2.2vw, 0.95rem); gap: 10px; flex-wrap: wrap;
     }
- 
     .modal-info-box strong { font-weight: 600; flex-shrink: 0; }
- 
-    .modal-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: clamp(10px, 2.5vw, 14px);
-    }
- 
-    @media (max-width: 400px) {
-      .modal-actions { grid-template-columns: 1fr; }
-    }
- 
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 2.5vw, 14px); }
+    @media (max-width: 400px) { .modal-actions { grid-template-columns: 1fr; } }
     .modal-actions button {
-      padding: clamp(12px, 3vw, 14px);
-      font-size: clamp(0.9rem, 2.5vw, 0.95rem);
-      border-radius: 8px;
-      min-height: 48px;
+      padding: clamp(12px, 3vw, 14px); font-size: clamp(0.9rem, 2.5vw, 0.95rem);
+      border-radius: 8px; min-height: 48px;
     }
- 
     .modal-actions .btn-confirmar { background: var(--cor-perigo); }
     .modal-actions .btn-cancelar  { background: var(--cor-texto-claro); }
  
     @media (prefers-reduced-motion: reduce) {
-      * {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-      }
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    
+    /* Indicador visual de foco */
+    .focus-indicator {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px; height: 80px;
+      border: 3px solid rgba(40, 167, 69, 0.8);
+      border-radius: 8px; pointer-events: none;
+      opacity: 0; transition: opacity 0.2s ease;
+      z-index: 10;
+    }
+    .focus-indicator.active { opacity: 1; animation: pulse 0.6s ease; }
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
     }
   </style>
 </head>
@@ -715,6 +373,7 @@
     <span>Carregando...</span>
   </div>
  
+  <!-- Modal de Confirmação para Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">⚠️ Atenção: Item Vencido</div>
@@ -737,7 +396,7 @@
  
   <main class="app-main">
     <div class="content-wrapper">
- 
+      <!-- ESTOQUE -->
       <div id="page-estoque" class="page active">
         <div class="card">
           <h2>Consulta de Estoque</h2>
@@ -753,30 +412,24 @@
         </div>
       </div>
  
+      <!-- REGISTRAR -->
       <div id="page-registrar" class="page">
         <div class="card">
           <h2>Registrar Movimentação</h2>
           <div id="reader-container">
-            <video id="video" playsinline autoplay muted></video>
-            <canvas id="canvas"></canvas>
+            <div id="reader"></div>
+            <div id="focusIndicator" class="focus-indicator"></div>
           </div>
 
           <div class="camera-controls-module">
-            <div class="camera-info">
-              <span class="focus-indicator" id="focusIndicator"></span>
-              <span id="cameraStatus">Pronto</span>
-            </div>
-
-            <span class="speed-badge" id="speedBadge">0 FPS</span>
-
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
-
+            <div id="btnFocus" class="control-btn" onclick="triggerManualFocus()" title="Focar Agora">🎯</div>
             <div class="zoom-control">
               <span>🔍</span>
               <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
             </div>
           </div>
-
+          
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
           <div class="input-group">
             <label for="quantidade">Quantidade</label>
@@ -790,6 +443,7 @@
         </div>
       </div>
  
+      <!-- HISTÓRICO -->
       <div id="page-movimentacoes" class="page">
         <div class="card">
           <h2>Últimas Movimentações</h2>
@@ -805,13 +459,13 @@
         </div>
       </div>
  
+      <!-- ALERTAS -->
       <div id="page-alertas" class="page">
         <div class="card">
           <h2>Alertas de Estoque</h2>
           <ul id="lista-alertas" class="alert-list"></ul>
         </div>
       </div>
- 
     </div>
   </main>
  
@@ -825,305 +479,269 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-
-    /* ── Globals ─────────────────────────────────────────────────────────── */
+ 
     const DOM_CACHE = {
-      video: null, canvas: null, ctx: null, reader: null,
-      qrResult: null, status: null, zoomSlider: null, btnFlash: null,
-      btnEntrada: null, btnSaida: null, loadingOverlay: null,
-      focusIndicator: null, cameraStatus: null, speedBadge: null,
-      readerContainer: null
+      readerContainer: null, reader: null, qrResult: null, status: null,
+      zoomSlider: null, btnFlash: null, btnFocus: null, btnEntrada: null, btnSaida: null,
+      loadingOverlay: null, focusIndicator: null
     };
-
-    let scannerActive = false, qrCodeCompleto = null;
-    let flashOn = false, currentTrack = null;
+ 
+    let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
+    let scannerActive = false, rearCameras = [], currentRearIndex = 0;
+    let currentZoomValue = 1, isLowEndDevice = false;
     let entradaVencidaPendente = null, registroEmProgresso = false;
-    let isTablet = false, deviceType = 'phone';
-    let currentZoomValue = 1, focusIntervalId = null;
-    let frameCount = 0, lastFpsTime = Date.now();
-    let autoFocusActive = false, focusAttempts = 0;
-    let cameraLocked = false;
-
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
     const CACHE_DURATION = 3000;
-
-    /* ZXing vars */
-    let codeReader = null;
-    let scanningPromise = null;
-
-    /* ── Detecção de Dispositivo ─────────────────────────────────────────── */
-    function detectDeviceType() {
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-      const minDimension = Math.min(screenWidth, screenHeight);
-      const maxDimension = Math.max(screenWidth, screenHeight);
-      const aspectRatio = maxDimension / minDimension;
-
-      isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
-      deviceType = isTablet ? 'tablet' : 'phone';
-      console.log(`🖥️ Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
-    }
-
-    function getOptimalFPS() {
-      return isTablet ? 90 : 60;
-    }
-
-    function getOptimalHeights() {
-      return isTablet ? { h: 800, w: 800 } : { h: 720, w: 720 };
-    }
-
-    /* ── Init ────────────────────────────────────────────────────────────── */
+ 
+    /* ── Utilitários ─────────────────────────────────────────────────────── */
     function initDOMCache() {
-      DOM_CACHE.video           = document.getElementById('video');
-      DOM_CACHE.canvas          = document.getElementById('canvas');
-      DOM_CACHE.ctx             = DOM_CACHE.canvas.getContext('2d', { alpha: false, willReadFrequently: true });
       DOM_CACHE.readerContainer = document.getElementById('reader-container');
+      DOM_CACHE.reader          = document.getElementById('reader');
       DOM_CACHE.qrResult        = document.getElementById('qr-result');
       DOM_CACHE.status          = document.getElementById('status');
       DOM_CACHE.zoomSlider      = document.getElementById('zoomSlider');
       DOM_CACHE.btnFlash        = document.getElementById('btnFlash');
+      DOM_CACHE.btnFocus        = document.getElementById('btnFocus');
       DOM_CACHE.btnEntrada      = document.getElementById('btnEntrada');
       DOM_CACHE.btnSaida        = document.getElementById('btnSaida');
       DOM_CACHE.loadingOverlay  = document.getElementById('loading-overlay');
       DOM_CACHE.focusIndicator  = document.getElementById('focusIndicator');
-      DOM_CACHE.cameraStatus    = document.getElementById('cameraStatus');
-      DOM_CACHE.speedBadge      = document.getElementById('speedBadge');
-
-      codeReader = new ZXing.BrowserMultiFormatReader();
     }
-
+ 
     function normalizeError(err) {
       if (!err) return 'Erro desconhecido.';
       if (typeof err === 'string') return err;
       if (err.message) return err.message;
       return String(err);
     }
-
+ 
     function beep(duration = 80, frequency = 1200, volume = 0.4) {
       try {
         const ctx  = new (window.AudioContext || window.webkitAudioContext)();
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = frequency;
+        osc.type = 'sine'; osc.frequency.value = frequency;
         gain.gain.value = volume;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + duration / 1000);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + duration / 1000);
       } catch {}
     }
-
-    function updateFocusIndicator(status) {
-      const indicator = DOM_CACHE.focusIndicator;
-      const statusText = DOM_CACHE.cameraStatus;
-      
-      indicator.classList.remove('focusing', 'success');
-      
-      if (status === 'focusing') {
-        indicator.classList.add('focusing');
-        statusText.textContent = 'Focando...';
-      } else if (status === 'success') {
-        indicator.classList.add('success');
-        statusText.textContent = 'Focado ✓';
-      } else if (status === 'locked') {
-        indicator.classList.add('success');
-        statusText.textContent = 'Bloqueado ✓';
-      } else {
-        statusText.textContent = 'Pronto';
-      }
+    
+    // Detecta se é dispositivo de baixo desempenho
+    function detectLowEndDevice() {
+      const mem = navigator.deviceMemory || 4;
+      const cores = navigator.hardwareConcurrency || 2;
+      const isMobile = /Android|iPhone|iPad|iPod|Tablet/i.test(navigator.userAgent);
+      return mem <= 2 || cores <= 2 || !isMobile;
     }
-
-    function updateFPS() {
-      frameCount++;
-      const now = Date.now();
-      const elapsed = now - lastFpsTime;
-      
-      if (elapsed >= 500) {
-        const fps = Math.round((frameCount / elapsed) * 1000);
-        DOM_CACHE.speedBadge.textContent = `${fps} FPS`;
-        frameCount = 0;
-        lastFpsTime = now;
-      }
-    }
-
-    /* ── Scanner (ZXing) ─────────────────────────────────────────────────── */
-    async function startScannerWithDevice() {
+ 
+    /* ── Scanner OTIMIZADO ───────────────────────────────────────────────── */
+    async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
-
+      
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
-      updateFocusIndicator('default');
-
+      
+      // Limpa instância anterior
+      if (html5QrCode) {
+        try { await html5QrCode.clear(); } catch {}
+        html5QrCode = null;
+      }
+      
+      html5QrCode = new Html5Qrcode("reader");
+      
+      // Detecta dispositivo de baixo desempenho
+      isLowEndDevice = detectLowEndDevice();
+      const targetFPS = isLowEndDevice ? 10 : 20;
+      
+      // Configuração otimizada para Data Matrix
+      const config = {
+        fps: targetFPS,
+        qrbox: { width: 280, height: 280 }, // Área maior para Data Matrix
+        disableFlip: true,
+        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
+        rememberLastUsedCamera: true,
+        // Desativa experimental em dispositivos fracos
+        experimentalFeatures: { 
+          useBarCodeDetectorIfSupported: !isLowEndDevice 
+        }
+      };
+      
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 1280 },
-            focusMode: [{ ideal: 'continuous' }]
-          }
-        });
-
-        DOM_CACHE.video.srcObject = stream;
-
-        currentTrack = stream.getVideoTracks()[0];
-
-        await new Promise(resolve => {
-          DOM_CACHE.video.onloadedmetadata = () => {
-            DOM_CACHE.video.play();
-            resolve();
-          };
-        });
-
+        const cameras = await Html5Qrcode.getCameras();
+        // Prioriza câmeras traseiras com suporte a autofocus
+        const rearWithAF = cameras.filter(c => 
+          /back|rear|environment|traseir/i.test(c.label || '') &&
+          /autofocus|af/i.test(c.label || '')
+        );
+        const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
+        rearCameras = rearWithAF.length ? rearWithAF : (rear.length ? rear : cameras);
+        
+        const targetId = deviceId || (rearCameras.length > 0 ? rearCameras[0].id : null);
+        
+        // Configurações de vídeo otimizadas
+        const videoConstraints = {
+          facingMode: { exact: "environment" },
+          width: { ideal: isLowEndDevice ? 1280 : 1920 },
+          height: { ideal: isLowEndDevice ? 720 : 1080 },
+          frameRate: { ideal: targetFPS, max: targetFPS + 5 }
+        };
+        
+        await html5QrCode.start(
+          targetId ? { deviceId: { exact: targetId } } : videoConstraints,
+          config,
+          onScanSuccess
+        );
+        
         scannerActive = true;
-        cameraLocked = false;
         DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
         DOM_CACHE.readerContainer.classList.add('scanning-active');
-
-        setupTurboAutofocus();
-        setupZoom();
-        startScanLoop();
-
-      } catch (err) {
-        DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
-        updateFocusIndicator('error');
-      }
-    }
-
-    function startScanLoop() {
-      function scanFrame() {
-        if (!scannerActive) return;
-
-        try {
-          const videoWidth = DOM_CACHE.video.videoWidth;
-          const videoHeight = DOM_CACHE.video.videoHeight;
-
-          if (videoWidth && videoHeight) {
-            DOM_CACHE.canvas.width = videoWidth;
-            DOM_CACHE.canvas.height = videoHeight;
-
-            DOM_CACHE.ctx.drawImage(DOM_CACHE.video, 0, 0, videoWidth, videoHeight);
-
-            const imageData = DOM_CACHE.ctx.getImageData(0, 0, videoWidth, videoHeight);
-
-            try {
-              const result = ZXing.BrowserMultiFormatReader.prototype.decodeFromImageData(
-                codeReader,
-                imageData
-              );
-
-              if (result && result.text) {
-                onScanSuccess(result.text);
-                return;
-              }
-            } catch {}
-          }
-
-          updateFPS();
-        } catch {}
-
-        requestAnimationFrame(scanFrame);
-      }
-
-      requestAnimationFrame(scanFrame);
-    }
-
-    function onScanSuccess(decodedText) {
-      if (qrCodeCompleto || cameraLocked) return;
-      
-      qrCodeCompleto = decodedText;
-      cameraLocked = true;
-      
-      beep(80, 1200, 0.4);
-      if (navigator.vibrate) navigator.vibrate(100);
-      
-      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Código lido!</strong>";
-      DOM_CACHE.readerContainer.classList.add('locked');
-      updateFocusIndicator('locked');
-      
-      stopScanner();
-    }
-
-    async function stopScanner(silent = false) {
-      try {
-        if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
         
-        if (DOM_CACHE.video?.srcObject) {
-          DOM_CACHE.video.srcObject.getTracks().forEach(track => track.stop());
-          DOM_CACHE.video.srcObject = null;
+        // Configura track da câmera
+        const videoElem = DOM_CACHE.reader.querySelector("video");
+        currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+        
+        // Configurações pós-inicialização
+        if (currentTrack) {
+          setupCameraCapabilities();
+          setupZoom();
+          // Foco contínuo simples e confiável
+          enableContinuousAutofocus();
+        }
+        
+      } catch (err) {
+        console.warn('Tentativa 1 falhou, tentando fallback...', err);
+        // Fallback: tenta com configurações mais simples
+        try {
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            { 
+              fps: 10, 
+              qrbox: { width: 250, height: 250 },
+              formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX]
+            },
+            onScanSuccess
+          );
+          scannerActive = true;
+          DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+          DOM_CACHE.readerContainer.classList.add('scanning-active');
+          const videoElem = DOM_CACHE.reader.querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+          if (currentTrack) { setupZoom(); }
+        } catch (err2) {
+          DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err2)}`;
+          console.error('Falha no fallback:', err2);
+        }
+      }
+    }
+    
+    // Configura capacidades da câmera
+    function setupCameraCapabilities() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        // Desativa torch se não suportado para evitar erros
+        if (!caps.torch) {
+          DOM_CACHE.btnFlash.style.display = 'none';
+        }
+        // Verifica suporte a zoom
+        if (!caps.zoom) {
+          DOM_CACHE.zoomSlider.disabled = true;
+          DOM_CACHE.zoomSlider.title = 'Zoom não suportado';
         }
       } catch {}
-      finally {
+    }
+ 
+    function onScanSuccess(decodedText) {
+      if (qrCodeCompleto || !scannerActive) return;
+      qrCodeCompleto = decodedText;
+      beep(80, 1200, 0.4);
+      if (navigator.vibrate) navigator.vibrate(100);
+      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Código lido!</strong>";
+      stopScanner();
+    }
+ 
+    async function stopScanner(silent = false) {
+      try {
+        if (html5QrCode && scannerActive) {
+          await html5QrCode.stop().catch(() => {});
+        }
+        // Libera track da câmera
+        if (currentTrack) {
+          currentTrack.enabled = false;
+          currentTrack.stop();
+        }
+      } catch (e) {
+        console.warn('Erro ao parar scanner:', e);
+      } finally {
         currentTrack = null;
         scannerActive = false;
-        autoFocusActive = false;
-        DOM_CACHE.readerContainer.classList.remove('scanning-active', 'locked', 'focusing');
-        updateFocusIndicator('default');
+        DOM_CACHE.readerContainer.classList.remove('scanning-active');
+        DOM_CACHE.btnFlash?.classList.remove('active');
+        flashOn = false;
       }
     }
-
-    function setupTurboAutofocus() {
+ 
+    // Autofocus contínuo simplificado e confiável
+    async function enableContinuousAutofocus() {
       if (!currentTrack?.applyConstraints) return;
-      
-      autoFocusActive = true;
-      focusAttempts = 0;
-      
-      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-      
-      clearInterval(focusIntervalId);
-      
-      focusIntervalId = setInterval(() => {
-        if (currentTrack && autoFocusActive && scannerActive && !cameraLocked) {
-          focusAttempts++;
-          
-          updateFocusIndicator('focusing');
-          
-          if (isTablet) {
-            if (focusAttempts % 5 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
-                .then(() => {
-                  updateFocusIndicator('success');
-                  setTimeout(() => { 
-                    if (autoFocusActive) updateFocusIndicator('focusing'); 
-                  }, 400);
-                  setTimeout(() => {
-                    if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-                    }
-                  }, 80);
-                })
-                .catch(() => {});
-            } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-            }
-          } else {
-            if (focusAttempts % 2 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
-                .then(() => {
-                  updateFocusIndicator('success');
-                  setTimeout(() => { 
-                    if (autoFocusActive) updateFocusIndicator('focusing'); 
-                  }, 300);
-                  setTimeout(() => {
-                    if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-                    }
-                  }, 50);
-                })
-                .catch(() => {});
-            } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-            }
-          }
+      try {
+        const caps = currentTrack.getCapabilities?.();
+        if (caps?.focusMode?.includes('continuous')) {
+          await currentTrack.applyConstraints({ 
+            advanced: [{ focusMode: 'continuous' }] 
+          });
+        } else if (caps?.focusMode?.includes('single-shot')) {
+          // Fallback para single-shot se continuous não disponível
+          await currentTrack.applyConstraints({ 
+            advanced: [{ focusMode: 'single-shot' }] 
+          });
         }
-      }, isTablet ? 180 : 100);
+      } catch (e) {
+        console.warn('Autofocus não suportado ou falhou:', e);
+      }
     }
-
+    
+    // Foco manual sob demanda
+    async function triggerManualFocus() {
+      if (!currentTrack?.applyConstraints) {
+        showFocusIndicator();
+        return;
+      }
+      try {
+        showFocusIndicator();
+        const caps = currentTrack.getCapabilities?.();
+        if (caps?.focusMode?.includes('manual')) {
+          // Tenta foco manual se disponível
+          await currentTrack.applyConstraints({ advanced: [{ focusMode: 'manual' }] });
+          setTimeout(() => {
+            if (currentTrack) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+            }
+          }, 500);
+        } else {
+          // Re-aplica continuous para forçar re-foco
+          await currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+        }
+      } catch (e) {
+        console.warn('Foco manual falhou:', e);
+        showFocusIndicator();
+      }
+    }
+    
+    // Feedback visual de foco
+    function showFocusIndicator() {
+      const indicator = DOM_CACHE.focusIndicator;
+      if (indicator) {
+        indicator.classList.remove('active');
+        void indicator.offsetWidth; // Force reflow
+        indicator.classList.add('active');
+      }
+    }
+ 
     function setupZoom() {
       const slider = DOM_CACHE.zoomSlider;
       if (!currentTrack?.getCapabilities) return;
@@ -1137,23 +755,22 @@
         }
       } catch {}
     }
-
+ 
     async function applyInitialZoom() {
       if (!currentTrack?.getCapabilities) return;
       try {
         const caps = currentTrack.getCapabilities();
         if (!caps.zoom) return;
-        
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
-        const initialZoom = minZoom + ((maxZoom - minZoom) * 0.35);
-        
+        // Zoom inicial moderado para melhor enquadramento de Data Matrix
+        const initialZoom = minZoom + ((maxZoom - minZoom) * 0.25);
         currentZoomValue = initialZoom;
         await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
         DOM_CACHE.zoomSlider.value = initialZoom;
       } catch {}
     }
-
+ 
     async function setZoom(value) {
       if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
       try {
@@ -1161,31 +778,41 @@
         await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
       } catch {}
     }
-
+ 
     async function toggleFlash() {
       if (!currentTrack?.getCapabilities) return;
       const caps = currentTrack.getCapabilities();
       if (!caps.torch) return;
       flashOn = !flashOn;
       DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
-      await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
+      try {
+        await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+      } catch (e) {
+        console.warn('Flash falhou:', e);
+        flashOn = false;
+        DOM_CACHE.btnFlash.classList.remove('active');
+      }
     }
-
-    /* ── API ─────────────────────────────────────────────────────────────── */
+ 
+    /* ── API ──────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-      return await (await fetch(url)).json();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
     }
-
+ 
     async function apiPost(payload) {
-      return await (await fetch(WEB_APP_URL, {
+      const res = await fetch(WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ ...payload, token: API_TOKEN })
-      })).json();
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
     }
-
-    /* ── Validade / Modal ────────────────────────────────────────────────── */
+ 
+    /* ── Validade / Modal ─────────────────────────────────────────────────── */
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -1196,62 +823,87 @@
         return dataValidade < hoje;
       } catch { return false; }
     }
-
+ 
     function mostrarModalVencido(item, lote, validade, quantidade) {
-      document.getElementById('modal-item').textContent      = item || 'N/A';
-      document.getElementById('modal-lote').textContent      = lote || 'N/A';
-      document.getElementById('modal-validade').textContent  = validade || 'N/A';
+      document.getElementById('modal-item').textContent = item || 'N/A';
+      document.getElementById('modal-lote').textContent = lote || 'N/A';
+      document.getElementById('modal-validade').textContent = validade || 'N/A';
       document.getElementById('modal-quantidade').textContent = quantidade || '0';
       entradaVencidaPendente = { tipo: 'Entrada', qrCode: qrCodeCompleto, quantidade };
       document.getElementById('modal-vencido').classList.add('active');
     }
-
+ 
     async function confirmarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
-      if (entradaVencidaPendente)
-        await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
+      if (entradaVencidaPendente) {
+        await registrarMovimentacao(
+          entradaVencidaPendente.tipo, 
+          entradaVencidaPendente.qrCode, 
+          entradaVencidaPendente.quantidade
+        );
+      }
       entradaVencidaPendente = null;
     }
-
+ 
     function cancelarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
       entradaVencidaPendente = null;
       liberarBotoes();
-      cameraLocked = false;
       startScannerWithDevice();
     }
-
-    function liberarBotoes() { DOM_CACHE.btnEntrada.disabled = false; DOM_CACHE.btnSaida.disabled = false; }
-    function bloquearBotoes() { DOM_CACHE.btnEntrada.disabled = true;  DOM_CACHE.btnSaida.disabled = true; }
-
+ 
+    function liberarBotoes() { 
+      DOM_CACHE.btnEntrada.disabled = false; 
+      DOM_CACHE.btnSaida.disabled = false; 
+    }
+    function bloquearBotoes() { 
+      DOM_CACHE.btnEntrada.disabled = true;  
+      DOM_CACHE.btnSaida.disabled = true; 
+    }
+ 
     function resetarFormulario() {
       document.getElementById('quantidade').value = '';
       qrCodeCompleto = null;
       DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
       DOM_CACHE.status.style.display = 'none';
       registroEmProgresso = false;
-      cameraLocked = false;
       liberarBotoes();
     }
-
-    /* ── Movimentação ────────────────────────────────────────────────────── */
+ 
+    /* ── Movimentação ─────────────────────────────────────────────────────── */
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
       if (registroEmProgresso) return;
       registroEmProgresso = true;
       bloquearBotoes();
+      
       const statusDiv = DOM_CACHE.status;
-      statusDiv.innerText    = 'Registrando...';
-      statusDiv.className    = 'status-info';
+      statusDiv.innerText = 'Registrando...';
+      statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
+      
       try {
-        const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
+        const res = await apiPost({ 
+          action: 'registrar', 
+          tipo, 
+          qrCodeCompleto: qrCode, 
+          quantidade 
+        });
+        
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
+        
         if (res.status === 'sucesso') {
-          dataCache = null; lastDataFetch = 0;
-          setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
+          dataCache = null; 
+          lastDataFetch = 0;
+          setTimeout(() => { 
+            resetarFormulario(); 
+            startScannerWithDevice(); 
+          }, 600);
           carregarTodosOsDados(true);
-        } else { liberarBotoes(); registroEmProgresso = false; }
+        } else { 
+          liberarBotoes(); 
+          registroEmProgresso = false; 
+        }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
@@ -1259,78 +911,100 @@
         registroEmProgresso = false;
       }
     }
-
+ 
     async function enviarDados(tipo) {
       if (registroEmProgresso) return;
       const quantidade = document.getElementById('quantidade').value;
+      
       if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
         DOM_CACHE.status.innerText = 'Erro: Leia um código e informe a quantidade.';
         DOM_CACHE.status.className = 'status-erro';
         DOM_CACHE.status.style.display = 'block';
         return;
       }
+      
       if (tipo === 'Entrada') {
         const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) { mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); return; }
+        if (verificarSeVencido(qrParts[3])) { 
+          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); 
+          return; 
+        }
       }
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
-
-    /* ── Dados / Render ──────────────────────────────────────────────────── */
+ 
+    /* ── Dados / Render ───────────────────────────────────────────────────── */
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
-      const agora   = Date.now();
+      const agora = Date.now();
+      
       if (dataCache && (agora - lastDataFetch) < CACHE_DURATION && !isUpdate) {
         Object.assign(appData, dataCache);
         if (!isUpdate) mostrarPagina('estoque');
         return;
       }
+      
       if (!isUpdate) overlay.style.display = 'flex';
+      
       try {
         const res = await apiGet('obter');
         if (res.status === 'sucesso') {
-          dataCache = res.dados; lastDataFetch = agora;
+          dataCache = res.dados; 
+          lastDataFetch = agora;
           Object.assign(appData, res.dados);
           if (!isUpdate) mostrarPagina('estoque');
           refreshActivePage();
-        } else { throw new Error(res.mensagem); }
+        } else { 
+          throw new Error(res.mensagem); 
+        }
       } catch (err) {
         overlay.querySelector('span').textContent = 'Erro: ' + normalizeError(err);
         setTimeout(() => { overlay.style.display = 'none'; }, 2000);
-      } finally { if (!isUpdate) overlay.style.display = 'none'; }
+      } finally { 
+        if (!isUpdate) overlay.style.display = 'none'; 
+      }
     }
-
+ 
     function refreshActivePage() {
-      if (document.getElementById('page-alertas').classList.contains('active'))       renderizarAlertas();
-      if (document.getElementById('page-estoque').classList.contains('active'))       renderizarEstoque();
+      if (document.getElementById('page-alertas').classList.contains('active')) renderizarAlertas();
+      if (document.getElementById('page-estoque').classList.contains('active')) renderizarEstoque();
       if (document.getElementById('page-movimentacoes').classList.contains('active')) renderizarMovimentacoes();
     }
-
+ 
     function renderizarEstoque() {
       const tbody = document.getElementById('corpo-tabela-estoque');
-      if (!appData.estoque?.length) { tbody.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; return; }
+      if (!appData.estoque?.length) { 
+        tbody.innerHTML = '<tr><td colspan="4" class="placeholder">Nenhum item encontrado.</td></tr>'; 
+        return; 
+      }
       tbody.innerHTML = appData.estoque.map(item =>
         `<tr><td>${item.item}</td><td>${item.lote||''}</td><td>${item.validade||''}</td><td><strong>${item.total}</strong></td></tr>`
       ).join('');
     }
-
+ 
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
-      if (!appData.alertas?.length) { lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; return; }
+      if (!appData.alertas?.length) { 
+        lista.innerHTML = '<li class="placeholder">🎉 Nenhum alerta no momento.</li>'; 
+        return; 
+      }
       lista.innerHTML = appData.alertas.map(item => {
         const cl = item.tipo === 'Vencido' ? 'alert-vencido' : (item.tipo === 'Vencimento Próximo' ? 'alert-proximo' : '');
         return `<li class="${cl}"><strong>${item.tipo}</strong><br/><strong>Item:</strong> ${item.descricao||''}<br/><small>${item.detalhe||''}</small></li>`;
       }).join('');
     }
-
+ 
     function renderizarMovimentacoes() {
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
-      if (!appData.movimentacoes?.length) { tbody.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; return; }
+      if (!appData.movimentacoes?.length) { 
+        tbody.innerHTML = '<tr><td colspan="6" class="placeholder">Nenhuma movimentação encontrada.</td></tr>'; 
+        return; 
+      }
       tbody.innerHTML = appData.movimentacoes.map(mov =>
         `<tr><td>${mov.dataHora}</td><td class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td><td>${mov.item}</td><td>${mov.lote}</td><td>${mov.validade}</td><td>${mov.qtd}</td></tr>`
       ).join('');
     }
-
+ 
     function filtrarTabela(idTabela, input) {
       const filtro = input.value.toUpperCase();
       const linhas = document.getElementById(idTabela).querySelectorAll('tbody tr');
@@ -1338,23 +1012,40 @@
         linhas.forEach(row => row.style.display = row.textContent.toUpperCase().includes(filtro) ? '' : 'none');
       });
     }
-
+ 
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page, .nav-link').forEach(el => el.classList.remove('active'));
       document.getElementById('page-' + pageId).classList.add('active');
-      document.getElementById('nav-'  + pageId).classList.add('active');
+      document.getElementById('nav-' + pageId).classList.add('active');
       document.querySelector('.app-main').scrollTop = 0;
-      if (pageId === 'registrar') startScannerWithDevice();
-      else { stopScanner(); refreshActivePage(); }
+      
+      if (pageId === 'registrar') {
+        // Pequeno delay para garantir que o DOM está pronto
+        setTimeout(() => startScannerWithDevice(), 100);
+      } else { 
+        stopScanner(); 
+        refreshActivePage(); 
+      }
     }
-
+ 
+    // Event listeners
     window.addEventListener('load', () => { 
-      detectDeviceType();
       initDOMCache(); 
       carregarTodosOsDados(); 
     });
     
-    window.addEventListener('beforeunload', () => { stopScanner(true); });
+    window.addEventListener('beforeunload', () => { 
+      stopScanner(true); 
+    });
+    
+    // Otimização: pausa scanner quando página não está visível
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && scannerActive) {
+        stopScanner(true);
+      } else if (!document.hidden && document.getElementById('page-registrar').classList.contains('active')) {
+        startScannerWithDevice();
+      }
+    });
   </script>
 </body>
 </html>
