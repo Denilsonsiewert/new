@@ -1,22 +1,22 @@
-<!DOCTYPE html>
+faça para funcionar aqui <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  
+
   <!-- PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#00579d">
-  
+
   <title>Controle de Estoque - WEG</title>
- 
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
- 
+
   <style>
     :root {
       /* Paleta de cores moderna e harmoniosa */
@@ -35,7 +35,7 @@
       --cor-texto-claro: #8b95a5;
       --borda: rgba(0, 0, 0, 0.06);
       --borda-suave: rgba(0, 0, 0, 0.04);
-      
+
       /* Sombras modernas */
       --sombra-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
       --sombra-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -43,7 +43,7 @@
       --sombra-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
       --sombra-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
       --sombra-inner: inset 0 1px 0 rgba(255,255,255,0.8);
-      
+
       /* Dimensões */
       --radius-sm: 10px;
       --radius-md: 14px;
@@ -55,13 +55,13 @@
       --input-height: 54px;
       --nav-height: 68px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
-      
+
       /* Transições */
       --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
- 
+
     @media (max-width: 640px) {
       :root {
         --padding-container: 16px;
@@ -72,7 +72,7 @@
         --radius-lg: 16px;
       }
     }
- 
+
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     html { height: 100%; scroll-behavior: smooth; }
     body {
@@ -85,7 +85,7 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
- 
+
     /* HEADER */
     .app-header {
       background: rgba(255, 255, 255, 0.85);
@@ -116,7 +116,7 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
- 
+
     /* MAIN */
     .app-main { 
       flex: 1; 
@@ -131,7 +131,7 @@
       margin: 0 auto; padding: 18px var(--padding-container);
       padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
     }
- 
+
     /* NAVIGATION */
     .app-nav {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -173,11 +173,11 @@
       border-radius: 0 0 4px 4px;
       box-shadow: 0 2px 8px rgba(0, 87, 157, 0.3);
     }
- 
+
     .page { display: none; }
     .page.active { display: block; animation: fadeIn var(--transition-normal); }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
- 
+
     /* CARDS */
     .card {
       background: var(--cor-surface);
@@ -205,7 +205,7 @@
       background: linear-gradient(90deg, var(--cor-primaria), var(--cor-primaria-light));
       border-radius: 3px;
     }
- 
+
     /* LEITOR QR */
     #reader-container {
       position: relative; width: 100%; max-width: 420px;
@@ -225,14 +225,14 @@
     }
     #reader { width: 100%; height: 100%; }
     #reader video { object-fit: cover; width: 100%; height: 100%; border-radius: inherit; }
- 
+
     .focus-status {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       width: 80px; height: 80px; border: 2px solid rgba(255,255,255,0.5);
       border-radius: 12px; pointer-events: none; opacity: 0; transition: all 0.2s;
     }
     .focus-status.active { opacity: 1; transform: translate(-50%, -50%) scale(0.8); border-color: var(--cor-sucesso); }
- 
+
     .camera-controls-module {
       position: relative; margin: 0 auto 20px;
       width: 100%; max-width: 420px;
@@ -247,14 +247,14 @@
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .control-btn.active { background: var(--cor-alerta); color: black; border-color: white; }
- 
+
     .qr-result {
       text-align: center; padding: 16px; margin-bottom: 20px; font-weight: 600;
       background: #f8f9fa; border-radius: var(--radius-md); border: 1.5px dashed var(--borda);
       color: var(--cor-texto-secundario); font-size: 0.95rem;
     }
     .qr-result.success { background: #d1e7dd; border-color: var(--cor-sucesso); color: #0f5132; border-style: solid; }
- 
+
     /* INPUTS & BOTOES */
     .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .input-group label { font-weight: 600; font-size: 0.9rem; color: var(--cor-texto-secundario); margin-left: 4px; }
@@ -264,7 +264,7 @@
       background: #f8f9fa; transition: all 0.2s;
     }
     .input-group input:focus { border-color: var(--cor-primaria); background: #fff; outline: none; box-shadow: 0 0 0 4px rgba(0,87,157,0.1); }
- 
+
     .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .button-group button {
       height: var(--button-height); font-weight: 700; border-radius: var(--radius-md); border: none;
@@ -274,7 +274,7 @@
     .button-group button.saida { background: var(--cor-perigo); box-shadow: 0 4px 12px rgba(220,53,69,0.2); }
     .button-group button:active { transform: scale(0.97); }
     .button-group button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
- 
+
     /* TABELAS RESPONSIVAS */
     .table-wrapper { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--borda); }
     .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: var(--cor-surface); }
@@ -282,10 +282,10 @@
     .styled-table th, .styled-table td { padding: 14px 16px; border-bottom: 1px solid var(--borda-suave); }
     .styled-table tbody tr:last-child td { border-bottom: none; }
     .styled-table strong { color: var(--cor-primaria); font-weight: 700; }
-    
+
     .tipo-entrada { color: var(--cor-sucesso); font-weight: 700; }
     .tipo-saida { color: var(--cor-perigo); font-weight: 700; }
- 
+
     @media (max-width: 640px) {
       .styled-table thead { display: none; }
       .styled-table, .styled-table tbody, .styled-table tr, .styled-table td { display: block; width: 100%; }
@@ -296,7 +296,7 @@
         font-weight: 700; font-size: 0.8rem; color: var(--cor-texto-claro); text-transform: uppercase; 
       }
     }
- 
+
     /* ALERTAS */
     .alert-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
     .alert-list li {
@@ -305,7 +305,7 @@
     }
     .alert-vencido { border-left-color: var(--cor-perigo) !important; background: #fff5f5 !important; color: #c92a2a; }
     .alert-proximo { border-left-color: var(--cor-alerta) !important; background: #fff9db !important; color: #856404; }
- 
+
     /* TOAST NOTIFICATIONS */
     #toast-container {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -328,7 +328,7 @@
       backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 16px;
       align-items: center; justify-content: center; z-index: 9999;
     }
- 
+
     /* MODAL */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.45);
@@ -351,7 +351,7 @@
     .btn-cancelar { background: #6c757d; color: white; }
   </style>
 </head>
- 
+
 <body>
   <div id="toast-container"></div>
 
@@ -359,7 +359,7 @@
     <img src="./logo-weg.png" alt="WEG Logo" onerror="this.style.display='none'">
     <h1>Controle de Estoque</h1>
   </header>
- 
+
   <div id="loading-overlay" class="loading-overlay">
     <svg width="50" height="50" viewBox="0 0 38 38" stroke="var(--cor-primaria)">
       <g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2">
@@ -369,7 +369,7 @@
     </svg>
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
- 
+
   <!-- Modal de Confirmação para Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
@@ -390,7 +390,7 @@
       </div>
     </div>
   </div>
- 
+
   <main class="app-main">
     <div class="content-wrapper">
       <!-- ESTOQUE -->
@@ -408,7 +408,7 @@
           </div>
         </div>
       </div>
- 
+
       <!-- REGISTRAR -->
       <div id="page-registrar" class="page">
         <div class="card">
@@ -422,7 +422,7 @@
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
             <div class="control-btn" onclick="resetarScanner()" title="Resetar">🔄</div>
           </div>
-          
+
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
           <div class="input-group">
             <label for="quantidade">Quantidade</label>
@@ -435,7 +435,7 @@
           <div id="status" style="display:none; margin-top:15px; padding:12px; border-radius:8px; text-align:center; font-weight:600;"></div>
         </div>
       </div>
- 
+
       <!-- HISTÓRICO -->
       <div id="page-movimentacoes" class="page">
         <div class="card">
@@ -451,7 +451,7 @@
           </div>
         </div>
       </div>
- 
+
       <!-- ALERTAS -->
       <div id="page-alertas" class="page">
         <div class="card">
@@ -461,31 +461,38 @@
       </div>
     </div>
   </main>
- 
+
   <nav class="app-nav">
     <button id="nav-estoque"       class="nav-link active" onclick="mostrarPagina('estoque')">      <span class="icon">📦</span><span>Estoque</span></button>
     <button id="nav-registrar"     class="nav-link"        onclick="mostrarPagina('registrar')">    <span class="icon">📷</span><span>Registrar</span></button>
     <button id="nav-movimentacoes" class="nav-link"        onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
     <button id="nav-alertas"       class="nav-link"        onclick="mostrarPagina('alertas')">      <span class="icon">⚠️</span><span>Alertas</span></button>
   </nav>
- 
+
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
- 
+
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
       btnFlash: null, btnEntrada: null, btnSaida: null,
       loadingOverlay: null, focusStatus: null
     };
- 
+
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], cameraZoomApplied = false;
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let registroEmProgresso = false, entradaVencidaPendente = null;
 
+    // ===== SISTEMA DE AUTOFOCUS ULTRA-PRECISO + ZOOM NATIVO (PRESERVADO) =====
     const focusManager = {
-      lastFocusTime: 0, focusInterval: 250, lastContrast: 0, contrastThreshold: 8, regionSize: 100, focusStreak: 0, zoomLevel: 1.8
+      lastFocusTime: 0,
+      focusInterval: 250, // Ultra-rápido: 250ms
+      lastContrast: 0,
+      contrastThreshold: 8, // Sensibilidade aumentada
+      regionSize: 100,
+      focusStreak: 0, // Contador de focos consecutivos
+      zoomLevel: 1.8 // Zoom nativo de 1.8x para DataMatrix pequeno
     };
 
     // --- SISTEMA DE TOAST ---
@@ -520,33 +527,117 @@
       } catch {}
     }
 
+    // ===== CÁLCULO DE CONTRASTE OTIMIZADO (PRESERVADO) =====
+    function calculateImageContrast(canvas) {
+      try {
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        let brightness = 0;
+        for (let i = 0; i < data.length; i += 4) brightness += (data[i] + data[i+1] + data[i+2]) / 3;
+        brightness /= (data.length / 4);
+        let contrast = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const pb = (data[i] + data[i+1] + data[i+2]) / 3;
+          contrast += Math.abs(pb - brightness);
+        }
+        contrast /= (data.length / 4);
+        return contrast;
+      } catch { return 0; }
+    }
+
+    // ===== AUTOFOCUS INTELIGENTE ULTRA-PRECISO (PRESERVADO) =====
+    async function runAutoFocus() {
+      if (!scannerActive || !currentTrack) return;
+      const now = Date.now();
+      if (now - focusManager.lastFocusTime < focusManager.focusInterval) return;
+
+      try {
+        const video = DOM_CACHE.reader.querySelector('video');
+        if (!video || video.readyState !== HTMLMediaElement.HAVE_ENOUGH_DATA) return;
+
+        const region = focusManager.regionSize;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = region; canvas.height = region;
+        const sx = Math.floor((video.videoWidth - region) / 2);
+        const sy = Math.floor((video.videoHeight - region) / 2);
+        ctx.drawImage(video, sx, sy, region, region, 0, 0, region, region);
+
+        const contrast = calculateImageContrast(canvas);
+        const contrastDiff = Math.abs(contrast - focusManager.lastContrast);
+
+        if (contrast < 25 || contrastDiff > focusManager.contrastThreshold) {
+          focusManager.lastFocusTime = now;
+          focusManager.focusStreak++;
+          showFocusIndicator();
+
+          if (currentTrack.applyConstraints) {
+            try {
+              const caps = currentTrack.getCapabilities?.();
+              if (caps?.focusMode) {
+                if (caps.focusMode.includes('single-shot')) {
+                  await currentTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+                  setTimeout(() => {
+                    if (currentTrack && caps.focusMode.includes('continuous')) {
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+                    }
+                  }, 180);
+                } else if (caps.focusMode.includes('continuous')) {
+                  await currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                }
+              }
+            } catch (e) {}
+          }
+        } else {
+          focusManager.focusStreak = 0;
+        }
+        focusManager.lastContrast = contrast;
+      } catch (e) {}
+    }
+
+    function showFocusIndicator() {
+      const indicator = DOM_CACHE.focusStatus;
+      if (indicator) {
+        indicator.classList.remove('active');
+        void indicator.offsetWidth;
+        indicator.classList.add('active');
+        setTimeout(() => indicator.classList.remove('active'), 350);
+      }
+    }
+
     // --- SCANNER E CÂMERA ---
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner();
-      
+
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.qrResult.classList.remove('success');
-      
+
       html5QrCode = new Html5Qrcode("reader");
       const config = {
-        fps: 25, qrbox: { width: 200, height: 200 },
-        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE]
+        fps: 30, 
+        qrbox: { width: 180, height: 180 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.DATA_MATRIX, 
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.AZTEC
+        ]
       };
-      
+
       try {
         const cameras = await Html5Qrcode.getCameras();
         const targetId = deviceId || (cameras.length > 0 ? cameras[cameras.length - 1].id : null);
-        
+
         await html5QrCode.start(targetId ? { deviceId: { exact: targetId } } : { facingMode: "environment" }, config, onScanSuccess);
-        
+
         scannerActive = true;
         DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
         DOM_CACHE.readerContainer.classList.add('scanning-active');
-        
+
         const videoElem = DOM_CACHE.reader.querySelector("video");
         currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-        
+
         if (currentTrack) {
           setupCameraCapabilities();
           setTimeout(() => applyNativeZoom(), 500);
@@ -574,11 +665,10 @@
       qrCodeCompleto = decodedText;
       beep();
       if (navigator.vibrate) navigator.vibrate(100);
-      
+
       DOM_CACHE.qrResult.textContent = "✔️ Lido: " + decodedText.split(';')[1];
       DOM_CACHE.qrResult.classList.add('success');
-      
-      // Auto-focus na quantidade
+
       setTimeout(() => document.getElementById('quantidade').focus(), 200);
       stopScanner();
     }
@@ -605,12 +695,9 @@
     function enableAutoFocusLoop() {
       if (window.autoFocusInterval) clearInterval(window.autoFocusInterval);
       window.autoFocusInterval = setInterval(() => {
-        if (!scannerActive || !currentTrack) return;
-        // Lógica simplificada de trigger de foco
-        if (currentTrack.applyConstraints) {
-          currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-        }
-      }, 2000);
+        if (!scannerActive) return;
+        runAutoFocus();
+      }, focusManager.focusInterval);
     }
 
     function setupCameraCapabilities() {
@@ -652,7 +739,6 @@
         return;
       }
 
-      // Verificação de Validade (Regra Original)
       if (tipo === 'Entrada') {
         const parts = qrCodeCompleto.split(';');
         if (verificarSeVencido(parts[3])) {
@@ -677,7 +763,7 @@
           body: JSON.stringify({ action: 'registrar', token: API_TOKEN, tipo, qrCodeCompleto: qrCode, quantidade: Number(quantidade) })
         });
         const json = await res.json();
-        
+
         if (json.status === 'sucesso') {
           showToast(json.mensagem, "sucesso");
           resetarFormulario();
