@@ -186,10 +186,11 @@
       color: var(--cor-texto);
     }
  
+    /* Leitor QR com estilo antigo */
     #reader-container {
       position: relative;
       width: 100%;
-      max-width: 340px;
+      max-width: 320px;
       margin: 0 auto 16px;
       background: #000;
       border-radius: 16px;
@@ -226,11 +227,12 @@
       pointer-events: none;
     }
  
+    /* Controles da câmera com estilo antigo */
     .camera-controls-module {
       position: relative;
       margin: 0 auto 20px;
       width: 100%;
-      max-width: 340px;
+      max-width: 320px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -759,7 +761,7 @@
         <div class="card">
           <h2>Consulta de Estoque</h2>
           <div class="input-group">
-            <input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="🔎 Buscar..." />
+            <input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder=" Buscar..." />
           </div>
           <div class="table-wrapper">
             <table id="tabela-estoque" class="styled-table">
@@ -786,7 +788,7 @@
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
 
             <div class="zoom-control">
-              <span>🔍</span>
+              <span></span>
               <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
             </div>
           </div>
@@ -808,7 +810,7 @@
         <div class="card">
           <h2>Últimas Movimentações</h2>
           <div class="input-group">
-            <input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder="🔎 Buscar..." />
+            <input type="text" id="filtro-movimentacoes" onkeyup="filtrarTabela('tabela-movimentacoes', this)" placeholder=" Buscar..." />
           </div>
           <div class="table-wrapper">
             <table id="tabela-movimentacoes" class="styled-table">
@@ -1254,7 +1256,7 @@
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
  
-    /* ── Dados / Render ───────────────────────────────────────────────────── */
+    /* ── Dados / Render ──────────────────────────────────────────────────── */
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
       const agora   = Date.now();
