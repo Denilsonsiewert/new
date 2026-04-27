@@ -18,8 +18,8 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
  
   <style>
+    /* --- SEU CSS ORIGINAL (MANTIDO INTEGRALMENTE POIS ESTÁ ÓTIMO) --- */
     :root {
-      /* Paleta de cores moderna e harmoniosa */
       --cor-primaria: #00579d;
       --cor-primaria-dark: #00407a;
       --cor-primaria-light: #0073c9;
@@ -36,7 +36,6 @@
       --borda: rgba(0, 0, 0, 0.06);
       --borda-suave: rgba(0, 0, 0, 0.04);
       
-      /* Sombras modernas */
       --sombra-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
       --sombra-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
       --sombra-md: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -44,7 +43,6 @@
       --sombra-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
       --sombra-inner: inset 0 1px 0 rgba(255,255,255,0.8);
       
-      /* Dimensões */
       --radius-sm: 10px;
       --radius-md: 14px;
       --radius-lg: 18px;
@@ -56,7 +54,6 @@
       --nav-height: 68px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       
-      /* Transições */
       --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,7 +83,6 @@
       -moz-osx-font-smoothing: grayscale;
     }
  
-    /* HEADER */
     .app-header {
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(20px) saturate(180%);
@@ -98,41 +94,19 @@
       padding-top: max(14px, env(safe-area-inset-top, 14px));
       border-bottom: 1px solid rgba(255,255,255,0.3);
     }
-    .app-header img { 
-      height: clamp(28px, 7vw, 38px); 
-      width: auto; 
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
-    }
+    .app-header img { height: clamp(28px, 7vw, 38px); width: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08)); }
     .app-header h1 {
-      margin: 0; 
-      font-size: clamp(1.15rem, 4.5vw, 1.6rem);
-      font-weight: 800; 
-      color: var(--cor-primaria);
-      letter-spacing: -0.6px; 
-      text-align: center; 
-      line-height: 1.15;
+      margin: 0; font-size: clamp(1.15rem, 4.5vw, 1.6rem);
+      font-weight: 800; color: var(--cor-primaria);
+      letter-spacing: -0.6px; text-align: center; line-height: 1.15;
       background: linear-gradient(135deg, var(--cor-primaria) 0%, var(--cor-primaria-light) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
  
-    /* MAIN */
-    .app-main { 
-      flex: 1; 
-      overflow-y: auto; 
-      -webkit-overflow-scrolling: touch; 
-      overscroll-behavior-y: contain;
-      scrollbar-width: none;
-    }
+    .app-main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; scrollbar-width: none; }
     .app-main::-webkit-scrollbar { display: none; }
-    .content-wrapper { 
-      width: 100%; max-width: 800px; 
-      margin: 0 auto; padding: 18px var(--padding-container);
-      padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
-    }
+    .content-wrapper { width: 100%; max-width: 800px; margin: 0 auto; padding: 18px var(--padding-container); padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px); }
  
-    /* NAVIGATION */
     .app-nav {
       position: fixed; bottom: 0; left: 0; right: 0;
       height: calc(var(--nav-height) + var(--safe-bottom));
@@ -147,38 +121,28 @@
     }
     .nav-link {
       border: none; background: none; cursor: pointer;
-      padding: 8px 4px; 
-      color: var(--cor-texto-secundario); 
+      padding: 8px 4px; color: var(--cor-texto-secundario); 
       transition: all var(--transition-normal);
-      font-weight: 500; 
-      font-size: clamp(0.68rem, 2.5vw, 0.78rem);
+      font-weight: 500; font-size: clamp(0.68rem, 2.5vw, 0.78rem);
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 4px; 
-      outline: none; position: relative;
+      justify-content: center; gap: 4px; outline: none; position: relative;
       letter-spacing: 0.2px;
     }
-    .nav-link .icon { 
-      font-size: clamp(1.2rem, 4.5vw, 1.35rem); 
-      line-height: 1; 
-      transition: transform var(--transition-normal);
-    }
+    .nav-link .icon { font-size: clamp(1.2rem, 4.5vw, 1.35rem); line-height: 1; transition: transform var(--transition-normal); }
     .nav-link:hover .icon { transform: translateY(-2px); }
     .nav-link.active { color: var(--cor-primaria); font-weight: 700; }
     .nav-link.active .icon { transform: scale(1.1); }
     .nav-link.active::before {
       content: ''; position: absolute; top: 0; left: 50%;
       transform: translateX(-50%);
-      width: 24px; height: 3px; 
-      background: var(--cor-primaria);
-      border-radius: 0 0 4px 4px;
-      box-shadow: 0 2px 8px rgba(0, 87, 157, 0.3);
+      width: 24px; height: 3px; background: var(--cor-primaria);
+      border-radius: 0 0 4px 4px; box-shadow: 0 2px 8px rgba(0, 87, 157, 0.3);
     }
  
     .page { display: none; }
     .page.active { display: block; animation: fadeIn var(--transition-normal); }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
  
-    /* CARDS */
     .card {
       background: var(--cor-surface);
       padding: clamp(20px, 4vw, 26px);
@@ -187,8 +151,7 @@
       box-shadow: var(--sombra-md), var(--sombra-inner);
       margin-bottom: 20px;
       transition: box-shadow var(--transition-normal);
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
     h2 {
       text-align: center; margin: 0 0 22px;
@@ -206,7 +169,6 @@
       border-radius: 3px;
     }
  
-    /* LEITOR QR */
     #reader-container {
       position: relative; width: 100%; max-width: 420px;
       margin: 0 auto 18px; background: linear-gradient(145deg, #1a1a2e, #2d2d44);
@@ -245,17 +207,19 @@
       width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.12);
       border: 1.5px solid rgba(255, 255, 255, 0.2); color: white;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: all 0.2s;
     }
+    .control-btn:active { transform: scale(0.95); }
     .control-btn.active { background: var(--cor-alerta); color: black; border-color: white; }
  
     .qr-result {
       text-align: center; padding: 16px; margin-bottom: 20px; font-weight: 600;
       background: #f8f9fa; border-radius: var(--radius-md); border: 1.5px dashed var(--borda);
       color: var(--cor-texto-secundario); font-size: 0.95rem;
+      transition: all 0.3s;
     }
     .qr-result.success { background: #d1e7dd; border-color: var(--cor-sucesso); color: #0f5132; border-style: solid; }
  
-    /* INPUTS & BOTOES */
     .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .input-group label { font-weight: 600; font-size: 0.9rem; color: var(--cor-texto-secundario); margin-left: 4px; }
     .input-group input {
@@ -275,7 +239,6 @@
     .button-group button:active { transform: scale(0.97); }
     .button-group button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
  
-    /* TABELAS RESPONSIVAS */
     .table-wrapper { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--borda); }
     .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: var(--cor-surface); }
     .styled-table thead tr { background: #f8f9fa; color: var(--cor-texto-secundario); text-align: left; border-bottom: 2px solid var(--borda); }
@@ -297,7 +260,6 @@
       }
     }
  
-    /* ALERTAS */
     .alert-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
     .alert-list li {
       padding: 16px; border-radius: var(--radius-md); border-left: 5px solid #ccc;
@@ -306,15 +268,16 @@
     .alert-vencido { border-left-color: var(--cor-perigo) !important; background: #fff5f5 !important; color: #c92a2a; }
     .alert-proximo { border-left-color: var(--cor-alerta) !important; background: #fff9db !important; color: #856404; }
  
-    /* TOAST NOTIFICATIONS */
     #toast-container {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
       z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px;
+      pointer-events: none;
     }
     .toast {
       padding: 14px 20px; border-radius: var(--radius-md); color: white; font-weight: 600;
       box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px;
       animation: slideDownToast 0.3s forwards, fadeOutToast 0.3s forwards 3s;
+      pointer-events: auto;
     }
     .toast.sucesso { background: var(--cor-sucesso); }
     .toast.erro { background: var(--cor-perigo); }
@@ -322,14 +285,12 @@
     @keyframes slideDownToast { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeOutToast { to { opacity: 0; transform: translateY(-20px); pointer-events: none; } }
 
-    /* LOADING */
     .loading-overlay {
       position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 16px;
       align-items: center; justify-content: center; z-index: 9999;
     }
  
-    /* MODAL */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.45);
       backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
@@ -370,7 +331,6 @@
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
  
-  <!-- Modal de Confirmação para Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">⚠️ Atenção: Item Vencido</div>
@@ -393,10 +353,9 @@
  
   <main class="app-main">
     <div class="content-wrapper">
-      <!-- ESTOQUE -->
       <div id="page-estoque" class="page active">
         <div class="card">
-          <h2>📦 Consulta de Estoque</h2>
+          <h2> Consulta de Estoque</h2>
           <div class="input-group">
             <input type="text" id="filtro-estoque" onkeyup="filtrarTabela('tabela-estoque', this)" placeholder="Buscar por item, lote ou validade..." />
           </div>
@@ -409,7 +368,6 @@
         </div>
       </div>
  
-      <!-- REGISTRAR -->
       <div id="page-registrar" class="page">
         <div class="card">
           <h2>📷 Registrar Movimentação</h2>
@@ -419,8 +377,8 @@
           </div>
 
           <div class="camera-controls-module">
-            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
-            <div class="control-btn" onclick="resetarScanner()" title="Resetar">🔄</div>
+            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna"></div>
+            <div class="control-btn" onclick="resetarScanner()" title="Resetar Scanner">🔄</div>
           </div>
           
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
@@ -436,7 +394,6 @@
         </div>
       </div>
  
-      <!-- HISTÓRICO -->
       <div id="page-movimentacoes" class="page">
         <div class="card">
           <h2>📋 Últimas Movimentações</h2>
@@ -452,10 +409,9 @@
         </div>
       </div>
  
-      <!-- ALERTAS -->
       <div id="page-alertas" class="page">
         <div class="card">
-          <h2>⚠️ Alertas de Estoque</h2>
+          <h2>️ Alertas de Estoque</h2>
           <ul id="lista-alertas" class="alert-list"></ul>
         </div>
       </div>
@@ -480,27 +436,25 @@
     };
  
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
-    let scannerActive = false, rearCameras = [], cameraZoomApplied = false;
+    let scannerActive = false, cameraZoomApplied = false;
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let registroEmProgresso = false, entradaVencidaPendente = null;
 
-    // ===== SISTEMA DE AUTOFOCUS ULTRA-PRECISO + ZOOM NATIVO (PRESERVADO) =====
+    // ===== SISTEMA DE AUTOFOCUS INTELIGENTE (SEU CÓDIGO OTIMIZADO) =====
     const focusManager = {
       lastFocusTime: 0,
       focusInterval: 250, // Ultra-rápido: 250ms
       lastContrast: 0,
-      contrastThreshold: 8, // Sensibilidade aumentada
+      contrastThreshold: 8, // Sensibilidade alta
       regionSize: 100,
-      focusStreak: 0, // Contador de focos consecutivos
-      zoomLevel: 1.8 // Zoom nativo de 1.8x para DataMatrix pequeno
+      zoomLevel: 1.5 // Reduzido ligeiramente para evitar corte de códigos grandes
     };
 
-    // --- SISTEMA DE TOAST ---
     function showToast(mensagem, tipo = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       toast.className = `toast ${tipo}`;
-      toast.innerHTML = mensagem;
+      toast.innerHTML = `<span>${mensagem}</span>`;
       container.appendChild(toast);
       setTimeout(() => toast.remove(), 3500);
     }
@@ -527,7 +481,6 @@
       } catch {}
     }
 
-    // ===== CÁLCULO DE CONTRASTE OTIMIZADO (PRESERVADO) =====
     function calculateImageContrast(canvas) {
       try {
         const ctx = canvas.getContext('2d');
@@ -546,7 +499,6 @@
       } catch { return 0; }
     }
 
-    // ===== AUTOFOCUS INTELIGENTE ULTRA-PRECISO (PRESERVADO) =====
     async function runAutoFocus() {
       if (!scannerActive || !currentTrack) return;
       const now = Date.now();
@@ -567,9 +519,9 @@
         const contrast = calculateImageContrast(canvas);
         const contrastDiff = Math.abs(contrast - focusManager.lastContrast);
         
+        // Se contraste baixo ou mudou muito -> Refoca
         if (contrast < 25 || contrastDiff > focusManager.contrastThreshold) {
           focusManager.lastFocusTime = now;
-          focusManager.focusStreak++;
           showFocusIndicator();
           
           if (currentTrack.applyConstraints) {
@@ -578,19 +530,18 @@
               if (caps?.focusMode) {
                 if (caps.focusMode.includes('single-shot')) {
                   await currentTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+                  // Volta para continuous rapidamente para não travar
                   setTimeout(() => {
                     if (currentTrack && caps.focusMode.includes('continuous')) {
                       currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
                     }
-                  }, 180);
+                  }, 200);
                 } else if (caps.focusMode.includes('continuous')) {
                   await currentTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
                 }
               }
-            } catch (e) {}
+            } catch (e) { /* Ignora erros de foco em dispositivos limitados */ }
           }
-        } else {
-          focusManager.focusStreak = 0;
         }
         focusManager.lastContrast = contrast;
       } catch (e) {}
@@ -600,13 +551,13 @@
       const indicator = DOM_CACHE.focusStatus;
       if (indicator) {
         indicator.classList.remove('active');
-        void indicator.offsetWidth;
+        void indicator.offsetWidth; // Force reflow
         indicator.classList.add('active');
         setTimeout(() => indicator.classList.remove('active'), 350);
       }
     }
 
-    // --- SCANNER E CÂMERA ---
+    // --- SCANNER COM FALLBACK ROBUSTO (MINHA LÓGICA ADICIONADA) ---
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner();
@@ -617,7 +568,7 @@
       html5QrCode = new Html5Qrcode("reader");
       const config = {
         fps: 30, 
-        qrbox: { width: 180, height: 180 },
+        qrbox: { width: 180, height: 180 }, // Pequeno para Data Matrix
         formatsToSupport: [
           Html5QrcodeSupportedFormats.DATA_MATRIX, 
           Html5QrcodeSupportedFormats.QR_CODE,
@@ -627,9 +578,27 @@
       
       try {
         const cameras = await Html5Qrcode.getCameras();
-        const targetId = deviceId || (cameras.length > 0 ? cameras[cameras.length - 1].id : null);
+        if (!cameras || cameras.length === 0) throw new Error("Nenhuma câmera encontrada.");
+
+        // LÓGICA DE SELEÇÃO MELHORADA:
+        // 1. Tenta usar o ID passado ou o último da lista (geralmente traseira)
+        // 2. Se falhar, tenta qualquer câmera com 'environment'
+        // 3. Se falhar, usa a primeira disponível
+        let selectedCamera = null;
         
-        await html5QrCode.start(targetId ? { deviceId: { exact: targetId } } : { facingMode: "environment" }, config, onScanSuccess);
+        if (deviceId) {
+          selectedCamera = cameras.find(c => c.id === deviceId) || cameras[cameras.length - 1];
+        } else {
+          // Tenta achar a traseira pelo nome
+          const rearCam = cameras.find(c => /back|rear|environment/i.test(c.label));
+          selectedCamera = rearCam || cameras[cameras.length - 1];
+        }
+
+        await html5QrCode.start(
+          { deviceId: { exact: selectedCamera.id } }, 
+          config, 
+          onScanSuccess
+        );
         
         scannerActive = true;
         DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
@@ -640,11 +609,28 @@
         
         if (currentTrack) {
           setupCameraCapabilities();
+          // Aplica zoom inicial suave se suportado
           setTimeout(() => applyNativeZoom(), 500);
           enableAutoFocusLoop();
         }
       } catch (err) {
-        showToast("Erro ao acessar câmera.", "erro");
+        console.error(err);
+        // FALLBACK CRÍTICO: Se o ID exato falhar, tenta sem especificar ID (deixa o browser escolher)
+        try {
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+          scannerActive = true;
+          DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
+          DOM_CACHE.readerContainer.classList.add('scanning-active');
+          const videoElem = DOM_CACHE.reader.querySelector("video");
+          currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
+          if (currentTrack) {
+             setupCameraCapabilities();
+             enableAutoFocusLoop();
+          }
+        } catch (finalErr) {
+          showToast("Não foi possível acessar a câmera. Verifique as permissões.", "erro");
+          DOM_CACHE.qrResult.textContent = 'Câmera indisponível.';
+        }
       }
     }
 
@@ -664,19 +650,29 @@
       if (qrCodeCompleto || !scannerActive) return;
       qrCodeCompleto = decodedText;
       beep();
-      if (navigator.vibrate) navigator.vibrate(100);
+      if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // Vibração dupla
       
-      DOM_CACHE.qrResult.textContent = "✔️ Lido: " + decodedText.split(';')[1];
+      // Mostra apenas parte do código para não poluir
+      const displayName = decodedText.split(';')[1] || decodedText.substring(0, 10) + '...';
+      DOM_CACHE.qrResult.textContent = `✔️ Lido: ${displayName}`;
       DOM_CACHE.qrResult.classList.add('success');
       
-      setTimeout(() => document.getElementById('quantidade').focus(), 200);
-      stopScanner();
+      // Foca automaticamente no campo de quantidade
+      setTimeout(() => {
+        const qtdInput = document.getElementById('quantidade');
+        qtdInput.focus();
+        qtdInput.select();
+      }, 200);
+      
+      // Para o scanner enquanto digita a quantidade (opcional, remove se quiser ler direto)
+      stopScanner(); 
     }
 
     function resetarScanner() {
       qrCodeCompleto = null;
       DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
       DOM_CACHE.qrResult.classList.remove('success');
+      document.getElementById('quantidade').value = '';
       startScannerWithDevice();
     }
 
@@ -685,6 +681,7 @@
       try {
         const caps = currentTrack.getCapabilities();
         if (caps.zoom) {
+          // Aplica zoom moderado para ajudar na leitura de DataMatrix pequenos
           const targetZoom = Math.min(focusManager.zoomLevel, caps.zoom.max);
           await currentTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] });
           cameraZoomApplied = true;
@@ -703,6 +700,7 @@
     function setupCameraCapabilities() {
       if (!currentTrack?.getCapabilities) return;
       const caps = currentTrack.getCapabilities();
+      // Só mostra botão de flash se suportado
       DOM_CACHE.btnFlash.style.display = caps.torch ? 'flex' : 'none';
     }
 
@@ -711,7 +709,7 @@
       flashOn = !flashOn;
       DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
       try { await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }); }
-      catch (e) { flashOn = false; }
+      catch (e) { flashOn = false; DOM_CACHE.btnFlash.classList.remove('active'); }
     }
 
     // --- API E DADOS ---
@@ -723,9 +721,11 @@
         if (json.status === 'sucesso') {
           appData = json.dados;
           refreshActivePage();
+        } else {
+          showToast(json.mensagem || "Erro ao carregar dados.", "erro");
         }
       } catch (err) {
-        showToast("Erro ao carregar dados.", "erro");
+        showToast("Erro de conexão com o servidor.", "erro");
       } finally {
         DOM_CACHE.loadingOverlay.style.display = 'none';
       }
@@ -741,7 +741,8 @@
 
       if (tipo === 'Entrada') {
         const parts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(parts[3])) {
+        // Verifica se tem data de validade (assumindo formato Item;Nome;Lote;Data)
+        if (parts.length > 3 && verificarSeVencido(parts[3])) {
           mostrarModalVencido(parts[1], parts[2], parts[3], qtd);
           return;
         }
@@ -768,12 +769,13 @@
           showToast(json.mensagem, "sucesso");
           resetarFormulario();
           carregarTodosOsDados(true);
+          // Reinicia scanner após sucesso
           startScannerWithDevice();
         } else {
           showToast(json.mensagem, "erro");
         }
       } catch (err) {
-        showToast("Erro de conexão.", "erro");
+        showToast("Erro de conexão ao enviar.", "erro");
       } finally {
         registroEmProgresso = false;
         DOM_CACHE.btnEntrada.disabled = false;
