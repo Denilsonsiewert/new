@@ -60,7 +60,7 @@
       --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
+      
       --verde: #28a745;
     }
 
@@ -100,18 +100,18 @@
       padding-top: max(14px, env(safe-area-inset-top, 14px));
       border-bottom: 1px solid rgba(255,255,255,0.3);
     }
-    .app-header img {
-      height: clamp(28px, 7vw, 38px);
-      width: auto;
+    .app-header img { 
+      height: clamp(28px, 7vw, 38px); 
+      width: auto; 
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
     }
     .app-header h1 {
-      margin: 0;
+      margin: 0; 
       font-size: clamp(1.15rem, 4.5vw, 1.6rem);
-      font-weight: 800;
+      font-weight: 800; 
       color: var(--cor-primaria);
-      letter-spacing: -0.6px;
-      text-align: center;
+      letter-spacing: -0.6px; 
+      text-align: center; 
       line-height: 1.15;
       background: linear-gradient(135deg, var(--cor-primaria) 0%, var(--cor-primaria-light) 100%);
       -webkit-background-clip: text;
@@ -120,16 +120,16 @@
     }
 
     /* MAIN */
-    .app-main {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+    .app-main { 
+      flex: 1; 
+      overflow-y: auto; 
+      -webkit-overflow-scrolling: touch; 
       overscroll-behavior-y: contain;
       scrollbar-width: none;
     }
     .app-main::-webkit-scrollbar { display: none; }
-    .content-wrapper {
-      width: 100%; max-width: 800px;
+    .content-wrapper { 
+      width: 100%; max-width: 800px; 
       margin: 0 auto; padding: 18px var(--padding-container);
       padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
     }
@@ -149,19 +149,19 @@
     }
     .nav-link {
       border: none; background: none; cursor: pointer;
-      padding: 8px 4px;
-      color: var(--cor-texto-secundario);
+      padding: 8px 4px; 
+      color: var(--cor-texto-secundario); 
       transition: all var(--transition-normal);
-      font-weight: 500;
+      font-weight: 500; 
       font-size: clamp(0.68rem, 2.5vw, 0.78rem);
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 4px;
+      justify-content: center; gap: 4px; 
       outline: none; position: relative;
       letter-spacing: 0.2px;
     }
-    .nav-link .icon {
-      font-size: clamp(1.2rem, 4.5vw, 1.35rem);
-      line-height: 1;
+    .nav-link .icon { 
+      font-size: clamp(1.2rem, 4.5vw, 1.35rem); 
+      line-height: 1; 
       transition: transform var(--transition-normal);
     }
     .nav-link:hover .icon { transform: translateY(-2px); }
@@ -170,7 +170,7 @@
     .nav-link.active::before {
       content: ''; position: absolute; top: 0; left: 50%;
       transform: translateX(-50%);
-      width: 24px; height: 3px;
+      width: 24px; height: 3px; 
       background: var(--cor-primaria);
       border-radius: 0 0 4px 4px;
       box-shadow: 0 2px 8px rgba(0, 87, 157, 0.3);
@@ -184,7 +184,7 @@
     .card {
       background: var(--cor-surface);
       padding: clamp(20px, 4vw, 26px);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-xl); 
       border: 1px solid rgba(0, 0, 0, 0.04);
       box-shadow: var(--sombra-md), var(--sombra-inner);
       margin-bottom: 20px;
@@ -223,7 +223,7 @@
     }
     #reader-container.focusing {
       border-color: #ffc107;
-      box-shadow: 0 0 0 3px rgba(255,193,7,0.35);
+      box-shadow: 0 0 0 3px rgba(255,193,7,0.25);
     }
     @keyframes scanningPulse {
       0%, 100% { box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.12); }
@@ -247,7 +247,7 @@
       border-radius: 100px; background: rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.1);
     }
-
+    
     .camera-info {
       display: flex;
       align-items: center;
@@ -268,7 +268,7 @@
 
     .focus-indicator.focusing {
       background: #ffc107;
-      animation: pulse-focus 0.15s infinite;
+      animation: pulse-focus 0.2s infinite;
     }
 
     .focus-indicator.success {
@@ -283,7 +283,7 @@
 
     @keyframes pulse-focus {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.3); }
+      50% { opacity: 0.7; transform: scale(1.2); }
     }
 
     @media (max-width: 480px) {
@@ -299,7 +299,7 @@
         font-size: 0.75rem;
       }
     }
-
+    
     .control-btn {
       width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.12);
       border: 1.5px solid rgba(255, 255, 255, 0.2); color: white;
@@ -312,11 +312,11 @@
       background: rgba(255, 255, 255, 0.28);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
-    .control-btn:active {
+    .control-btn:active { 
       transform: scale(0.88);
       background: rgba(255, 255, 255, 0.35);
     }
-    .control-btn.active {
+    .control-btn.active { 
       background: linear-gradient(135deg, var(--cor-primaria), #0073c9);
       border-color: #0073c9;
       box-shadow: 0 6px 20px rgba(0, 115, 201, 0.4);
@@ -331,9 +331,9 @@
     }
 
     @media (max-width: 480px) {
-      .zoom-control {
-        width: 100%;
-        justify-content: center;
+      .zoom-control { 
+        width: 100%; 
+        justify-content: center; 
       }
     }
 
@@ -441,9 +441,9 @@
       .styled-table, .styled-table tbody, .styled-table tr, .styled-table td { display: block; width: 100%; }
       .styled-table tr { margin-bottom: 12px; border-bottom: 2px solid var(--borda); padding: 8px 0; }
       .styled-table td { text-align: right; padding: 10px 16px; position: relative; padding-left: 45%; border-bottom: 1px solid var(--borda-suave); }
-      .styled-table td::before {
+      .styled-table td::before { 
         content: attr(data-label); position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-        font-weight: 700; font-size: 0.8rem; color: var(--cor-texto-claro); text-transform: uppercase;
+        font-weight: 700; font-size: 0.8rem; color: var(--cor-texto-claro); text-transform: uppercase; 
       }
     }
 
@@ -499,7 +499,7 @@
     .modal-actions button { padding: 14px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer; }
     .btn-confirmar { background: var(--cor-perigo); color: white; }
     .btn-cancelar { background: #6c757d; color: white; }
-
+    
     #status {
       margin-top: 16px;
       margin-bottom: 8px;
@@ -510,12 +510,12 @@
       animation: slideDown .2s ease;
       font-size: clamp(1rem, 3vw, 1.05rem);
     }
-
+    
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
+    
     .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; }
     .status-erro    { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info    { background: #d1ecf1; color: #0c5460; display: block; }
@@ -660,174 +660,15 @@
 
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], currentRearIndex = 0;
-    let autoFocusActive = false, currentZoomValue = 1;
+    let autoFocusActive = false, focusAttempts = 0, currentZoomValue = 1;
     let entradaVencidaPendente = null, registroEmProgresso = false;
-    let isTablet = false, deviceType = 'phone', isOldDevice = false;
+    let isTablet = false, deviceType = 'phone';
+    let consecutiveFocusSuccess = 0;
     let focusIntervalId = null;
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
     const CACHE_DURATION = 3000;
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // SISTEMA DE AUTOFOCO ULTRA-RÁPIDO PARA DATAMATRIX PEQUENOS (1.9x1.7cm)
-    // ═══════════════════════════════════════════════════════════════════════
-    const FOCUS_ENGINE = {
-      // Parâmetros otimizados para DataMatrix pequenos
-      params: {
-        modernDevice: {
-          interval: 60,           // 60ms - Ultra rápido
-          singleShotFreq: 2,      // A cada 2 ciclos
-          continuousFreq: 1,      // A cada 1 ciclo
-          zoomNudgeFreq: 3,       // A cada 3 ciclos
-          nudgeAmount: 0.015,     // Micro ajuste
-          nudgeDuration: 30,      // 30ms
-          initialZoom: 0.35,      // 35% do zoom máximo
-          maxCycles: 200          // Máximo de ciclos antes de reiniciar
-        },
-        oldDevice: {
-          interval: 80,           // 80ms - Rápido mas seguro
-          singleShotFreq: 3,      // A cada 3 ciclos
-          continuousFreq: 2,      // A cada 2 ciclos
-          zoomNudgeFreq: 4,       // A cada 4 ciclos
-          nudgeAmount: 0.02,      // Ajuste maior
-          nudgeDuration: 40,      // 40ms
-          initialZoom: 0.40,      // 40% do zoom máximo
-          maxCycles: 150          // Menos ciclos
-        }
-      },
-      
-      state: {
-        cycleCount: 0,
-        lastFocusMode: null,
-        consecutiveSuccess: 0,
-        sharpnessHistory: [],
-        focusLocked: false
-      },
-
-      reset() {
-        this.state.cycleCount = 0;
-        this.state.lastFocusMode = null;
-        this.state.consecutiveSuccess = 0;
-        this.state.sharpnessHistory = [];
-        this.state.focusLocked = false;
-      },
-
-      getParams() {
-        return isOldDevice ? this.params.oldDevice : this.params.modernDevice;
-      },
-
-      async executeCycle(track) {
-        if (!track || !autoFocusActive || !scannerActive) return;
-        
-        const params = this.getParams();
-        this.state.cycleCount++;
-
-        // Reiniciar após máximo de ciclos
-        if (this.state.cycleCount > params.maxCycles) {
-          this.reset();
-          await this.applyFocusMode(track, 'continuous');
-          return;
-        }
-
-        updateFocusIndicator('focusing');
-
-        // Estratégia adaptativa baseada no ciclo
-        if (this.state.cycleCount % params.singleShotFreq === 0) {
-          // Single-shot: foco pontual ultra-preciso
-          await this.applySingleShot(track, params);
-        } else if (this.state.cycleCount % params.zoomNudgeFreq === 0) {
-          // Zoom nudge: micro-ajuste para forçar refoco
-          await this.applyZoomNudge(track, params);
-        } else if (this.state.cycleCount % params.continuousFreq === 0) {
-          // Continuous: varredura constante
-          await this.applyFocusMode(track, 'continuous');
-        }
-
-        // A cada 10 ciclos, tenta focusDistance manual (para dispositivos que suportam)
-        if (this.state.cycleCount % 10 === 0) {
-          await this.tryManualFocusDistance(track);
-        }
-      },
-
-      async applySingleShot(track, params) {
-        try {
-          await track.applyConstraints({ 
-            advanced: [{ focusMode: "single-shot" }] 
-          });
-          
-          this.state.lastFocusMode = 'single-shot';
-          this.state.consecutiveSuccess++;
-
-          // Se conseguiu 3 focos single-shot consecutivos, indicar sucesso
-          if (this.state.consecutiveSuccess >= 3) {
-            updateFocusIndicator('success');
-            setTimeout(() => {
-              if (autoFocusActive) updateFocusIndicator('focusing');
-            }, 300);
-            this.state.consecutiveSuccess = 0;
-          }
-
-          // Volta para continuous após delay
-          setTimeout(async () => {
-            if (track && autoFocusActive) {
-              await this.applyFocusMode(track, 'continuous').catch(() => {});
-            }
-          }, params.nudgeDuration);
-
-        } catch (e) {
-          this.state.consecutiveSuccess = 0;
-        }
-      },
-
-      async applyZoomNudge(track, params) {
-        try {
-          const caps = track.getCapabilities();
-          if (!caps?.zoom) return;
-
-          const settings = track.getSettings?.() || {};
-          const current = settings.zoom || currentZoomValue || 1;
-          const nudged = Math.min(current + params.nudgeAmount, caps.zoom.max || 5);
-
-          await track.applyConstraints({ advanced: [{ zoom: nudged }] });
-          
-          setTimeout(async () => {
-            if (track && autoFocusActive) {
-              await track.applyConstraints({ advanced: [{ zoom: current }] }).catch(() => {});
-            }
-          }, params.nudgeDuration);
-
-        } catch (e) {}
-      },
-
-      async applyFocusMode(track, mode) {
-        try {
-          const caps = track.getCapabilities();
-          if (!caps?.focusMode || !caps.focusMode.includes(mode)) return;
-          
-          await track.applyConstraints({ 
-            advanced: [{ focusMode: mode }] 
-          });
-          this.state.lastFocusMode = mode;
-        } catch (e) {}
-      },
-
-      async tryManualFocusDistance(track) {
-        try {
-          const caps = track.getCapabilities();
-          if (!caps?.focusDistance) return;
-
-          // Para DataMatrix pequenos, foca em distância média-curta
-          const min = caps.focusDistance.min || 0;
-          const max = caps.focusDistance.max || 1;
-          const optimalDistance = min + (max - min) * 0.3; // 30% da distância
-
-          await track.applyConstraints({
-            advanced: [{ focusDistance: optimalDistance }]
-          });
-        } catch (e) {}
-      }
-    };
 
     /* ── Detecção de Dispositivo ─────────────────────────────────────────── */
     function detectDeviceType() {
@@ -839,28 +680,18 @@
 
       isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
       deviceType = isTablet ? 'tablet' : 'phone';
-
-      // Detectar dispositivos antigos (aproximação via User Agent e memória)
-      const ua = navigator.userAgent.toLowerCase();
-      const memory = navigator.deviceMemory || 4;
-      isOldDevice = memory <= 2 || 
-                    /android [4-6]\./i.test(ua) || 
-                    /iphone os [8-11]_/i.test(ua);
-
-      console.log(`🖥️ Dispositivo: ${deviceType} | Antigo: ${isOldDevice} | Memória: ${memory}GB`);
+      
+      console.log(`🖥️ Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
     }
 
     function getOptimalQRBoxSize() {
-      // Boxes maiores para DataMatrix pequenos
-      if (isTablet) return { width: 300, height: 300 };
-      return { width: 260, height: 260 };
+      if (isTablet) return { width: 280, height: 280 };
+      return { width: 240, height: 240 };
     }
 
     function getOptimalFPS() {
-      // FPS otimizado para leitura rápida
-      if (isOldDevice) return 25;
-      if (isTablet) return 50;
-      return 35;
+      if (isTablet) return 45;
+      return 30;
     }
 
     /* ── Utilitários ─────────────────────────────────────────────────────── */
@@ -915,10 +746,10 @@
       const indicator = DOM_CACHE.focusIndicator;
       const statusText = DOM_CACHE.cameraStatus;
       const container = DOM_CACHE.readerContainer;
-
+      
       indicator.classList.remove('focusing', 'success');
       container.classList.remove('focusing');
-
+      
       if (status === 'focusing') {
         indicator.classList.add('focusing');
         container.classList.add('focusing');
@@ -941,26 +772,19 @@
       updateFocusIndicator('default');
 
       html5QrCode = new Html5Qrcode("reader");
-
+      
       const qrbox = getOptimalQRBoxSize();
       const fps = getOptimalFPS();
-
+      
       const config = {
         fps: fps,
         qrbox: qrbox,
         disableFlip: true,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.DATA_MATRIX, 
-          Html5QrcodeSupportedFormats.QR_CODE, 
-          Html5QrcodeSupportedFormats.AZTEC
-        ],
-        experimentalFeatures: {
+        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.AZTEC],
+        experimentalFeatures: { 
           useBarCodeDetectorIfSupported: true
         },
-        aspectRatio: 1.0,
-        // Configurações avançadas para precisão
-        showTorchButtonIfSupported: false,
-        showZoomSliderIfSupported: false
+        aspectRatio: 1.0
       };
 
       try {
@@ -968,35 +792,16 @@
         const rear = cameras.filter(c => /back|rear|environment|traseir/i.test(c.label || ''));
         rearCameras = rear.length ? rear : cameras;
         const targetId = deviceId || (rearCameras.length > 0 ? rearCameras[0].id : null);
-
-        // Constraints otimizados para DataMatrix pequenos
-        const videoConstraints = {
-          deviceId: targetId ? { exact: targetId } : undefined,
-          facingMode: targetId ? undefined : "environment",
-          // Resolução alta para códigos pequenos
-          width: { ideal: isTablet ? 1920 : 1280 },
-          height: { ideal: isTablet ? 1920 : 1280 },
-          // Foco e exposição otimizados
-          focusMode: { ideal: "continuous" },
-          exposureMode: { ideal: "continuous" },
-          whiteBalanceMode: { ideal: "continuous" }
-        };
-
-        await html5QrCode.start(
-          targetId || { facingMode: "environment" }, 
-          config, 
-          onScanSuccess
-        );
         
+        await html5QrCode.start(targetId || { facingMode: "environment" }, config, onScanSuccess);
         scannerActive = true;
         DOM_CACHE.qrResult.textContent = 'Aguardando leitura...';
         DOM_CACHE.readerContainer.classList.add('scanning-active');
-
+        
         const videoElem = DOM_CACHE.reader.querySelector("video");
         currentTrack = videoElem?.srcObject?.getVideoTracks?.()[0] || null;
-
+        
         if (currentTrack) {
-          await setupAdvancedCamera();
           setupTurboAutofocus();
           setupZoom();
         }
@@ -1004,42 +809,6 @@
         DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
         showToast("Erro ao acessar câmera.", "erro");
         updateFocusIndicator('error');
-      }
-    }
-
-    async function setupAdvancedCamera() {
-      if (!currentTrack?.getCapabilities) return;
-      
-      try {
-        const caps = currentTrack.getCapabilities();
-        const constraints = { advanced: [] };
-
-        // Configurações para melhor leitura de códigos pequenos
-        if (caps.focusMode && caps.focusMode.includes('continuous')) {
-          constraints.advanced.push({ focusMode: 'continuous' });
-        }
-        
-        if (caps.exposureMode && caps.exposureMode.includes('continuous')) {
-          constraints.advanced.push({ exposureMode: 'continuous' });
-        }
-
-        if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes('continuous')) {
-          constraints.advanced.push({ whiteBalanceMode: 'continuous' });
-        }
-
-        // Redução de ruído se disponível
-        if (caps.noiseSuppression) {
-          constraints.advanced.push({ noiseSuppression: true });
-        }
-
-        // Aplicar constraints
-        if (constraints.advanced.length > 0) {
-          await currentTrack.applyConstraints(constraints);
-        }
-
-        console.log('📸 Câmera configurada:', caps);
-      } catch (e) {
-        console.warn('Aviso ao configurar câmera:', e);
       }
     }
 
@@ -1068,7 +837,7 @@
         currentTrack = null;
         scannerActive = false;
         autoFocusActive = false;
-        FOCUS_ENGINE.reset();
+        consecutiveFocusSuccess = 0;
         DOM_CACHE.readerContainer.classList.remove('scanning-active', 'focusing');
         if (!silent) updateFocusIndicator('default');
       }
@@ -1076,24 +845,89 @@
 
     function setupTurboAutofocus() {
       if (!currentTrack?.applyConstraints) return;
-
+      
       autoFocusActive = true;
-      FOCUS_ENGINE.reset();
-
-      // Iniciar com continuous
-      FOCUS_ENGINE.applyFocusMode(currentTrack, 'continuous').catch(() => {});
-
-      // Limpar intervalo anterior
-      if (focusIntervalId) clearInterval(focusIntervalId);
-
-      const params = FOCUS_ENGINE.getParams();
-
-      // Loop principal de autofoco
+      focusAttempts = 0;
+      consecutiveFocusSuccess = 0;
+      
+      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+      
+      clearInterval(focusIntervalId);
+      
+      const focusInterval = isTablet ? 200 : 100;
+      
       focusIntervalId = setInterval(() => {
-        FOCUS_ENGINE.executeCycle(currentTrack);
-      }, params.interval);
+        if (currentTrack && autoFocusActive && scannerActive) {
+          focusAttempts++;
+          
+          updateFocusIndicator('focusing');
+          
+          if (isTablet) {
+            if (focusAttempts % 4 === 0) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+                .then(() => {
+                  consecutiveFocusSuccess++;
+                  if (consecutiveFocusSuccess >= 2) {
+                    updateFocusIndicator('success');
+                    setTimeout(() => { 
+                      if (autoFocusActive) updateFocusIndicator('focusing'); 
+                    }, 500);
+                  }
+                  setTimeout(() => {
+                    if (currentTrack && autoFocusActive) {
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                    }
+                  }, 80);
+                })
+                .catch(() => { consecutiveFocusSuccess = 0; });
+            } else if (focusAttempts % 2 === 0) {
+              applyZoomNudge();
+            } else {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+            }
+          } else {
+            if (focusAttempts % 3 === 0) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+                .then(() => {
+                  consecutiveFocusSuccess++;
+                  if (consecutiveFocusSuccess >= 2) {
+                    updateFocusIndicator('success');
+                    setTimeout(() => { 
+                      if (autoFocusActive) updateFocusIndicator('focusing'); 
+                    }, 400);
+                  }
+                  setTimeout(() => {
+                    if (currentTrack && autoFocusActive) {
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                    }
+                  }, 50);
+                })
+                .catch(() => { consecutiveFocusSuccess = 0; });
+            } else if (focusAttempts % 2 === 0) {
+              applyZoomNudge();
+            } else {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+            }
+          }
+        }
+      }, focusInterval);
+    }
 
-      console.log(`🎯 Autofoco ativado: ${params.interval}ms | Dispositivo: ${isOldDevice ? 'Antigo' : 'Moderno'}`);
+    async function applyZoomNudge() {
+      try {
+        if (!currentTrack?.getCapabilities) return;
+        const caps = currentTrack.getCapabilities();
+        if (!caps?.zoom) return;
+        
+        const settings = currentTrack.getSettings?.() || {};
+        const currentZoom = settings.zoom || currentZoomValue || 1;
+        const nudgedZoom = Math.min(currentZoom + 0.02, caps.zoom.max || 5);
+        
+        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
+        setTimeout(() => { 
+          if (currentTrack) currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {}); 
+        }, 40);
+      } catch {}
     }
 
     function setupZoom() {
@@ -1120,19 +954,16 @@
       try {
         const caps = currentTrack.getCapabilities();
         if (!caps.zoom) return;
-
+        
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
-        const params = FOCUS_ENGINE.getParams();
-
-        // Zoom inicial maior para códigos pequenos
-        const initialZoom = minZoom + ((maxZoom - minZoom) * params.initialZoom);
-
+        
+        const zoomPercentage = isTablet ? 0.4 : 0.25;
+        const initialZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
+        
         currentZoomValue = initialZoom;
         await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
         DOM_CACHE.zoomSlider.value = initialZoom;
-        
-        console.log(`🔍 Zoom inicial: ${initialZoom.toFixed(2)}x (${(params.initialZoom * 100).toFixed(0)}%)`);
       } catch {}
     }
 
@@ -1155,31 +986,16 @@
 
     /* ── API ──────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
-      try {
-        const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
-      } catch (error) {
-        console.error("Erro na API GET:", error);
-        // Retorna estrutura vazia para não quebrar o app
-        return { status: 'erro', mensagem: 'Falha na conexão' };
-      }
+      const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
+      return await (await fetch(url)).json();
     }
 
     async function apiPost(payload) {
-      try {
-        const response = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ ...payload, token: API_TOKEN })
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
-      } catch (error) {
-        console.error("Erro na API POST:", error);
-        return { status: 'erro', mensagem: 'Falha na conexão' };
-      }
+      return await (await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ ...payload, token: API_TOKEN })
+      })).json();
     }
 
     /* ── Validade / Modal ─────────────────────────────────────────────────── */
@@ -1248,10 +1064,10 @@
           dataCache = null; lastDataFetch = 0;
           setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
           carregarTodosOsDados(true);
-        } else {
-          showToast(res.mensagem || "Erro desconhecido", "erro");
-          liberarBotoes();
-          registroEmProgresso = false;
+        } else { 
+          showToast(res.mensagem, "erro");
+          liberarBotoes(); 
+          registroEmProgresso = false; 
         }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
@@ -1274,9 +1090,9 @@
       }
       if (tipo === 'Entrada') {
         const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) {
-          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade);
-          return;
+        if (verificarSeVencido(qrParts[3])) { 
+          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); 
+          return; 
         }
       }
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
@@ -1286,42 +1102,25 @@
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
       const agora   = Date.now();
-      
-      // Timeout de segurança: se demorar mais de 5s, remove o loader anyway
-      const safetyTimeout = setTimeout(() => {
-        if (overlay.style.display !== 'none') {
-          console.warn("Forçando remoção do loader por timeout.");
-          overlay.style.display = 'none';
-          showToast("A conexão está lenta. Dados podem estar desatualizados.", "info");
-        }
-      }, 5000);
-
       if (dataCache && (agora - lastDataFetch) < CACHE_DURATION && !isUpdate) {
         Object.assign(appData, dataCache);
         refreshActivePage();
-        clearTimeout(safetyTimeout);
-        if (!isUpdate) overlay.style.display = 'none';
         return;
       }
-      
       if (!isUpdate) overlay.style.display = 'flex';
-      
       try {
         const res = await apiGet('obter');
         if (res.status === 'sucesso') {
           dataCache = res.dados; lastDataFetch = agora;
           Object.assign(appData, res.dados);
           refreshActivePage();
-        } else {
-          throw new Error(res.mensagem || "Erro ao obter dados");
+        } else { 
+          throw new Error(res.mensagem); 
         }
       } catch (err) {
-        console.error("Erro ao carregar dados:", err);
         showToast('Erro ao carregar dados: ' + normalizeError(err), "erro");
-        // Não interrompe a execução, permite usar o app offline/sem dados
-      } finally {
-        clearTimeout(safetyTimeout);
-        if (!isUpdate) overlay.style.display = 'none';
+      } finally { 
+        if (!isUpdate) overlay.style.display = 'none'; 
       }
     }
 
@@ -1333,9 +1132,9 @@
 
     function renderizarEstoque() {
       const tbody = document.getElementById('corpo-tabela-estoque');
-      if (!appData.estoque?.length) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>';
-        return;
+      if (!appData.estoque?.length) { 
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>'; 
+        return; 
       }
       tbody.innerHTML = appData.estoque.map(item =>
         `<tr>
@@ -1349,9 +1148,9 @@
 
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
-      if (!appData.alertas?.length) {
-        lista.innerHTML = '<li style="text-align:center; color: var(--cor-texto-claro)">🎉 Nenhum alerta no momento.</li>';
-        return;
+      if (!appData.alertas?.length) { 
+        lista.innerHTML = '<li style="text-align:center; color: var(--cor-texto-claro)">🎉 Nenhum alerta no momento.</li>'; 
+        return; 
       }
       lista.innerHTML = appData.alertas.map(item => {
         const cl = item.tipo === 'Vencido' ? 'alert-vencido' : (item.tipo === 'Vencimento Próximo' ? 'alert-proximo' : '');
@@ -1361,9 +1160,9 @@
 
     function renderizarMovimentacoes() {
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
-      if (!appData.movimentacoes?.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>';
-        return;
+      if (!appData.movimentacoes?.length) { 
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>'; 
+        return; 
       }
       tbody.innerHTML = appData.movimentacoes.map(mov =>
         `<tr>
@@ -1390,27 +1189,20 @@
       document.getElementById('page-' + pageId).classList.add('active');
       document.getElementById('nav-'  + pageId).classList.add('active');
       document.querySelector('.app-main').scrollTop = 0;
-      if (pageId === 'registrar') {
-        startScannerWithDevice();
-      } else {
-        stopScanner();
-        refreshActivePage();
+      if (pageId === 'registrar') { 
+        startScannerWithDevice(); 
+      } else { 
+        stopScanner(); 
+        refreshActivePage(); 
       }
     }
 
-    window.addEventListener('load', () => {
-      try {
-        detectDeviceType();
-        initDOMCache();
-        carregarTodosOsDados();
-      } catch (e) {
-        console.error("Erro crítico na inicialização:", e);
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay) overlay.style.display = 'none';
-        showToast("Erro ao iniciar aplicativo.", "erro");
-      }
+    window.addEventListener('load', () => { 
+      detectDeviceType();
+      initDOMCache(); 
+      carregarTodosOsDados(); 
     });
-
+    
     window.addEventListener('beforeunload', () => { stopScanner(true); });
   </script>
 </body>
