@@ -511,7 +511,7 @@
 
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
             
-            <!-- ZOOM REMOVIDO AQUI -->
+            <!-- ZOOM REMOVIDO DA INTERFACE, MAS APLICADO INTERNAMENTE -->
           </div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
@@ -566,7 +566,6 @@
 
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
-      // zoomSlider removido
       btnFlash: null, btnEntrada: null, btnSaida: null,
       loadingOverlay: null, focusStatus: null, focusIndicator: null, cameraStatus: null
     };
@@ -574,7 +573,6 @@
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], currentRearIndex = 0;
     let autoFocusActive = false, focusAttempts = 0;
-    // currentZoomValue removido
     let entradaVencidaPendente = null, registroEmProgresso = false;
     let isTablet = false, deviceType = 'phone';
     let consecutiveFocusSuccess = 0;
@@ -614,7 +612,6 @@
       DOM_CACHE.reader          = document.getElementById('reader');
       DOM_CACHE.qrResult        = document.getElementById('qr-result');
       DOM_CACHE.status          = document.getElementById('status');
-      // zoomSlider removido
       DOM_CACHE.btnFlash        = document.getElementById('btnFlash');
       DOM_CACHE.btnEntrada      = document.getElementById('btnEntrada');
       DOM_CACHE.btnSaida        = document.getElementById('btnSaida');
@@ -717,7 +714,8 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          setupControls(); // Renomeado de setupZoom para refletir mudança
+          applyFixedZoom(); // Aplica o zoom fixo de 40%
+          setupControls();
         }
       } catch (err) {
         DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
@@ -754,6 +752,29 @@
         consecutiveFocusSuccess = 0;
         DOM_CACHE.readerContainer.classList.remove('scanning-active', 'focusing');
         if (!silent) updateFocusIndicator('default');
+      }
+    }
+
+    // NOVA FUNÇÃO: Aplica zoom fixo de 40% acima do mínimo
+    async function applyFixedZoom() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.zoom) return;
+
+        const minZoom = caps.zoom.min ?? 1;
+        const maxZoom = caps.zoom.max ?? 5;
+        
+        // Calcula 40% do caminho entre o mínimo e o máximo
+        // Ex: Se min=1 e max=5, range=4. 40% de 4 = 1.6. Zoom final = 1 + 1.6 = 2.6
+        const zoomPercentage = 0.4; 
+        const targetZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
+
+        console.log(`Aplicando zoom fixo: ${targetZoom.toFixed(2)} (Min: ${minZoom}, Max: ${maxZoom})`);
+        
+        await currentTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+      } catch (err) {
+        console.warn("Não foi possível aplicar o zoom fixo:", err);
       }
     }
 
@@ -823,10 +844,7 @@
       }, focusInterval);
     }
 
-    // Funções de Zoom removidas: applyZoomNudge, setZoom
-
     function setupControls() {
-      // Antiga função setupZoom renomeada e simplificada
       if (!currentTrack?.getCapabilities) return;
       try {
         const caps = currentTrack.getCapabilities();
@@ -835,7 +853,6 @@
         } else {
           DOM_CACHE.btnFlash.style.display = 'none';
         }
-        // Lógica de zoom removida daqui
       } catch {}
     }
 
@@ -848,7 +865,7 @@
       await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
     }
 
-    /* ── API ─────────────────────────────────────────────────────────────── */
+    /* ── API ────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
       return await (await fetch(url)).json();
