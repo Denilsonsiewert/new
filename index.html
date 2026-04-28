@@ -687,13 +687,18 @@
       const qrbox = getOptimalQRBoxSize();
       const fps = getOptimalFPS();
       
+      // 🔑 Mudança crítica: só lê DATA_MATRIX e QR_CODE. Ignora BARCODE.
       const config = {
         fps: fps,
         qrbox: qrbox,
         disableFlip: true,
-        formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.AZTEC],
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.QR_CODE
+          // Html5QrcodeSupportedFormats.AZTEC foi removido para maior segurança
+        ],
         experimentalFeatures: { 
-          useBarCodeDetectorIfSupported: true
+          useBarCodeDetectorIfSupported: false // ⚠️ Desativado para ignorar códigos de barras
         },
         aspectRatio: 1.0
       };
@@ -714,7 +719,7 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          applyFixedZoom(); // Aplica o zoom fixo de 40%
+          applyFixedZoom(); // Aplica o zoom fixo de 60%
           setupControls();
         }
       } catch (err) {
@@ -755,7 +760,7 @@
       }
     }
 
-    // NOVA FUNÇÃO: Aplica zoom fixo de 40% acima do mínimo
+    // NOVA FUNÇÃO: Aplica zoom fixo de 60% acima do mínimo
     async function applyFixedZoom() {
       if (!currentTrack?.getCapabilities) return;
       try {
@@ -765,9 +770,8 @@
         const minZoom = caps.zoom.min ?? 1;
         const maxZoom = caps.zoom.max ?? 5;
         
-        // Calcula 40% do caminho entre o mínimo e o máximo
-        // Ex: Se min=1 e max=5, range=4. 40% de 4 = 1.6. Zoom final = 1 + 1.6 = 2.6
-        const zoomPercentage = 0.4; 
+        // 🔥 Aumentado para 60% (antes era 40%)
+        const zoomPercentage = 0.6; 
         const targetZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
 
         console.log(`Aplicando zoom fixo: ${targetZoom.toFixed(2)} (Min: ${minZoom}, Max: ${maxZoom})`);
