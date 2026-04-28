@@ -66,12 +66,12 @@
 
     @media (max-width: 640px) {
       :root {
-        --padding-container: 16px;
-        --font-size-base: 16px;
-        --button-height: 50px;
-        --input-height: 50px;
-        --nav-height: 64px;
-        --radius-lg: 16px;
+        --padding-container: 10px;
+        --font-size-base: 14px;
+        --button-height: 48px;
+        --input-height: 48px;
+        --nav-height: 60px;
+        --radius-lg: 12px;
       }
     }
 
@@ -256,6 +256,8 @@
       font-size: 0.85rem;
       font-weight: 600;
       white-space: nowrap;
+      flex-grow: 1;
+      justify-content: center;
     }
 
     .focus-indicator {
@@ -290,7 +292,7 @@
       .camera-controls-module {
         flex-direction: row;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         gap: 10px;
         padding: 10px 12px;
         max-width: calc(100% - 20px);
@@ -322,82 +324,6 @@
       box-shadow: 0 6px 20px rgba(0, 115, 201, 0.4);
     }
 
-    .zoom-control {
-      display: flex;
-      align-items: center;
-      gap: clamp(8px, 2.5vw, 12px);
-      flex: 1;
-      min-width: 0;
-    }
-
-    @media (max-width: 480px) {
-      .zoom-control { 
-        width: 100%; 
-        justify-content: center; 
-      }
-    }
-
-    .zoom-control span {
-      color: white;
-      font-size: clamp(1rem, 2.8vw, 1.1rem);
-      flex-shrink: 0;
-    }
-
-    .zoom-control input[type="range"] {
-      flex: 1;
-      height: 6px;
-      appearance: none;
-      -webkit-appearance: none;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 4px;
-      outline: none;
-      min-width: 100px;
-      touch-action: none;
-      transition: background 0.2s ease;
-    }
-
-    .zoom-control input[type="range"]:hover {
-      background: rgba(255, 255, 255, 0.35);
-    }
-
-    .zoom-control input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 26px;
-      height: 26px;
-      background: linear-gradient(135deg, #fff, #f0f0f0);
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      transition: box-shadow 0.2s ease, transform 0.1s ease;
-    }
-
-    .zoom-control input[type="range"]::-webkit-slider-thumb:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    .zoom-control input[type="range"]::-webkit-slider-thumb:active {
-      transform: scale(1.1);
-    }
-
-    .zoom-control input[type="range"]::-moz-range-thumb {
-      width: 26px;
-      height: 26px;
-      background: linear-gradient(135deg, #fff, #f0f0f0);
-      border-radius: 50%;
-      border: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      transition: box-shadow 0.2s ease, transform 0.1s ease;
-    }
-
-    .zoom-control input[type="range"]::-moz-range-thumb:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    .zoom-control input[type="range"]::-moz-range-thumb:active {
-      transform: scale(1.1);
-    }
-
     .qr-result {
       text-align: center; padding: 16px; margin-bottom: 20px; font-weight: 600;
       background: #f8f9fa; border-radius: var(--radius-md); border: 1.5px dashed var(--borda);
@@ -425,27 +351,16 @@
     .button-group button:active { transform: scale(0.97); }
     .button-group button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* TABELAS RESPONSIVAS */
+    /* TABELAS RESPONSIVAS - FORÇADO ESTILO DESKTOP */
     .table-wrapper { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--borda); }
-    .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: var(--cor-surface); }
+    .styled-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: var(--cor-surface); min-width: 500px; }
     .styled-table thead tr { background: #f8f9fa; color: var(--cor-texto-secundario); text-align: left; border-bottom: 2px solid var(--borda); }
-    .styled-table th, .styled-table td { padding: 14px 16px; border-bottom: 1px solid var(--borda-suave); }
+    .styled-table th, .styled-table td { padding: 14px 16px; border-bottom: 1px solid var(--borda-suave); white-space: nowrap; }
     .styled-table tbody tr:last-child td { border-bottom: none; }
     .styled-table strong { color: var(--cor-primaria); font-weight: 700; }
 
     .tipo-entrada { color: var(--cor-sucesso); font-weight: 700; }
     .tipo-saida { color: var(--cor-perigo); font-weight: 700; }
-
-    @media (max-width: 640px) {
-      .styled-table thead { display: none; }
-      .styled-table, .styled-table tbody, .styled-table tr, .styled-table td { display: block; width: 100%; }
-      .styled-table tr { margin-bottom: 12px; border-bottom: 2px solid var(--borda); padding: 8px 0; }
-      .styled-table td { text-align: right; padding: 10px 16px; position: relative; padding-left: 45%; border-bottom: 1px solid var(--borda-suave); }
-      .styled-table td::before { 
-        content: attr(data-label); position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-        font-weight: 700; font-size: 0.8rem; color: var(--cor-texto-claro); text-transform: uppercase; 
-      }
-    }
 
     /* ALERTAS */
     .alert-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
@@ -595,11 +510,8 @@
             </div>
 
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
-
-            <div class="zoom-control">
-              <span>🔍</span>
-              <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
-            </div>
+            
+            <!-- ZOOM REMOVIDO AQUI -->
           </div>
 
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
@@ -654,13 +566,15 @@
 
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
-      zoomSlider: null, btnFlash: null, btnEntrada: null, btnSaida: null,
+      // zoomSlider removido
+      btnFlash: null, btnEntrada: null, btnSaida: null,
       loadingOverlay: null, focusStatus: null, focusIndicator: null, cameraStatus: null
     };
 
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], currentRearIndex = 0;
-    let autoFocusActive = false, focusAttempts = 0, currentZoomValue = 1;
+    let autoFocusActive = false, focusAttempts = 0;
+    // currentZoomValue removido
     let entradaVencidaPendente = null, registroEmProgresso = false;
     let isTablet = false, deviceType = 'phone';
     let consecutiveFocusSuccess = 0;
@@ -700,7 +614,7 @@
       DOM_CACHE.reader          = document.getElementById('reader');
       DOM_CACHE.qrResult        = document.getElementById('qr-result');
       DOM_CACHE.status          = document.getElementById('status');
-      DOM_CACHE.zoomSlider      = document.getElementById('zoomSlider');
+      // zoomSlider removido
       DOM_CACHE.btnFlash        = document.getElementById('btnFlash');
       DOM_CACHE.btnEntrada      = document.getElementById('btnEntrada');
       DOM_CACHE.btnSaida        = document.getElementById('btnSaida');
@@ -803,7 +717,7 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          setupZoom();
+          setupControls(); // Renomeado de setupZoom para refletir mudança
         }
       } catch (err) {
         DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
@@ -880,8 +794,6 @@
                   }, 80);
                 })
                 .catch(() => { consecutiveFocusSuccess = 0; });
-            } else if (focusAttempts % 2 === 0) {
-              applyZoomNudge();
             } else {
               currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
             }
@@ -903,8 +815,6 @@
                   }, 50);
                 })
                 .catch(() => { consecutiveFocusSuccess = 0; });
-            } else if (focusAttempts % 2 === 0) {
-              applyZoomNudge();
             } else {
               currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
             }
@@ -913,25 +823,10 @@
       }, focusInterval);
     }
 
-    async function applyZoomNudge() {
-      try {
-        if (!currentTrack?.getCapabilities) return;
-        const caps = currentTrack.getCapabilities();
-        if (!caps?.zoom) return;
-        
-        const settings = currentTrack.getSettings?.() || {};
-        const currentZoom = settings.zoom || currentZoomValue || 1;
-        const nudgedZoom = Math.min(currentZoom + 0.02, caps.zoom.max || 5);
-        
-        await currentTrack.applyConstraints({ advanced: [{ zoom: nudgedZoom }] });
-        setTimeout(() => { 
-          if (currentTrack) currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {}); 
-        }, 40);
-      } catch {}
-    }
+    // Funções de Zoom removidas: applyZoomNudge, setZoom
 
-    function setupZoom() {
-      const slider = DOM_CACHE.zoomSlider;
+    function setupControls() {
+      // Antiga função setupZoom renomeada e simplificada
       if (!currentTrack?.getCapabilities) return;
       try {
         const caps = currentTrack.getCapabilities();
@@ -940,38 +835,7 @@
         } else {
           DOM_CACHE.btnFlash.style.display = 'none';
         }
-        if (caps.zoom) {
-          slider.min  = caps.zoom.min ?? 1;
-          slider.max  = caps.zoom.max ?? 5;
-          slider.step = caps.zoom.step || 0.1;
-          applyInitialZoom();
-        }
-      } catch {}
-    }
-
-    async function applyInitialZoom() {
-      if (!currentTrack?.getCapabilities) return;
-      try {
-        const caps = currentTrack.getCapabilities();
-        if (!caps.zoom) return;
-        
-        const minZoom = caps.zoom.min ?? 1;
-        const maxZoom = caps.zoom.max ?? 5;
-        
-        const zoomPercentage = isTablet ? 0.4 : 0.25;
-        const initialZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
-        
-        currentZoomValue = initialZoom;
-        await currentTrack.applyConstraints({ advanced: [{ zoom: initialZoom }] });
-        DOM_CACHE.zoomSlider.value = initialZoom;
-      } catch {}
-    }
-
-    async function setZoom(value) {
-      if (!currentTrack || !currentTrack.getCapabilities?.().zoom) return;
-      try {
-        currentZoomValue = parseFloat(value);
-        await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoomValue }] });
+        // Lógica de zoom removida daqui
       } catch {}
     }
 
@@ -984,7 +848,7 @@
       await currentTrack.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {});
     }
 
-    /* ── API ──────────────────────────────────────────────────────────────── */
+    /* ── API ─────────────────────────────────────────────────────────────── */
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
       return await (await fetch(url)).json();
