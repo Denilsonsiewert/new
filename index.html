@@ -398,12 +398,17 @@
 
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], currentRearIndex = 0;
-    let autoTorchEnabled = true; // Controle de lanterna automática
+    let autoTorchEnabled = true;
     let autoFocusActive = false, focusAttempts = 0;
     let entradaVencidaPendente = null, registroEmProgresso = false;
     let isTablet = false, deviceType = 'phone';
     let consecutiveFocusSuccess = 0;
     let focusIntervalId = null;
+
+    // ─── CONTROLE DE SUPORTE A TORCH ────────────────────────────────────────────
+    // Registra qual método funcionou para reutilizar sem tentar todos novamente
+    let torchMethod = null;       // 'advanced' | 'direct' | 'imageCapture' | null
+    let torchSupported = null;    // true | false | null (null = ainda não testado)
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
@@ -495,6 +500,107 @@
       }
     }
 
+    // ─── CONTROLE DE LANTERNA ROBUSTO ───────────────────────────────────────────
+    // Tenta 3 métodos em sequência para compatibilidade máxima com dispositivos
+    // antigos e novos. Memoriza o método que funcionou para chamadas futuras.
+
+    async function applyTorch(enable) {
+      if (!currentTrack) return false;
+
+      // Se já sabemos qual método funciona, usa diretamente
+      if (torchMethod === 'advanced') {
+        try {
+          await currentTrack.applyConstraints({ advanced: [{ torch: enable }] });
+          return true;
+        } catch { torchMethod = null; } // método falhou, redescobre
+      }
+
+      if (torchMethod === 'direct') {
+        try {
+          await currentTrack.applyConstraints({ torch: enable });
+          return true;
+        } catch { torchMethod = null; }
+      }
+
+      if (torchMethod === 'imageCapture') {
+        try {
+          const ic = new ImageCapture(currentTrack);
+          await ic.setOptions({ torch: enable });
+          return true;
+        } catch { torchMethod = null; }
+      }
+
+      // Descoberta: tenta cada método e memoriza o que funcionar
+      // Método 1 — padrão moderno: advanced constraints
+      try {
+        await currentTrack.applyConstraints({ advanced: [{ torch: enable }] });
+        torchMethod = 'advanced';
+        console.log('🔦 Torch via advanced constraints');
+        return true;
+      } catch (e) {
+        console.warn('Torch método 1 (advanced) falhou:', e.message || e);
+      }
+
+      // Método 2 — dispositivos antigos: constraint direto sem "advanced"
+      try {
+        await currentTrack.applyConstraints({ torch: enable });
+        torchMethod = 'direct';
+        console.log('🔦 Torch via direct constraint');
+        return true;
+      } catch (e) {
+        console.warn('Torch método 2 (direct) falhou:', e.message || e);
+      }
+
+      // Método 3 — fallback ImageCapture API (alguns Androids antigos)
+      try {
+        if (typeof ImageCapture !== 'undefined') {
+          const ic = new ImageCapture(currentTrack);
+          await ic.setOptions({ torch: enable });
+          torchMethod = 'imageCapture';
+          console.log('🔦 Torch via ImageCapture');
+          return true;
+        }
+      } catch (e) {
+        console.warn('Torch método 3 (ImageCapture) falhou:', e.message || e);
+      }
+
+      console.warn('🔦 Nenhum método de torch funcionou neste dispositivo.');
+      return false;
+    }
+
+    // Detecta se o dispositivo suporta torch testando na prática (mais confiável
+    // que getCapabilities(), que não reporta torch em vários dispositivos antigos)
+    async function detectTorchSupport() {
+      if (!currentTrack) { torchSupported = false; return false; }
+
+      // Tenta via getCapabilities (rápido, porém nem sempre confiável)
+      try {
+        if (typeof currentTrack.getCapabilities === 'function') {
+          const caps = currentTrack.getCapabilities();
+          if (caps && caps.torch === true) {
+            torchSupported = true;
+            console.log('🔦 Torch detectado via getCapabilities');
+            return true;
+          }
+        }
+      } catch {}
+
+      // getCapabilities não reportou torch — tenta ligar e desligar rapidamente
+      // para confirmar o suporte na prática (funciona em muitos dispositivos antigos)
+      try {
+        const ok = await applyTorch(false); // testa com false para não acender desnecessariamente
+        if (ok) {
+          torchSupported = true;
+          console.log('🔦 Torch detectado via teste prático');
+          return true;
+        }
+      } catch {}
+
+      torchSupported = false;
+      console.log('🔦 Torch não suportado neste dispositivo');
+      return false;
+    }
+
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
@@ -502,6 +608,12 @@
       DOM_CACHE.status.style.display = 'none';
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
       updateFocusIndicator('default');
+
+      // Reseta o estado do torch ao iniciar novo scanner
+      torchMethod = null;
+      torchSupported = null;
+      flashOn = false;
+      DOM_CACHE.btnFlash.classList.remove('active');
 
       html5QrCode = new Html5Qrcode("reader");
       
@@ -541,11 +653,12 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          applyFixedZoom(); 
-          setupControls();
-          // Ligar a lanterna automaticamente ao abrir a câmera
+          applyFixedZoom();
+          // setupControls agora usa detecção robusta + mostra botão otimistamente
+          await setupControls();
+          // Liga a lanterna automaticamente se suportado
           if (autoTorchEnabled) {
-            turnOnTorchAutomatically();
+            await turnOnTorchAutomatically();
           }
         }
       } catch (err) {
@@ -555,59 +668,31 @@
       }
     }
 
-    // Função para ligar a lanterna automaticamente (Compatibilidade Melhorada)
     async function turnOnTorchAutomatically() {
       if (!currentTrack) return;
-      
-      // Pequeno delay para garantir que o stream está estável (comum em celulares antigos)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       try {
-        // Tenta detectar suporte via getCapabilities (moderno)
-        let hasTorch = false;
-        if (currentTrack.getCapabilities) {
-          const caps = currentTrack.getCapabilities();
-          hasTorch = !!caps.torch;
-        } else {
-          // Fallback para dispositivos que não expõem capabilities mas podem aceitar a constraint
-          hasTorch = true; 
-        }
-
-        if (hasTorch) {
+        const ok = await applyTorch(true);
+        if (ok) {
           flashOn = true;
           DOM_CACHE.btnFlash.classList.add('active');
-          
-          // Tenta aplicar a constraint de várias formas para maximizar compatibilidade
-          const constraints = { advanced: [{ torch: true }, { fillLightMode: "torch" }] };
-          
-          await currentTrack.applyConstraints(constraints).catch(async (e) => {
-            console.warn("Falha no método 1 de lanterna, tentando método 2...", e);
-            // Método alternativo para alguns navegadores antigos
-            await currentTrack.applyConstraints({ torch: true }).catch(() => {});
-          });
-          
-          console.log('🔦 Lanterna ligada (Modo Compatibilidade)');
+          console.log('🔦 Lanterna ligada automaticamente');
         }
       } catch (err) {
-        console.warn('Erro ao ligar lanterna:', err);
+        console.warn('Erro ao ligar lanterna automaticamente:', err);
       }
     }
 
-    // Função para desligar a lanterna automaticamente
     async function turnOffTorchAutomatically() {
       if (!currentTrack) return;
       try {
-        flashOn = false;
-        DOM_CACHE.btnFlash.classList.remove('active');
-        
-        const constraints = { advanced: [{ torch: false }, { fillLightMode: "off" }] };
-        await currentTrack.applyConstraints(constraints).catch(async () => {
-          await currentTrack.applyConstraints({ torch: false }).catch(() => {});
-        });
-        
-        console.log('🔦 Lanterna desligada');
+        const ok = await applyTorch(false);
+        if (ok) {
+          flashOn = false;
+          DOM_CACHE.btnFlash.classList.remove('active');
+          console.log('🔦 Lanterna desligada automaticamente');
+        }
       } catch (err) {
-        console.warn('Erro ao desligar lanterna:', err);
+        console.warn('Erro ao desligar lanterna automaticamente:', err);
       }
     }
 
@@ -728,24 +813,45 @@
       }, focusInterval);
     }
 
-    function setupControls() {
-      if (!currentTrack?.getCapabilities) return;
-      try {
-        const caps = currentTrack.getCapabilities();
-        if (caps.torch) {
-          DOM_CACHE.btnFlash.style.display = 'flex';
-        } else {
-          DOM_CACHE.btnFlash.style.display = 'none';
-        }
-      } catch {}
+    // ─── setupControls ROBUSTO ───────────────────────────────────────────────────
+    // Estratégia: mostra o botão de lanterna por padrão (otimista) e só esconde
+    // se tivermos certeza absoluta de que não é suportado. Isso garante que
+    // dispositivos antigos que não reportam torch via getCapabilities ainda vejam
+    // o botão e possam tentar usar a lanterna.
+    async function setupControls() {
+      if (!currentTrack) return;
+
+      // Mostra o botão otimisticamente enquanto detecta
+      DOM_CACHE.btnFlash.style.display = 'flex';
+
+      // Verifica suporte real (testa na prática, não só via getCapabilities)
+      const suporta = await detectTorchSupport();
+
+      if (!suporta) {
+        // Só esconde se tiver certeza de que não funciona
+        DOM_CACHE.btnFlash.style.display = 'none';
+        console.log('🔦 Botão de lanterna ocultado: sem suporte confirmado');
+      } else {
+        DOM_CACHE.btnFlash.style.display = 'flex';
+        console.log('🔦 Botão de lanterna visível: suporte confirmado');
+      }
     }
 
+    // ─── toggleFlash ROBUSTO ─────────────────────────────────────────────────────
+    // Usa applyTorch() que testa múltiplos métodos e memoriza o que funciona
     async function toggleFlash() {
       if (!currentTrack) return;
-      if (flashOn) {
-        await turnOffTorchAutomatically();
+
+      const novoEstado = !flashOn;
+      const ok = await applyTorch(novoEstado);
+
+      if (ok) {
+        flashOn = novoEstado;
+        DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
       } else {
-        await turnOnTorchAutomatically();
+        // Informa o usuário se nenhum método funcionou
+        showToast('Lanterna não disponível neste dispositivo', 'info');
+        DOM_CACHE.btnFlash.style.display = 'none';
       }
     }
 
