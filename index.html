@@ -398,6 +398,7 @@
 
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
     let scannerActive = false, rearCameras = [], currentRearIndex = 0;
+    let autoTorchEnabled = true; // Controle de lanterna automática
     let autoFocusActive = false, focusAttempts = 0;
     let entradaVencidaPendente = null, registroEmProgresso = false;
     let isTablet = false, deviceType = 'phone';
@@ -542,11 +543,45 @@
           setupTurboAutofocus();
           applyFixedZoom(); 
           setupControls();
+          // Ligar a lanterna automaticamente ao abrir a câmera
+          if (autoTorchEnabled) {
+            turnOnTorchAutomatically();
+          }
         }
       } catch (err) {
         DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
         showToast("Erro ao acessar câmera.", "erro");
         updateFocusIndicator('error');
+      }
+    }
+
+    // Função para ligar a lanterna automaticamente
+    async function turnOnTorchAutomatically() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.torch) return;
+        flashOn = true;
+        DOM_CACHE.btnFlash.classList.add('active');
+        await currentTrack.applyConstraints({ advanced: [{ torch: true }] }).catch(() => {});
+        console.log('🔦 Lanterna ligada automaticamente');
+      } catch (err) {
+        console.warn('Erro ao ligar lanterna automaticamente:', err);
+      }
+    }
+
+    // Função para desligar a lanterna automaticamente
+    async function turnOffTorchAutomatically() {
+      if (!currentTrack?.getCapabilities) return;
+      try {
+        const caps = currentTrack.getCapabilities();
+        if (!caps.torch) return;
+        flashOn = false;
+        DOM_CACHE.btnFlash.classList.remove('active');
+        await currentTrack.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        console.log('🔦 Lanterna desligada automaticamente');
+      } catch (err) {
+        console.warn('Erro ao desligar lanterna automaticamente:', err);
       }
     }
 
@@ -564,6 +599,10 @@
 
     async function stopScanner(silent = false) {
       try {
+        // Desligar a lanterna ao parar o scanner
+        if (autoTorchEnabled && flashOn) {
+          await turnOffTorchAutomatically();
+        }
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
         if (html5QrCode && scannerActive) {
           await html5QrCode.stop().catch(() => {});
@@ -758,6 +797,10 @@
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
         if (res.status === 'sucesso') {
           showToast(res.mensagem, "sucesso");
+          // Desligar a lanterna apos sucesso no registro
+          if (autoTorchEnabled && flashOn) {
+            await turnOffTorchAutomatically();
+          }
           dataCache = null; lastDataFetch = 0;
           setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
           carregarTodosOsDados(true);
