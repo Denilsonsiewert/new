@@ -269,8 +269,8 @@
     .status-erro { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info { background: #d1ecf1; color: #0c5460; display: block; }
 
-    /* 🔍 ADICIONADO: Fallback de zoom visual para WebView Android */
-    html.webview-android #reader video {
+    /* 🔧 ADICIONADO: Fallback CSS de zoom para WebView Android (quando hardware constraints falham) */
+    html.webview-android-zoom-fallback #reader video {
         transform: scale(1.15) !important;
         transform-origin: center center !important;
         width: 87% !important;
@@ -534,7 +534,6 @@
       torchSupported = false; return false;
     }
 
-    // 🔧 MODIFICADO: Hook para chamar zoom após câmera iniciar
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
@@ -581,11 +580,8 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          // 🔍 ADICIONADO: Aguarda track estabilizar e aplica zoom
-          setTimeout(() => {
-            if (typeof applyFixedZoom === 'function') applyFixedZoom();
-          }, 600);
-          
+          // 🔧 MODIFICADO: Aguarda track estabilizar e aplica constraints de hardware (zoom/torch)
+          setTimeout(() => applyHardwareConstraints(), 800);
           await setupControls();
           if (autoTorchEnabled) await turnOnTorchAutomatically();
         }
@@ -640,10 +636,48 @@
       }
     }
 
-    // 🔧 MODIFICADO: applyFixedZoom robusta com retry + ponte Android
+    // 🔧 ADICIONADO: Helper seguro para aplicar constraints (evita crashes no WebView)
+    async function tryApplyConstraint(track, key, value) {
+      if (!track || track.readyState !== 'live') return false;
+      try { await track.applyConstraints({ advanced: [{ [key]: value }] }); return true; }
+      catch { try { await track.applyConstraints({ [key]: value }); return true; } catch { return false; } }
+    }
+
+    // 🔧 ADICIONADO: Função centralizada que aplica zoom e detecta lanterna
+    async function applyHardwareConstraints() {
+      const video = document.querySelector('#reader video');
+      if (!video || !video.srcObject) {
+        setTimeout(applyHardwareConstraints, 300);
+        return;
+      }
+      const track = video.srcObject.getVideoTracks()[0];
+      if (!track) { setTimeout(applyHardwareConstraints, 300); return; }
+      currentTrack = track;
+
+      let caps = {};
+      try { caps = track.getCapabilities?.() || {}; } catch {}
+      if (window.AndroidBridge?.logDebug) window.AndroidBridge.logDebug(`Capabilities: ${JSON.stringify(caps)}`);
+
+      // Aplica Zoom
+      if (caps.zoom?.min !== undefined && caps.zoom?.max !== undefined) {
+        const target = caps.zoom.min + ((caps.zoom.max - caps.zoom.min) * 0.6);
+        const ok = await tryApplyConstraint(track, 'zoom', target);
+        if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', ok, `Target: ${target.toFixed(2)}`);
+        if (!ok) document.documentElement.classList.add('webview-android-zoom-fallback');
+      } else {
+        document.documentElement.classList.add('webview-android-zoom-fallback');
+        if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', false, 'Não suportado');
+      }
+
+      // Detecta Lanterna
+      const hasTorch = caps.torch !== undefined;
+      DOM_CACHE.btnFlash.style.display = hasTorch ? 'flex' : 'none';
+      if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('torch', hasTorch, `Suporte: ${hasTorch}`);
+    }
+
+    // 🔧 MODIFICADO: applyFixedZoom original mantido, mas agora delega para applyHardwareConstraints
     async function applyFixedZoom(maxAttempts = 5, delayMs = 300) {
       console.log('🔍 [Zoom] Iniciando aplicação de zoom...');
-      
       const notifyAndroid = (success, message = '') => {
         if (window.AndroidBridge && typeof window.AndroidBridge.onZoomApplied === 'function') {
           window.AndroidBridge.onZoomApplied(success);
@@ -659,57 +693,29 @@
           notifyAndroid(false, `Falha após ${maxAttempts} tentativas`);
           return false;
         }
-        
         try {
           const videoElem = document.querySelector('#reader video');
-          if (!videoElem || !videoElem.srcObject) {
-            console.log(`🔍 [Zoom] Tentativa ${attempt}: video não pronto, aguardando...`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-            return tryApplyZoom(attempt + 1);
-          }
-          
+          if (!videoElem || !videoElem.srcObject) { await new Promise(r => setTimeout(r, delayMs)); return tryApplyZoom(attempt + 1); }
           const tracks = videoElem.srcObject.getVideoTracks();
-          if (!tracks || tracks.length === 0) {
-            console.log(`🔍 [Zoom] Tentativa ${attempt}: sem video tracks, aguardando...`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-            return tryApplyZoom(attempt + 1);
-          }
-          
+          if (!tracks || tracks.length === 0) { await new Promise(r => setTimeout(r, delayMs)); return tryApplyZoom(attempt + 1); }
           const track = tracks[0];
-          
-          if (typeof track.getCapabilities !== 'function') {
-            console.warn('🔍 [Zoom] Track não suporta getCapabilities()');
-            notifyAndroid(false, 'getCapabilities não suportado');
-            return false;
-          }
-          
+          if (typeof track.getCapabilities !== 'function') { notifyAndroid(false, 'getCapabilities não suportado'); return false; }
           const capabilities = track.getCapabilities();
-          if (!capabilities.zoom || capabilities.zoom.min === undefined) {
-            console.warn('🔍 [Zoom] Zoom não suportado neste dispositivo');
-            notifyAndroid(false, 'Zoom não suportado pelo hardware');
-            return false;
-          }
-          
+          if (!capabilities.zoom || capabilities.zoom.min === undefined) { notifyAndroid(false, 'Zoom não suportado'); return false; }
           const minZoom = capabilities.zoom.min;
           const maxZoom = capabilities.zoom.max;
-          const zoomPercentage = 0.6;
-          const targetZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
-          
+          const targetZoom = minZoom + ((maxZoom - minZoom) * 0.6);
           console.log(`🔍 [Zoom] Aplicando: ${targetZoom.toFixed(2)} (min: ${minZoom}, max: ${maxZoom})`);
-          
           await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-          
           console.log('✅ [Zoom] Aplicado com sucesso!');
           notifyAndroid(true, `Zoom ${targetZoom.toFixed(2)} aplicado`);
           return true;
-          
         } catch (err) {
           console.warn(`🔍 [Zoom] Erro na tentativa ${attempt}:`, err.message || err);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise(r => setTimeout(r, delayMs));
           return tryApplyZoom(attempt + 1);
         }
       };
-      
       return tryApplyZoom(1);
     }
 
@@ -957,25 +963,12 @@
       if (pageId === 'registrar') { startScannerWithDevice(); } else { stopScanner(); refreshActivePage(); }
     }
 
-    // 🔍 ADICIONADO: Detecção de WebView Android para fallback CSS
-    (function detectAndroidWebView() {
-      const ua = navigator.userAgent || '';
-      const isAndroidWebView = /Android.*Version\/[\d.]+.*Mobile.*Safari\/[\d.]+/.test(ua) || /wv/.test(ua) || /; wv\)/.test(ua);
-      if (isAndroidWebView) {
-        console.log('📱 Android WebView detectado');
-        document.documentElement.classList.add('webview-android');
-      }
-    })();
-
-    // 📱 ADICIONADO: Notifica Android quando página carrega
+    // 🔧 ADICIONADO: Detecção de WebView e notificação ao Java
     window.addEventListener('load', () => { 
       detectDeviceType();
       initDOMCache(); 
       carregarTodosOsDados();
-      
-      if (window.AndroidBridge?.onCameraReady) {
-        window.AndroidBridge.onCameraReady();
-      }
+      if (window.AndroidBridge?.onCameraReady) window.AndroidBridge.onCameraReady();
     });
     
     window.addEventListener('beforeunload', () => { stopScanner(true); });
