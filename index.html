@@ -268,6 +268,15 @@
     .status-sucesso { background: #d1e7dd; color: var(--cor-sucesso); display: block; }
     .status-erro { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info { background: #d1ecf1; color: #0c5460; display: block; }
+
+    /* 🔍 ADICIONADO: Fallback de zoom visual para WebView Android */
+    html.webview-android #reader video {
+        transform: scale(1.15) !important;
+        transform-origin: center center !important;
+        width: 87% !important;
+        height: 87% !important;
+        margin: 6.5% auto !important;
+    }
   </style>
 </head>
 
@@ -404,11 +413,7 @@
     let isTablet = false, deviceType = 'phone';
     let consecutiveFocusSuccess = 0;
     let focusIntervalId = null;
-
-    // ─── CONTROLE DE SUPORTE A TORCH ────────────────────────────────────────────
-    // Registra qual método funcionou para reutilizar sem tentar todos novamente
-    let torchMethod = null;       // 'advanced' | 'direct' | 'imageCapture' | null
-    let torchSupported = null;    // true | false | null (null = ainda não testado)
+    let torchMethod = null, torchSupported = null;
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
@@ -422,7 +427,7 @@
       const aspectRatio = maxDimension / minDimension;
       isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
       deviceType = isTablet ? 'tablet' : 'phone';
-      console.log(`️ Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
+      console.log(`📱 Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
     }
 
     function getOptimalQRBoxSize() {
@@ -500,107 +505,36 @@
       }
     }
 
-    // ─── CONTROLE DE LANTERNA ROBUSTO ───────────────────────────────────────────
-    // Tenta 3 métodos em sequência para compatibilidade máxima com dispositivos
-    // antigos e novos. Memoriza o método que funcionou para chamadas futuras.
-
     async function applyTorch(enable) {
       if (!currentTrack) return false;
-
-      // Se já sabemos qual método funciona, usa diretamente
       if (torchMethod === 'advanced') {
-        try {
-          await currentTrack.applyConstraints({ advanced: [{ torch: enable }] });
-          return true;
-        } catch { torchMethod = null; } // método falhou, redescobre
+        try { await currentTrack.applyConstraints({ advanced: [{ torch: enable }] }); return true; }
+        catch { torchMethod = null; }
       }
-
       if (torchMethod === 'direct') {
-        try {
-          await currentTrack.applyConstraints({ torch: enable });
-          return true;
-        } catch { torchMethod = null; }
+        try { await currentTrack.applyConstraints({ torch: enable }); return true; }
+        catch { torchMethod = null; }
       }
-
       if (torchMethod === 'imageCapture') {
         try {
           const ic = new ImageCapture(currentTrack);
-          await ic.setOptions({ torch: enable });
-          return true;
+          await ic.setOptions({ torch: enable }); return true;
         } catch { torchMethod = null; }
       }
-
-      // Descoberta: tenta cada método e memoriza o que funcionar
-      // Método 1 — padrão moderno: advanced constraints
-      try {
-        await currentTrack.applyConstraints({ advanced: [{ torch: enable }] });
-        torchMethod = 'advanced';
-        console.log('🔦 Torch via advanced constraints');
-        return true;
-      } catch (e) {
-        console.warn('Torch método 1 (advanced) falhou:', e.message || e);
-      }
-
-      // Método 2 — dispositivos antigos: constraint direto sem "advanced"
-      try {
-        await currentTrack.applyConstraints({ torch: enable });
-        torchMethod = 'direct';
-        console.log('🔦 Torch via direct constraint');
-        return true;
-      } catch (e) {
-        console.warn('Torch método 2 (direct) falhou:', e.message || e);
-      }
-
-      // Método 3 — fallback ImageCapture API (alguns Androids antigos)
-      try {
-        if (typeof ImageCapture !== 'undefined') {
-          const ic = new ImageCapture(currentTrack);
-          await ic.setOptions({ torch: enable });
-          torchMethod = 'imageCapture';
-          console.log('🔦 Torch via ImageCapture');
-          return true;
-        }
-      } catch (e) {
-        console.warn('Torch método 3 (ImageCapture) falhou:', e.message || e);
-      }
-
-      console.warn('🔦 Nenhum método de torch funcionou neste dispositivo.');
+      try { await currentTrack.applyConstraints({ advanced: [{ torch: enable }] }); torchMethod = 'advanced'; return true; } catch {}
+      try { await currentTrack.applyConstraints({ torch: enable }); torchMethod = 'direct'; return true; } catch {}
+      try { if (typeof ImageCapture !== 'undefined') { const ic = new ImageCapture(currentTrack); await ic.setOptions({ torch: enable }); torchMethod = 'imageCapture'; return true; } } catch {}
       return false;
     }
 
-    // Detecta se o dispositivo suporta torch testando na prática (mais confiável
-    // que getCapabilities(), que não reporta torch em vários dispositivos antigos)
     async function detectTorchSupport() {
       if (!currentTrack) { torchSupported = false; return false; }
-
-      // Tenta via getCapabilities (rápido, porém nem sempre confiável)
-      try {
-        if (typeof currentTrack.getCapabilities === 'function') {
-          const caps = currentTrack.getCapabilities();
-          if (caps && caps.torch === true) {
-            torchSupported = true;
-            console.log('🔦 Torch detectado via getCapabilities');
-            return true;
-          }
-        }
-      } catch {}
-
-      // getCapabilities não reportou torch — tenta ligar e desligar rapidamente
-      // para confirmar o suporte na prática (funciona em muitos dispositivos antigos)
-      try {
-        const ok = await applyTorch(false); // testa com false para não acender desnecessariamente
-        if (ok) {
-          torchSupported = true;
-          console.log('🔦 Torch detectado via teste prático');
-          return true;
-        }
-      } catch {}
-
-      torchSupported = false;
-      console.log('🔦 Torch não suportado neste dispositivo');
-      return false;
+      try { if (typeof currentTrack.getCapabilities === 'function') { const caps = currentTrack.getCapabilities(); if (caps && caps.torch === true) { torchSupported = true; return true; } } } catch {}
+      try { const ok = await applyTorch(false); if (ok) { torchSupported = true; return true; } } catch {}
+      torchSupported = false; return false;
     }
 
+    // 🔧 MODIFICADO: Hook para chamar zoom após câmera iniciar
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
       await stopScanner(true);
@@ -609,7 +543,6 @@
       DOM_CACHE.readerContainer.classList.remove('scanning-active');
       updateFocusIndicator('default');
 
-      // Reseta o estado do torch ao iniciar novo scanner
       torchMethod = null;
       torchSupported = null;
       flashOn = false;
@@ -620,20 +553,15 @@
       const qrbox = getOptimalQRBoxSize();
       const fps = getOptimalFPS();
       
-      //  CONFIGURAÇÃO CRÍTICA PARA IGNORAR CÓDIGOS DE BARRA
       const config = {
         fps: fps,
         qrbox: qrbox,
         disableFlip: true,
-        // Apenas DataMatrix e QR Code permitidos
         formatsToSupport: [
           Html5QrcodeSupportedFormats.DATA_MATRIX,
           Html5QrcodeSupportedFormats.QR_CODE
         ],
-        // Força o uso do decodificador JS legado, ignorando o detector nativo do navegador
-        experimentalFeatures: { 
-          useBarCodeDetectorIfSupported: false 
-        },
+        experimentalFeatures: { useBarCodeDetectorIfSupported: false },
         aspectRatio: 1.0
       };
 
@@ -653,13 +581,13 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          applyFixedZoom();
-          // setupControls agora usa detecção robusta + mostra botão otimistamente
+          // 🔍 ADICIONADO: Aguarda track estabilizar e aplica zoom
+          setTimeout(() => {
+            if (typeof applyFixedZoom === 'function') applyFixedZoom();
+          }, 600);
+          
           await setupControls();
-          // Liga a lanterna automaticamente se suportado
-          if (autoTorchEnabled) {
-            await turnOnTorchAutomatically();
-          }
+          if (autoTorchEnabled) await turnOnTorchAutomatically();
         }
       } catch (err) {
         DOM_CACHE.qrResult.textContent = `Erro: ${normalizeError(err)}`;
@@ -670,30 +598,14 @@
 
     async function turnOnTorchAutomatically() {
       if (!currentTrack) return;
-      try {
-        const ok = await applyTorch(true);
-        if (ok) {
-          flashOn = true;
-          DOM_CACHE.btnFlash.classList.add('active');
-          console.log('🔦 Lanterna ligada automaticamente');
-        }
-      } catch (err) {
-        console.warn('Erro ao ligar lanterna automaticamente:', err);
-      }
+      try { const ok = await applyTorch(true); if (ok) { flashOn = true; DOM_CACHE.btnFlash.classList.add('active'); } } 
+      catch (err) { console.warn('Erro ao ligar lanterna:', err); }
     }
 
     async function turnOffTorchAutomatically() {
       if (!currentTrack) return;
-      try {
-        const ok = await applyTorch(false);
-        if (ok) {
-          flashOn = false;
-          DOM_CACHE.btnFlash.classList.remove('active');
-          console.log('🔦 Lanterna desligada automaticamente');
-        }
-      } catch (err) {
-        console.warn('Erro ao desligar lanterna automaticamente:', err);
-      }
+      try { const ok = await applyTorch(false); if (ok) { flashOn = false; DOM_CACHE.btnFlash.classList.remove('active'); } } 
+      catch (err) { console.warn('Erro ao desligar lanterna:', err); }
     }
 
     function onScanSuccess(decodedText) {
@@ -710,16 +622,13 @@
 
     async function stopScanner(silent = false) {
       try {
-        // Desligar a lanterna ao parar o scanner
-        if (autoTorchEnabled && flashOn) {
-          await turnOffTorchAutomatically();
-        }
+        if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
         if (focusIntervalId) { clearInterval(focusIntervalId); focusIntervalId = null; }
         if (html5QrCode && scannerActive) {
           await html5QrCode.stop().catch(() => {});
           await html5QrCode.clear().catch(() => {});
         }
-        if (currentTrack) { currentTrack.stop(); }
+        if (currentTrack) currentTrack.stop();
       } catch {}
       finally {
         currentTrack = null;
@@ -731,45 +640,92 @@
       }
     }
 
-    async function applyFixedZoom() {
-      if (!currentTrack?.getCapabilities) return;
-      try {
-        const caps = currentTrack.getCapabilities();
-        if (!caps.zoom) return;
-
-        const minZoom = caps.zoom.min ?? 1;
-        const maxZoom = caps.zoom.max ?? 5;
+    // 🔧 MODIFICADO: applyFixedZoom robusta com retry + ponte Android
+    async function applyFixedZoom(maxAttempts = 5, delayMs = 300) {
+      console.log('🔍 [Zoom] Iniciando aplicação de zoom...');
+      
+      const notifyAndroid = (success, message = '') => {
+        if (window.AndroidBridge && typeof window.AndroidBridge.onZoomApplied === 'function') {
+          window.AndroidBridge.onZoomApplied(success);
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.logDebug === 'function') {
+          window.AndroidBridge.logDebug(`[Zoom] ${message}`);
+        }
+      };
+      
+      const tryApplyZoom = async (attempt) => {
+        if (attempt > maxAttempts) {
+          console.warn(`🔍 [Zoom] Falha após ${maxAttempts} tentativas`);
+          notifyAndroid(false, `Falha após ${maxAttempts} tentativas`);
+          return false;
+        }
         
-        // Zoom fixo em 60%
-        const zoomPercentage = 0.6; 
-        const targetZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
-
-        console.log(`Aplicando zoom fixo: ${targetZoom.toFixed(2)} (Min: ${minZoom}, Max: ${maxZoom})`);
-        
-        await currentTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-      } catch (err) {
-        console.warn("Não foi possível aplicar o zoom fixo:", err);
-      }
+        try {
+          const videoElem = document.querySelector('#reader video');
+          if (!videoElem || !videoElem.srcObject) {
+            console.log(`🔍 [Zoom] Tentativa ${attempt}: video não pronto, aguardando...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            return tryApplyZoom(attempt + 1);
+          }
+          
+          const tracks = videoElem.srcObject.getVideoTracks();
+          if (!tracks || tracks.length === 0) {
+            console.log(`🔍 [Zoom] Tentativa ${attempt}: sem video tracks, aguardando...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            return tryApplyZoom(attempt + 1);
+          }
+          
+          const track = tracks[0];
+          
+          if (typeof track.getCapabilities !== 'function') {
+            console.warn('🔍 [Zoom] Track não suporta getCapabilities()');
+            notifyAndroid(false, 'getCapabilities não suportado');
+            return false;
+          }
+          
+          const capabilities = track.getCapabilities();
+          if (!capabilities.zoom || capabilities.zoom.min === undefined) {
+            console.warn('🔍 [Zoom] Zoom não suportado neste dispositivo');
+            notifyAndroid(false, 'Zoom não suportado pelo hardware');
+            return false;
+          }
+          
+          const minZoom = capabilities.zoom.min;
+          const maxZoom = capabilities.zoom.max;
+          const zoomPercentage = 0.6;
+          const targetZoom = minZoom + ((maxZoom - minZoom) * zoomPercentage);
+          
+          console.log(`🔍 [Zoom] Aplicando: ${targetZoom.toFixed(2)} (min: ${minZoom}, max: ${maxZoom})`);
+          
+          await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+          
+          console.log('✅ [Zoom] Aplicado com sucesso!');
+          notifyAndroid(true, `Zoom ${targetZoom.toFixed(2)} aplicado`);
+          return true;
+          
+        } catch (err) {
+          console.warn(`🔍 [Zoom] Erro na tentativa ${attempt}:`, err.message || err);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          return tryApplyZoom(attempt + 1);
+        }
+      };
+      
+      return tryApplyZoom(1);
     }
 
     function setupTurboAutofocus() {
       if (!currentTrack?.applyConstraints) return;
-      
       autoFocusActive = true;
       focusAttempts = 0;
       consecutiveFocusSuccess = 0;
-      
       currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-      
       clearInterval(focusIntervalId);
-      
       const focusInterval = isTablet ? 200 : 100;
       
       focusIntervalId = setInterval(() => {
         if (currentTrack && autoFocusActive && scannerActive) {
           focusAttempts++;
           updateFocusIndicator('focusing');
-          
           if (isTablet) {
             if (focusAttempts % 4 === 0) {
               currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
@@ -813,46 +769,20 @@
       }, focusInterval);
     }
 
-    // ─── setupControls ROBUSTO ───────────────────────────────────────────────────
-    // Estratégia: mostra o botão de lanterna por padrão (otimista) e só esconde
-    // se tivermos certeza absoluta de que não é suportado. Isso garante que
-    // dispositivos antigos que não reportam torch via getCapabilities ainda vejam
-    // o botão e possam tentar usar a lanterna.
     async function setupControls() {
       if (!currentTrack) return;
-
-      // Mostra o botão otimisticamente enquanto detecta
       DOM_CACHE.btnFlash.style.display = 'flex';
-
-      // Verifica suporte real (testa na prática, não só via getCapabilities)
       const suporta = await detectTorchSupport();
-
-      if (!suporta) {
-        // Só esconde se tiver certeza de que não funciona
-        DOM_CACHE.btnFlash.style.display = 'none';
-        console.log('🔦 Botão de lanterna ocultado: sem suporte confirmado');
-      } else {
-        DOM_CACHE.btnFlash.style.display = 'flex';
-        console.log('🔦 Botão de lanterna visível: suporte confirmado');
-      }
+      if (!suporta) { DOM_CACHE.btnFlash.style.display = 'none'; } 
+      else { DOM_CACHE.btnFlash.style.display = 'flex'; }
     }
 
-    // ─── toggleFlash ROBUSTO ─────────────────────────────────────────────────────
-    // Usa applyTorch() que testa múltiplos métodos e memoriza o que funciona
     async function toggleFlash() {
       if (!currentTrack) return;
-
       const novoEstado = !flashOn;
       const ok = await applyTorch(novoEstado);
-
-      if (ok) {
-        flashOn = novoEstado;
-        DOM_CACHE.btnFlash.classList.toggle('active', flashOn);
-      } else {
-        // Informa o usuário se nenhum método funcionou
-        showToast('Lanterna não disponível neste dispositivo', 'info');
-        DOM_CACHE.btnFlash.style.display = 'none';
-      }
+      if (ok) { flashOn = novoEstado; DOM_CACHE.btnFlash.classList.toggle('active', flashOn); } 
+      else { showToast('Lanterna não disponível neste dispositivo', 'info'); DOM_CACHE.btnFlash.style.display = 'none'; }
     }
 
     async function apiGet(action) {
@@ -880,9 +810,9 @@
     }
 
     function mostrarModalVencido(item, lote, validade, quantidade) {
-      document.getElementById('modal-item').textContent      = item || 'N/A';
-      document.getElementById('modal-lote').textContent      = lote || 'N/A';
-      document.getElementById('modal-validade').textContent  = validade || 'N/A';
+      document.getElementById('modal-item').textContent = item || 'N/A';
+      document.getElementById('modal-lote').textContent = lote || 'N/A';
+      document.getElementById('modal-validade').textContent = validade || 'N/A';
       document.getElementById('modal-quantidade').textContent = quantidade || '0';
       entradaVencidaPendente = { tipo: 'Entrada', qrCode: qrCodeCompleto, quantidade };
       document.getElementById('modal-vencido').classList.add('active');
@@ -890,8 +820,7 @@
 
     async function confirmarEntradaVencida() {
       document.getElementById('modal-vencido').classList.remove('active');
-      if (entradaVencidaPendente)
-        await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
+      if (entradaVencidaPendente) await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
       entradaVencidaPendente = null;
     }
 
@@ -920,8 +849,8 @@
       registroEmProgresso = true;
       bloquearBotoes();
       const statusDiv = DOM_CACHE.status;
-      statusDiv.innerText    = 'Registrando...';
-      statusDiv.className    = 'status-info';
+      statusDiv.innerText = 'Registrando...';
+      statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
       try {
         const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
@@ -929,18 +858,11 @@
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
         if (res.status === 'sucesso') {
           showToast(res.mensagem, "sucesso");
-          // Desligar a lanterna apos sucesso no registro
-          if (autoTorchEnabled && flashOn) {
-            await turnOffTorchAutomatically();
-          }
+          if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
           dataCache = null; lastDataFetch = 0;
           setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
           carregarTodosOsDados(true);
-        } else { 
-          showToast(res.mensagem, "erro");
-          liberarBotoes(); 
-          registroEmProgresso = false; 
-        }
+        } else { showToast(res.mensagem, "erro"); liberarBotoes(); registroEmProgresso = false; }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
@@ -962,17 +884,14 @@
       }
       if (tipo === 'Entrada') {
         const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) { 
-          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); 
-          return; 
-        }
+        if (verificarSeVencido(qrParts[3])) { mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); return; }
       }
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
-      const agora   = Date.now();
+      const agora = Date.now();
       if (dataCache && (agora - lastDataFetch) < CACHE_DURATION && !isUpdate) {
         Object.assign(appData, dataCache);
         refreshActivePage();
@@ -985,14 +904,10 @@
           dataCache = res.dados; lastDataFetch = agora;
           Object.assign(appData, res.dados);
           refreshActivePage();
-        } else { 
-          throw new Error(res.mensagem); 
-        }
+        } else { throw new Error(res.mensagem); }
       } catch (err) {
         showToast('Erro ao carregar dados: ' + normalizeError(err), "erro");
-      } finally { 
-        if (!isUpdate) overlay.style.display = 'none'; 
-      }
+      } finally { if (!isUpdate) overlay.style.display = 'none'; }
     }
 
     function refreshActivePage() {
@@ -1003,26 +918,15 @@
 
     function renderizarEstoque() {
       const tbody = document.getElementById('corpo-tabela-estoque');
-      if (!appData.estoque?.length) { 
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>'; 
-        return; 
-      }
+      if (!appData.estoque?.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>'; return; }
       tbody.innerHTML = appData.estoque.map(item =>
-        `<tr>
-          <td data-label="Item">${item.item}</td>
-          <td data-label="Lote">${item.lote||''}</td>
-          <td data-label="Validade">${item.validade||''}</td>
-          <td data-label="Total"><strong>${item.total}</strong></td>
-        </tr>`
+        `<tr><td data-label="Item">${item.item}</td><td data-label="Lote">${item.lote||''}</td><td data-label="Validade">${item.validade||''}</td><td data-label="Total"><strong>${item.total}</strong></td></tr>`
       ).join('');
     }
 
     function renderizarAlertas() {
       const lista = document.getElementById('lista-alertas');
-      if (!appData.alertas?.length) { 
-        lista.innerHTML = '<li style="text-align:center; color: var(--cor-texto-claro)">🎉 Nenhum alerta no momento.</li>'; 
-        return; 
-      }
+      if (!appData.alertas?.length) { lista.innerHTML = '<li style="text-align:center; color: var(--cor-texto-claro)">🎉 Nenhum alerta no momento.</li>'; return; }
       lista.innerHTML = appData.alertas.map(item => {
         const cl = item.tipo === 'Vencido' ? 'alert-vencido' : (item.tipo === 'Vencimento Próximo' ? 'alert-proximo' : '');
         return `<li class="${cl}"><strong>${item.tipo}</strong><br/>${item.descricao||''}<br/><small>${item.detalhe||''}</small></li>`;
@@ -1031,19 +935,9 @@
 
     function renderizarMovimentacoes() {
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
-      if (!appData.movimentacoes?.length) { 
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>'; 
-        return; 
-      }
+      if (!appData.movimentacoes?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>'; return; }
       tbody.innerHTML = appData.movimentacoes.map(mov =>
-        `<tr>
-          <td data-label="Data">${mov.dataHora}</td>
-          <td data-label="Tipo" class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td>
-          <td data-label="Item">${mov.item}</td>
-          <td data-label="Lote">${mov.lote}</td>
-          <td data-label="Validade">${mov.validade}</td>
-          <td data-label="Qtd">${mov.qtd}</td>
-        </tr>`
+        `<tr><td data-label="Data">${mov.dataHora}</td><td data-label="Tipo" class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td><td data-label="Item">${mov.item}</td><td data-label="Lote">${mov.lote}</td><td data-label="Validade">${mov.validade}</td><td data-label="Qtd">${mov.qtd}</td></tr>`
       ).join('');
     }
 
@@ -1058,20 +952,30 @@
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page, .nav-link').forEach(el => el.classList.remove('active'));
       document.getElementById('page-' + pageId).classList.add('active');
-      document.getElementById('nav-'  + pageId).classList.add('active');
+      document.getElementById('nav-' + pageId).classList.add('active');
       document.querySelector('.app-main').scrollTop = 0;
-      if (pageId === 'registrar') { 
-        startScannerWithDevice(); 
-      } else { 
-        stopScanner(); 
-        refreshActivePage(); 
-      }
+      if (pageId === 'registrar') { startScannerWithDevice(); } else { stopScanner(); refreshActivePage(); }
     }
 
+    // 🔍 ADICIONADO: Detecção de WebView Android para fallback CSS
+    (function detectAndroidWebView() {
+      const ua = navigator.userAgent || '';
+      const isAndroidWebView = /Android.*Version\/[\d.]+.*Mobile.*Safari\/[\d.]+/.test(ua) || /wv/.test(ua) || /; wv\)/.test(ua);
+      if (isAndroidWebView) {
+        console.log('📱 Android WebView detectado');
+        document.documentElement.classList.add('webview-android');
+      }
+    })();
+
+    // 📱 ADICIONADO: Notifica Android quando página carrega
     window.addEventListener('load', () => { 
       detectDeviceType();
       initDOMCache(); 
-      carregarTodosOsDados(); 
+      carregarTodosOsDados();
+      
+      if (window.AndroidBridge?.onCameraReady) {
+        window.AndroidBridge.onCameraReady();
+      }
     });
     
     window.addEventListener('beforeunload', () => { stopScanner(true); });
