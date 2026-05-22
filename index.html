@@ -144,6 +144,16 @@
       width: 40px; height: 3px; background: linear-gradient(90deg, var(--cor-primaria), var(--cor-primaria-light)); border-radius: 3px;
     }
 
+    /* Botão de Ação Secundária (Nova Conferência) */
+    .btn-action-secondary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px; margin-top: 10px;
+      background: #fff; border: 2px solid var(--cor-perigo);
+      color: var(--cor-perigo); font-weight: 700; border-radius: var(--radius-md);
+      cursor: pointer; transition: all 0.2s; font-size: 1rem;
+    }
+    .btn-action-secondary:active { background: var(--cor-perigo); color: white; transform: scale(0.98); }
+
     #reader-container {
       position: relative; width: 100%; max-width: 420px; margin: 0 auto 18px;
       background: linear-gradient(145deg, #1a1a2e, #2d2d44); border-radius: var(--radius-xl);
@@ -251,15 +261,20 @@
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; z-index: 9999; }
 
+    /* Modal Genérico */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: var(--padding-container); }
     .modal-overlay.active { display: flex; animation: modalBgIn 0.3s; }
     .modal-content { background: var(--cor-surface); border-radius: var(--radius-xl); padding: 32px; max-width: 420px; width: 100%; box-shadow: var(--sombra-xl); animation: slideUp 0.3s; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .modal-header { font-size: 1.25rem; font-weight: 700; color: var(--cor-perigo); margin-bottom: 18px; }
-    .modal-info-box { background: #f8f9fa; padding: 16px; border-radius: var(--radius-md); margin: 16px 0; border-left: 4px solid var(--cor-alerta); }
+    
+    .modal-header { font-size: 1.25rem; font-weight: 700; color: var(--cor-perigo); margin-bottom: 18px; text-align: center; }
+    .modal-body { text-align: center; color: var(--cor-texto-secundario); margin-bottom: 24px; }
+    
+    .modal-info-box { background: #f8f9fa; padding: 16px; border-radius: var(--radius-md); margin: 16px 0; border-left: 4px solid var(--cor-alerta); text-align: left; }
     .modal-info-box div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.9rem; }
+    
     .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .modal-actions button { padding: 14px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer; }
+    .modal-actions button { padding: 14px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer; font-size: 1rem; }
     .btn-confirmar { background: var(--cor-perigo); color: white; }
     .btn-cancelar { background: #6c757d; color: white; }
     
@@ -269,7 +284,7 @@
     .status-erro { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info { background: #d1ecf1; color: #0c5460; display: block; }
 
-    /* 🔧 ADICIONADO: Fallback CSS de zoom para WebView Android (quando hardware constraints falham) */
+    /* 🔧 Fallback CSS de zoom para WebView Android */
     html.webview-android-zoom-fallback #reader video {
         transform: scale(1.15) !important;
         transform-origin: center center !important;
@@ -298,6 +313,7 @@
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
 
+  <!-- Modal de Confirmação de Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">⚠️ Atenção: Item Vencido</div>
@@ -318,6 +334,24 @@
     </div>
   </div>
 
+  <!-- Modal de Senha para Nova Conferência -->
+  <div id="modal-senha" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">🔒 Nova Conferência</div>
+      <div class="modal-body">
+        <p>Esta ação irá <strong>apagar todos os dados</strong> de Estoque e Histórico.</p>
+        <p>Digite a senha de administrador para confirmar:</p>
+        <div class="input-group" style="margin-top: 15px;">
+          <input type="password" id="senha-admin" placeholder="Digite a senha" inputmode="numeric" style="text-align:center; letter-spacing: 4px;" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-confirmar" onclick="executarLimpeza()">Apagar Tudo</button>
+        <button class="btn-cancelar" onclick="fecharModalSenha()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <main class="app-main">
     <div class="content-wrapper">
       <div id="page-estoque" class="page active">
@@ -332,6 +366,11 @@
               <tbody id="corpo-tabela-estoque"></tbody>
             </table>
           </div>
+          
+          <!-- Botão para iniciar nova conferência -->
+          <button class="btn-action-secondary" onclick="abrirModalSenha()">
+            🔄 Iniciar Nova Conferência (Limpar Dados)
+          </button>
         </div>
       </div>
 
@@ -398,6 +437,7 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
+    const SENHA_ADMIN = '1234'; // <--- ALTERE A SENHA AQUI
 
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
@@ -580,7 +620,6 @@
         
         if (currentTrack) {
           setupTurboAutofocus();
-          // 🔧 MODIFICADO: Aguarda track estabilizar e aplica constraints de hardware (zoom/torch)
           setTimeout(() => applyHardwareConstraints(), 800);
           await setupControls();
           if (autoTorchEnabled) await turnOnTorchAutomatically();
@@ -636,14 +675,12 @@
       }
     }
 
-    // 🔧 ADICIONADO: Helper seguro para aplicar constraints (evita crashes no WebView)
     async function tryApplyConstraint(track, key, value) {
       if (!track || track.readyState !== 'live') return false;
       try { await track.applyConstraints({ advanced: [{ [key]: value }] }); return true; }
       catch { try { await track.applyConstraints({ [key]: value }); return true; } catch { return false; } }
     }
 
-    // 🔧 ADICIONADO: Função centralizada que aplica zoom e detecta lanterna
     async function applyHardwareConstraints() {
       const video = document.querySelector('#reader video');
       if (!video || !video.srcObject) {
@@ -658,7 +695,6 @@
       try { caps = track.getCapabilities?.() || {}; } catch {}
       if (window.AndroidBridge?.logDebug) window.AndroidBridge.logDebug(`Capabilities: ${JSON.stringify(caps)}`);
 
-      // Aplica Zoom
       if (caps.zoom?.min !== undefined && caps.zoom?.max !== undefined) {
         const target = caps.zoom.min + ((caps.zoom.max - caps.zoom.min) * 0.6);
         const ok = await tryApplyConstraint(track, 'zoom', target);
@@ -669,13 +705,11 @@
         if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', false, 'Não suportado');
       }
 
-      // Detecta Lanterna
       const hasTorch = caps.torch !== undefined;
       DOM_CACHE.btnFlash.style.display = hasTorch ? 'flex' : 'none';
       if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('torch', hasTorch, `Suporte: ${hasTorch}`);
     }
 
-    // 🔧 MODIFICADO: applyFixedZoom original mantido, mas agora delega para applyHardwareConstraints
     async function applyFixedZoom(maxAttempts = 5, delayMs = 300) {
       console.log('🔍 [Zoom] Iniciando aplicação de zoom...');
       const notifyAndroid = (success, message = '') => {
@@ -963,7 +997,47 @@
       if (pageId === 'registrar') { startScannerWithDevice(); } else { stopScanner(); refreshActivePage(); }
     }
 
-    // 🔧 ADICIONADO: Detecção de WebView e notificação ao Java
+    // --- FUNÇÕES DE LIMPEZA DE DADOS (NOVA CONFERÊNCIA) ---
+
+    function abrirModalSenha() {
+      document.getElementById('modal-senha').classList.add('active');
+      document.getElementById('senha-admin').value = '';
+      setTimeout(() => document.getElementById('senha-admin').focus(), 100);
+    }
+
+    function fecharModalSenha() {
+      document.getElementById('modal-senha').classList.remove('active');
+    }
+
+    async function executarLimpeza() {
+      const senhaInput = document.getElementById('senha-admin').value;
+      if (senhaInput !== SENHA_ADMIN) {
+        showToast("Senha incorreta!", "erro");
+        document.getElementById('senha-admin').value = '';
+        return;
+      }
+
+      fecharModalSenha();
+      DOM_CACHE.loadingOverlay.style.display = 'flex';
+      DOM_CACHE.loadingOverlay.querySelector('span').textContent = "Limpando base de dados...";
+
+      try {
+        const res = await apiPost({ action: 'limparEstoque' });
+        if (res.status === 'sucesso') {
+          showToast("Dados apagados com sucesso!", "sucesso");
+          dataCache = null; lastDataFetch = 0;
+          carregarTodosOsDados(true);
+        } else {
+          showToast(res.mensagem, "erro");
+        }
+      } catch (err) {
+        showToast("Erro de conexão ao limpar dados.", "erro");
+      } finally {
+        DOM_CACHE.loadingOverlay.style.display = 'none';
+        DOM_CACHE.loadingOverlay.querySelector('span').textContent = "Sincronizando dados...";
+      }
+    }
+
     window.addEventListener('load', () => { 
       detectDeviceType();
       initDOMCache(); 
