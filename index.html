@@ -313,8 +313,9 @@
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
 
-  <!-- Modal de Confirmação de Item Vencido -->
-  <div id="modal-vencido" class="modal-overlay">
+  <!-- Modal de Confirmação de Item Vencido (REMOVIDO POIS AGORA É BLOQUEADO) -->
+  <!-- Mantido apenas estrutura caso queira reativar confirmação futura, mas atualmente oculto via JS -->
+  <div id="modal-vencido" class="modal-overlay" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">⚠️ Atenção: Item Vencido</div>
       <div class="modal-body">
@@ -849,6 +850,7 @@
       } catch { return false; }
     }
 
+    // Funções de Modal de Vencido mantidas para compatibilidade, mas não usadas no fluxo principal de bloqueio
     function mostrarModalVencido(item, lote, validade, quantidade) {
       document.getElementById('modal-item').textContent = item || 'N/A';
       document.getElementById('modal-lote').textContent = lote || 'N/A';
@@ -894,15 +896,28 @@
       statusDiv.style.display = 'block';
       try {
         const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
+        
+        // Verifica se houve erro (incluindo bloqueio de vencido)
+        if (res.status === 'erro') {
+           statusDiv.innerText = res.mensagem;
+           statusDiv.className = 'status-erro';
+           showToast(res.mensagem, "erro");
+           liberarBotoes();
+           registroEmProgresso = false;
+           // Mantém o QR Code lido para o usuário tentar outro ou corrigir, ou limpa se preferir
+           // resetarFormulario(); 
+           return;
+        }
+
         statusDiv.innerText = res.mensagem;
-        statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
-        if (res.status === 'sucesso') {
-          showToast(res.mensagem, "sucesso");
-          if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
-          dataCache = null; lastDataFetch = 0;
-          setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
-          carregarTodosOsDados(true);
-        } else { showToast(res.mensagem, "erro"); liberarBotoes(); registroEmProgresso = false; }
+        statusDiv.className = 'status-sucesso';
+        
+        showToast(res.mensagem, "sucesso");
+        if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
+        dataCache = null; lastDataFetch = 0;
+        setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
+        carregarTodosOsDados(true);
+        
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
@@ -922,10 +937,10 @@
         showToast("Leia o código e informe a quantidade.", "erro");
         return;
       }
-      if (tipo === 'Entrada') {
-        const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) { mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); return; }
-      }
+      
+      // Nota: A verificação local foi removida/confiada ao backend para garantir consistência
+      // O backend agora retorna erro se estiver vencido.
+      
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
