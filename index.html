@@ -144,7 +144,6 @@
       width: 40px; height: 3px; background: linear-gradient(90deg, var(--cor-primaria), var(--cor-primaria-light)); border-radius: 3px;
     }
 
-    /* Botão de Ação Secundária (Nova Conferência) */
     .btn-action-secondary {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; padding: 14px; margin-top: 10px;
@@ -261,10 +260,9 @@
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; z-index: 9999; }
 
-    /* Modal Genérico */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: var(--padding-container); }
     .modal-overlay.active { display: flex; animation: modalBgIn 0.3s; }
-    .modal-content { background: var(--cor-surface); border-radius: var(--radius-xl); padding: 32px; max-width: 420px; width: 100%; box-shadow: var(--sombra-xl); animation: slideUp 0.3s; }
+    .modal-content { background: var(--cor-surface); border-radius: var(--radius-xl); padding: 32px; max-width: 420px; width: 100%; box-shadow: var(--sombra-md); animation: slideUp 0.3s; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     
     .modal-header { font-size: 1.25rem; font-weight: 700; color: var(--cor-perigo); margin-bottom: 18px; text-align: center; }
@@ -284,7 +282,6 @@
     .status-erro { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info { background: #d1ecf1; color: #0c5460; display: block; }
 
-    /* 🔧 Fallback CSS de zoom para WebView Android */
     html.webview-android-zoom-fallback #reader video {
         transform: scale(1.15) !important;
         transform-origin: center center !important;
@@ -313,7 +310,6 @@
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
 
-  <!-- Modal de Confirmação de Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">⚠️ Atenção: Item Vencido</div>
@@ -334,7 +330,6 @@
     </div>
   </div>
 
-  <!-- Modal de Senha para Nova Conferência -->
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">🔒 Nova Conferência</div>
@@ -366,8 +361,6 @@
               <tbody id="corpo-tabela-estoque"></tbody>
             </table>
           </div>
-          
-          <!-- Botão para iniciar nova conferência -->
           <button class="btn-action-secondary" onclick="abrirModalSenha()">
             🔄 Iniciar Nova Conferência (Limpar Dados)
           </button>
@@ -437,7 +430,7 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-    const SENHA_ADMIN = '10032001'; // <--- ALTERE A SENHA AQUI
+    const SENHA_ADMIN = '10032001';
 
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
@@ -467,7 +460,6 @@
       const aspectRatio = maxDimension / minDimension;
       isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
       deviceType = isTablet ? 'tablet' : 'phone';
-      console.log(`📱 Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
     }
 
     function getOptimalQRBoxSize() {
@@ -693,64 +685,17 @@
 
       let caps = {};
       try { caps = track.getCapabilities?.() || {}; } catch {}
-      if (window.AndroidBridge?.logDebug) window.AndroidBridge.logDebug(`Capabilities: ${JSON.stringify(caps)}`);
-
+      
       if (caps.zoom?.min !== undefined && caps.zoom?.max !== undefined) {
         const target = caps.zoom.min + ((caps.zoom.max - caps.zoom.min) * 0.6);
         const ok = await tryApplyConstraint(track, 'zoom', target);
-        if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', ok, `Target: ${target.toFixed(2)}`);
         if (!ok) document.documentElement.classList.add('webview-android-zoom-fallback');
       } else {
         document.documentElement.classList.add('webview-android-zoom-fallback');
-        if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', false, 'Não suportado');
       }
 
       const hasTorch = caps.torch !== undefined;
       DOM_CACHE.btnFlash.style.display = hasTorch ? 'flex' : 'none';
-      if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('torch', hasTorch, `Suporte: ${hasTorch}`);
-    }
-
-    async function applyFixedZoom(maxAttempts = 5, delayMs = 300) {
-      console.log('🔍 [Zoom] Iniciando aplicação de zoom...');
-      const notifyAndroid = (success, message = '') => {
-        if (window.AndroidBridge && typeof window.AndroidBridge.onZoomApplied === 'function') {
-          window.AndroidBridge.onZoomApplied(success);
-        }
-        if (window.AndroidBridge && typeof window.AndroidBridge.logDebug === 'function') {
-          window.AndroidBridge.logDebug(`[Zoom] ${message}`);
-        }
-      };
-      
-      const tryApplyZoom = async (attempt) => {
-        if (attempt > maxAttempts) {
-          console.warn(`🔍 [Zoom] Falha após ${maxAttempts} tentativas`);
-          notifyAndroid(false, `Falha após ${maxAttempts} tentativas`);
-          return false;
-        }
-        try {
-          const videoElem = document.querySelector('#reader video');
-          if (!videoElem || !videoElem.srcObject) { await new Promise(r => setTimeout(r, delayMs)); return tryApplyZoom(attempt + 1); }
-          const tracks = videoElem.srcObject.getVideoTracks();
-          if (!tracks || tracks.length === 0) { await new Promise(r => setTimeout(r, delayMs)); return tryApplyZoom(attempt + 1); }
-          const track = tracks[0];
-          if (typeof track.getCapabilities !== 'function') { notifyAndroid(false, 'getCapabilities não suportado'); return false; }
-          const capabilities = track.getCapabilities();
-          if (!capabilities.zoom || capabilities.zoom.min === undefined) { notifyAndroid(false, 'Zoom não suportado'); return false; }
-          const minZoom = capabilities.zoom.min;
-          const maxZoom = capabilities.zoom.max;
-          const targetZoom = minZoom + ((maxZoom - minZoom) * 0.6);
-          console.log(`🔍 [Zoom] Aplicando: ${targetZoom.toFixed(2)} (min: ${minZoom}, max: ${maxZoom})`);
-          await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-          console.log('✅ [Zoom] Aplicado com sucesso!');
-          notifyAndroid(true, `Zoom ${targetZoom.toFixed(2)} aplicado`);
-          return true;
-        } catch (err) {
-          console.warn(`🔍 [Zoom] Erro na tentativa ${attempt}:`, err.message || err);
-          await new Promise(r => setTimeout(r, delayMs));
-          return tryApplyZoom(attempt + 1);
-        }
-      };
-      return tryApplyZoom(1);
     }
 
     function setupTurboAutofocus() {
@@ -766,44 +711,23 @@
         if (currentTrack && autoFocusActive && scannerActive) {
           focusAttempts++;
           updateFocusIndicator('focusing');
-          if (isTablet) {
-            if (focusAttempts % 4 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
-                .then(() => {
-                  consecutiveFocusSuccess++;
-                  if (consecutiveFocusSuccess >= 2) {
-                    updateFocusIndicator('success');
-                    setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, 500);
+          if (focusAttempts % (isTablet ? 4 : 3) === 0) {
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+              .then(() => {
+                consecutiveFocusSuccess++;
+                if (consecutiveFocusSuccess >= 2) {
+                  updateFocusIndicator('success');
+                  setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, isTablet ? 500 : 400);
+                }
+                setTimeout(() => {
+                  if (currentTrack && autoFocusActive) {
+                    currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
                   }
-                  setTimeout(() => {
-                    if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-                    }
-                  }, 80);
-                })
-                .catch(() => { consecutiveFocusSuccess = 0; });
-            } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
+                }, isTablet ? 80 : 50);
+              })
+              .catch(() => { consecutiveFocusSuccess = 0; });
           } else {
-            if (focusAttempts % 3 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
-                .then(() => {
-                  consecutiveFocusSuccess++;
-                  if (consecutiveFocusSuccess >= 2) {
-                    updateFocusIndicator('success');
-                    setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, 400);
-                  }
-                  setTimeout(() => {
-                    if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-                    }
-                  }, 50);
-                })
-                .catch(() => { consecutiveFocusSuccess = 0; });
-            } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
           }
         }
       }, focusInterval);
@@ -814,7 +738,6 @@
       DOM_CACHE.btnFlash.style.display = 'flex';
       const suporta = await detectTorchSupport();
       if (!suporta) { DOM_CACHE.btnFlash.style.display = 'none'; } 
-      else { DOM_CACHE.btnFlash.style.display = 'flex'; }
     }
 
     async function toggleFlash() {
@@ -859,8 +782,14 @@
     }
 
     async function confirmarEntradaVencida() {
+      if (registroEmProgresso) return;
+      registroEmProgresso = true;
+      bloquearBotoes();
+      
       document.getElementById('modal-vencido').classList.remove('active');
-      if (entradaVencidaPendente) await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
+      if (entradaVencidaPendente) {
+        await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
+      }
       entradaVencidaPendente = null;
     }
 
@@ -885,47 +814,65 @@
     }
 
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
-      if (registroEmProgresso) return;
-      registroEmProgresso = true;
-      bloquearBotoes();
       const statusDiv = DOM_CACHE.status;
       statusDiv.innerText = 'Registrando...';
       statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
+      
       try {
         const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
+        
         if (res.status === 'sucesso') {
           showToast(res.mensagem, "sucesso");
           if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
           dataCache = null; lastDataFetch = 0;
-          setTimeout(() => { resetarFormulario(); startScannerWithDevice(); }, 600);
+          setTimeout(() => { 
+            resetarFormulario(); 
+            startScannerWithDevice(); 
+          }, 600);
           carregarTodosOsDados(true);
-        } else { showToast(res.mensagem, "erro"); liberarBotoes(); registroEmProgresso = false; }
+        } else { 
+          showToast(res.mensagem, "erro"); 
+          registroEmProgresso = false;
+          liberarBotoes(); 
+        }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
         showToast('Erro de conexão', "erro");
-        liberarBotoes();
         registroEmProgresso = false;
+        liberarBotoes();
       }
     }
 
     async function enviarDados(tipo) {
       if (registroEmProgresso) return;
+      registroEmProgresso = true;
+      bloquearBotoes();
+      
       const quantidade = document.getElementById('quantidade').value;
       if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
         DOM_CACHE.status.innerText = 'Erro: Leia um código e informe a quantidade.';
         DOM_CACHE.status.className = 'status-erro';
         DOM_CACHE.status.style.display = 'block';
         showToast("Leia o código e informe a quantidade.", "erro");
+        registroEmProgresso = false;
+        liberarBotoes();
         return;
       }
+      
       if (tipo === 'Entrada') {
         const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) { mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); return; }
+        if (verificarSeVencido(qrParts[3])) { 
+          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); 
+          registroEmProgresso = false;
+          liberarBotoes();
+          return; 
+        }
       }
+      
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
@@ -959,7 +906,19 @@
     function renderizarEstoque() {
       const tbody = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque?.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>'; return; }
-      tbody.innerHTML = appData.estoque.map(item =>
+      
+      // CORREÇÃO: Deduplicação visual para evitar linhas repetidas caso o backend retorne duplicado
+      const estoqueUnico = [];
+      const seen = new Set();
+      for (const item of appData.estoque) {
+        const key = `${item.item}|${item.lote || ''}|${item.validade || ''}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          estoqueUnico.push(item);
+        }
+      }
+
+      tbody.innerHTML = estoqueUnico.map(item =>
         `<tr><td data-label="Item">${item.item}</td><td data-label="Lote">${item.lote||''}</td><td data-label="Validade">${item.validade||''}</td><td data-label="Total"><strong>${item.total}</strong></td></tr>`
       ).join('');
     }
@@ -976,7 +935,19 @@
     function renderizarMovimentacoes() {
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
       if (!appData.movimentacoes?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>'; return; }
-      tbody.innerHTML = appData.movimentacoes.map(mov =>
+      
+      // CORREÇÃO: Deduplicação visual para evitar linhas repetidas
+      const movUnicas = [];
+      const seen = new Set();
+      for (const mov of appData.movimentacoes) {
+        const key = `${mov.dataHora}|${mov.item}|${mov.lote}|${mov.qtd}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          movUnicas.push(mov);
+        }
+      }
+
+      tbody.innerHTML = movUnicas.map(mov =>
         `<tr><td data-label="Data">${mov.dataHora}</td><td data-label="Tipo" class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td><td data-label="Item">${mov.item}</td><td data-label="Lote">${mov.lote}</td><td data-label="Validade">${mov.validade}</td><td data-label="Qtd">${mov.qtd}</td></tr>`
       ).join('');
     }
@@ -996,8 +967,6 @@
       document.querySelector('.app-main').scrollTop = 0;
       if (pageId === 'registrar') { startScannerWithDevice(); } else { stopScanner(); refreshActivePage(); }
     }
-
-    // --- FUNÇÕES DE LIMPEZA DE DADOS (NOVA CONFERÊNCIA) ---
 
     function abrirModalSenha() {
       document.getElementById('modal-senha').classList.add('active');
