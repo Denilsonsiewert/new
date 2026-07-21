@@ -341,7 +341,7 @@
 
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-header">🔒 Nova Conferência</div>
+      <div class="modal-header"> Nova Conferência</div>
       <div class="modal-body">
         <p>Esta ação irá <strong>apagar todos os dados</strong> de Estoque e Histórico.</p>
         <p>Digite a senha de administrador para confirmar:</p>
@@ -396,7 +396,7 @@
 
           <!-- Botão para alternar para modo manual -->
           <button id="btn-toggle-manual" class="btn-action-secondary manual-mode" onclick="toggleManualEntry()">
-            📝 Inserir Dados Manualmente (Código danificado)
+             Inserir Dados Manualmente (Código danificado)
           </button>
 
           <!-- Formulário de Inserção Manual (Oculto por padrão) -->
@@ -680,29 +680,32 @@
       catch (err) { console.warn('Erro ao desligar lanterna:', err); }
     }
 
-    // --- FUNÇÃO UNIVERSAL DE EXTRAÇÃO DE DADOS ---
+    // --- FUNÇÃO UNIVERSAL DE EXTRAÇÃO DE DADOS CORRIGIDA ---
     function extrairDadosDoQR(qrString) {
-      // Compatibilidade com formato manual antigo (caso ainda exista em algum lugar)
+      // Compatibilidade com formato manual antigo
       if (qrString.includes(';')) {
         const parts = qrString.split(';');
         return { item: parts[1] || 'Manual', lote: parts[2] || '', validade: parts[3] || '' };
       }
 
-      // Formato DataMatrix real (ou falso gerado por nós), separado por espaços
+      // Formato DataMatrix real, separado por espaços
       const parts = qrString.split(' ');
       let item = 'Item N/A', lote = '', validade = '';
 
       for (let part of parts) {
         // AI 10 = Lote (ex: 100003824365 -> 3824365)
-        if (part.startsWith('10') && part.length > 4) {
-          lote = part.substring(2).replace(/^0+/, ''); 
+        if (part.startsWith('10') && part.length > 2) {
+          // Remove apenas o prefixo "10" e mantém o resto
+          let loteValor = part.substring(2);
+          // Remove zeros à esquerda APENAS se houver mais de 1 zero no início
+          lote = loteValor.replace(/^0+/, '') || loteValor;
         } 
         // AI 24 ou 240 = Item/Parte (ex: 24016605491 -> 16605491)
-        else if (part.startsWith('24') && part.length > 4) {
-          item = part.startsWith('240') ? part.substring(3) : part.substring(2);
+        else if ((part.startsWith('240') || part.startsWith('241')) && part.length > 3) {
+          item = part.substring(3);
         } 
         // AI 16 = Validade (ex: 1611/09/2026 -> 11/09/2026)
-        else if (part.startsWith('16') && part.includes('/')) {
+        else if (part.startsWith('16') && part.length > 2 && part.includes('/')) {
           validade = part.substring(2); 
         }
       }
@@ -876,8 +879,8 @@
       const validadeBR = `${dia}/${mes}/${ano}`;
 
       // Gera a string EXATA no formato que o Google Sheets espera
-      // Lote é preenchido com zeros à esquerda para ter 8 dígitos (ex: 3824365 -> 0003824365)
-      const lotePadded = lote.padStart(8, '0'); 
+      // Lote é preenchido com zeros à esquerda para ter 10 dígitos
+      const lotePadded = lote.padStart(10, '0'); 
       
       // Monta a string simulando o DataMatrix real para não quebrar o Google Sheets
       qrCodeCompleto = `017909927073285 21 10${lotePadded} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
