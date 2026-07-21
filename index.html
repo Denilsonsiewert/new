@@ -152,6 +152,14 @@
       cursor: pointer; transition: all 0.2s; font-size: 1rem;
     }
     .btn-action-secondary:active { background: var(--cor-perigo); color: white; transform: scale(0.98); }
+    .btn-action-secondary.manual-mode {
+      border-color: var(--cor-primaria);
+      color: var(--cor-primaria);
+    }
+    .btn-action-secondary.manual-mode:active {
+      background: var(--cor-primaria);
+      color: white;
+    }
 
     #reader-container {
       position: relative; width: 100%; max-width: 420px; margin: 0 auto 18px;
@@ -216,6 +224,7 @@
       color: var(--cor-texto-secundario); font-size: 0.95rem;
     }
     .qr-result.success { background: #d1e7dd; border-color: var(--cor-sucesso); color: #0f5132; border-style: solid; }
+    .qr-result.manual { background: #e7f1ff; border-color: var(--cor-primaria); color: var(--cor-primaria-dark); border-style: solid; }
 
     .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .input-group label { font-weight: 600; font-size: 0.9rem; color: var(--cor-texto-secundario); margin-left: 4px; }
@@ -370,12 +379,14 @@
       <div id="page-registrar" class="page">
         <div class="card">
           <h2>📷 Registrar Movimentação</h2>
+          
+          <!-- Container da Câmera -->
           <div id="reader-container">
             <div id="reader"></div>
             <div class="focus-status" id="focusStatus"></div>
           </div>
 
-          <div class="camera-controls-module">
+          <div class="camera-controls-module" id="camera-controls">
             <div class="camera-info">
               <span class="focus-indicator" id="focusIndicator"></span>
               <span id="cameraStatus">Pronto</span>
@@ -383,13 +394,42 @@
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
           </div>
 
+          <!-- Botão para alternar para modo manual -->
+          <button id="btn-toggle-manual" class="btn-action-secondary manual-mode" onclick="toggleManualEntry()">
+            📝 Inserir Dados Manualmente (Código danificado)
+          </button>
+
+          <!-- Formulário de Inserção Manual (Oculto por padrão) -->
+          <div id="manual-form" style="display: none; background: #f8f9fa; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--borda); margin-bottom: 15px;">
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--cor-primaria); display: flex; align-items: center; gap: 8px;">
+              <span>✏️</span> Dados Manuais
+            </h3>
+            <div class="input-group">
+              <label for="manual-item">Item / Descrição</label>
+              <input type="text" id="manual-item" placeholder="Ex: Parafuso M8" autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <label for="manual-lote">Lote</label>
+              <input type="text" id="manual-lote" placeholder="Ex: L12345" autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <label for="manual-validade">Validade</label>
+              <input type="date" id="manual-validade" />
+            </div>
+            <button class="btn-action-secondary" onclick="confirmarManual()" style="border-color: var(--cor-sucesso); color: var(--cor-sucesso); margin-top: 5px;">
+              ✔️ Confirmar Dados e Prosseguir
+            </button>
+          </div>
+
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
+          
           <div class="input-group">
             <label for="quantidade">Quantidade</label>
             <input type="number" id="quantidade" placeholder="Ex: 5" min="1" inputmode="numeric" />
           </div>
+          
           <div class="button-group">
-            <button id="btnEntrada" onclick="enviarDados('Entrada')"> Entrada</button>
+            <button id="btnEntrada" onclick="enviarDados('Entrada')">📥 Entrada</button>
             <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">📤 Saída</button>
           </div>
           <div id="status"></div>
@@ -413,7 +453,7 @@
 
       <div id="page-alertas" class="page">
         <div class="card">
-          <h2>️ Alertas de Estoque</h2>
+          <h2>⚠️ Alertas de Estoque</h2>
           <ul id="lista-alertas" class="alert-list"></ul>
         </div>
       </div>
@@ -435,7 +475,8 @@
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
       btnFlash: null, btnEntrada: null, btnSaida: null,
-      loadingOverlay: null, focusStatus: null, focusIndicator: null, cameraStatus: null
+      loadingOverlay: null, focusStatus: null, focusIndicator: null, cameraStatus: null,
+      cameraControls: null, btnToggleManual: null, manualForm: null
     };
 
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
@@ -447,6 +488,7 @@
     let consecutiveFocusSuccess = 0;
     let focusIntervalId = null;
     let torchMethod = null, torchSupported = null;
+    let isManualMode = false;
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
@@ -484,6 +526,9 @@
       DOM_CACHE.focusStatus     = document.getElementById('focusStatus');
       DOM_CACHE.focusIndicator  = document.getElementById('focusIndicator');
       DOM_CACHE.cameraStatus    = document.getElementById('cameraStatus');
+      DOM_CACHE.cameraControls  = document.getElementById('camera-controls');
+      DOM_CACHE.btnToggleManual = document.getElementById('btn-toggle-manual');
+      DOM_CACHE.manualForm      = document.getElementById('manual-form');
     }
 
     function normalizeError(err) {
@@ -567,7 +612,7 @@
     }
 
     async function startScannerWithDevice(deviceId = null) {
-      if (scannerActive) return;
+      if (scannerActive || isManualMode) return;
       await stopScanner(true);
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.status.style.display = 'none';
@@ -636,11 +681,15 @@
     }
 
     function onScanSuccess(decodedText) {
-      if (qrCodeCompleto || !scannerActive) return;
+      if (qrCodeCompleto || !scannerActive || isManualMode) return;
       qrCodeCompleto = decodedText;
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
-      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Lido: " + decodedText.split(';')[1] + "</strong>";
+      
+      const parts = decodedText.split(';');
+      const itemName = parts.length > 1 ? parts[1] : decodedText;
+      
+      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Lido: " + itemName + "</strong>";
       DOM_CACHE.qrResult.classList.add('success');
       updateFocusIndicator('success');
       setTimeout(() => document.getElementById('quantidade').focus(), 200);
@@ -663,7 +712,7 @@
         autoFocusActive = false;
         consecutiveFocusSuccess = 0;
         DOM_CACHE.readerContainer.classList.remove('scanning-active', 'focusing');
-        if (!silent) updateFocusIndicator('default');
+        if (!silent && !isManualMode) updateFocusIndicator('default');
       }
     }
 
@@ -748,6 +797,78 @@
       else { showToast('Lanterna não disponível neste dispositivo', 'info'); DOM_CACHE.btnFlash.style.display = 'none'; }
     }
 
+    // --- FUNÇÕES DE INSERÇÃO MANUAL ---
+    function toggleManualEntry() {
+      isManualMode = !isManualMode;
+      
+      if (isManualMode) {
+        stopScanner(true);
+        DOM_CACHE.readerContainer.style.display = 'none';
+        DOM_CACHE.cameraControls.style.display = 'none';
+        DOM_CACHE.manualForm.style.display = 'block';
+        DOM_CACHE.btnToggleManual.innerHTML = '📷 Voltar para Leitura por Câmera';
+        DOM_CACHE.btnToggleManual.classList.remove('manual-mode');
+        DOM_CACHE.btnToggleManual.style.borderColor = 'var(--cor-perigo)';
+        DOM_CACHE.btnToggleManual.style.color = 'var(--cor-perigo)';
+        
+        // Limpa dados anteriores
+        qrCodeCompleto = null;
+        DOM_CACHE.qrResult.textContent = 'Preencha os dados manualmente e confirme.';
+        DOM_CACHE.qrResult.classList.remove('success', 'manual');
+        document.getElementById('quantidade').value = '';
+      } else {
+        DOM_CACHE.readerContainer.style.display = 'block';
+        DOM_CACHE.cameraControls.style.display = 'flex';
+        DOM_CACHE.manualForm.style.display = 'none';
+        DOM_CACHE.btnToggleManual.innerHTML = '📝 Inserir Dados Manualmente (Código danificado)';
+        DOM_CACHE.btnToggleManual.classList.add('manual-mode');
+        DOM_CACHE.btnToggleManual.style.borderColor = '';
+        DOM_CACHE.btnToggleManual.style.color = '';
+        
+        // Limpa formulário manual
+        document.getElementById('manual-item').value = '';
+        document.getElementById('manual-lote').value = '';
+        document.getElementById('manual-validade').value = '';
+        
+        startScannerWithDevice();
+      }
+    }
+
+    function formatarDataBR(dataISO) {
+      if (!dataISO) return '';
+      const [ano, mes, dia] = dataISO.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function confirmarManual() {
+      const item = document.getElementById('manual-item').value.trim();
+      const lote = document.getElementById('manual-lote').value.trim();
+      const validadeISO = document.getElementById('manual-validade').value;
+      const qtd = document.getElementById('quantidade').value;
+
+      if (!item || !lote || !validadeISO) {
+        showToast("Preencha Item, Lote e Validade.", "erro");
+        return;
+      }
+
+      const validadeBR = formatarDataBR(validadeISO);
+      
+      // Simula o formato do QR Code: ID;Item;Lote;Validade
+      qrCodeCompleto = `MANUAL;${item};${lote};${validadeBR}`;
+      
+      beep(80, 1200, 0.4);
+      if (navigator.vibrate) navigator.vibrate(100);
+      
+      DOM_CACHE.qrResult.innerHTML = `✔️ <strong style='color:var(--cor-primaria)'>Manual: ${item}</strong><br><small>Lote: ${lote} | Val: ${validadeBR}</small>`;
+      DOM_CACHE.qrResult.classList.add('manual');
+      
+      // Esconde o formulário manual após confirmação para focar na ação
+      DOM_CACHE.manualForm.style.display = 'none';
+      document.getElementById('quantidade').focus();
+      showToast("Dados manuais confirmados!", "sucesso");
+    }
+    // ------------------------------------
+
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
       return await (await fetch(url)).json();
@@ -797,7 +918,7 @@
       document.getElementById('modal-vencido').classList.remove('active');
       entradaVencidaPendente = null;
       resetarFormulario();
-      startScannerWithDevice();
+      if (!isManualMode) startScannerWithDevice();
     }
 
     function liberarBotoes() { DOM_CACHE.btnEntrada.disabled = false; DOM_CACHE.btnSaida.disabled = false; }
@@ -806,11 +927,16 @@
     function resetarFormulario() {
       document.getElementById('quantidade').value = '';
       qrCodeCompleto = null;
-      DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
-      DOM_CACHE.qrResult.classList.remove('success');
+      DOM_CACHE.qrResult.textContent = isManualMode ? 'Preencha os dados manualmente e confirme.' : 'Aponte a câmera para o Data Matrix';
+      DOM_CACHE.qrResult.classList.remove('success', 'manual');
       DOM_CACHE.status.style.display = 'none';
       registroEmProgresso = false;
       liberarBotoes();
+      
+      // Limpa campos manuais também
+      document.getElementById('manual-item').value = '';
+      document.getElementById('manual-lote').value = '';
+      document.getElementById('manual-validade').value = '';
     }
 
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
@@ -830,7 +956,7 @@
           dataCache = null; lastDataFetch = 0;
           setTimeout(() => { 
             resetarFormulario(); 
-            startScannerWithDevice(); 
+            if (!isManualMode) startScannerWithDevice(); 
           }, 600);
           carregarTodosOsDados(true);
         } else { 
@@ -849,19 +975,25 @@
 
     async function enviarDados(tipo) {
       if (registroEmProgresso) return;
-      registroEmProgresso = true;
-      bloquearBotoes();
       
       const quantidade = document.getElementById('quantidade').value;
+      
+      // Validação específica para modo manual
+      if (isManualMode && !qrCodeCompleto) {
+        showToast("Confirme os dados manuais antes de registrar.", "erro");
+        return;
+      }
+
       if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
-        DOM_CACHE.status.innerText = 'Erro: Leia um código e informe a quantidade.';
+        DOM_CACHE.status.innerText = 'Erro: Leia um código (ou insira manualmente) e informe a quantidade.';
         DOM_CACHE.status.className = 'status-erro';
         DOM_CACHE.status.style.display = 'block';
         showToast("Leia o código e informe a quantidade.", "erro");
-        registroEmProgresso = false;
-        liberarBotoes();
         return;
       }
+      
+      registroEmProgresso = true;
+      bloquearBotoes();
       
       if (tipo === 'Entrada') {
         const qrParts = qrCodeCompleto.split(';');
@@ -907,7 +1039,6 @@
       const tbody = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque?.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>'; return; }
       
-      // CORREÇÃO: Deduplicação visual para evitar linhas repetidas caso o backend retorne duplicado
       const estoqueUnico = [];
       const seen = new Set();
       for (const item of appData.estoque) {
@@ -936,7 +1067,6 @@
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
       if (!appData.movimentacoes?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>'; return; }
       
-      // CORREÇÃO: Deduplicação visual para evitar linhas repetidas
       const movUnicas = [];
       const seen = new Set();
       for (const mov of appData.movimentacoes) {
@@ -965,7 +1095,12 @@
       document.getElementById('page-' + pageId).classList.add('active');
       document.getElementById('nav-' + pageId).classList.add('active');
       document.querySelector('.app-main').scrollTop = 0;
-      if (pageId === 'registrar') { startScannerWithDevice(); } else { stopScanner(); refreshActivePage(); }
+      if (pageId === 'registrar') { 
+        if (!isManualMode) startScannerWithDevice(); 
+      } else { 
+        stopScanner(); 
+        refreshActivePage(); 
+      }
     }
 
     function abrirModalSenha() {
