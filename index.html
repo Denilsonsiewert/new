@@ -341,7 +341,7 @@
 
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-header">🔒 Nova Conferência</div>
+      <div class="modal-header"> Nova Conferência</div>
       <div class="modal-body">
         <p>Esta ação irá <strong>apagar todos os dados</strong> de Estoque e Histórico.</p>
         <p>Digite a senha de administrador para confirmar:</p>
@@ -380,7 +380,6 @@
         <div class="card">
           <h2>📷 Registrar Movimentação</h2>
           
-          <!-- Container da Câmera -->
           <div id="reader-container">
             <div id="reader"></div>
             <div class="focus-status" id="focusStatus"></div>
@@ -391,26 +390,24 @@
               <span class="focus-indicator" id="focusIndicator"></span>
               <span id="cameraStatus">Pronto</span>
             </div>
-            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
+            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna"></div>
           </div>
 
-          <!-- Botão para alternar para modo manual -->
           <button id="btn-toggle-manual" class="btn-action-secondary manual-mode" onclick="toggleManualEntry()">
             📝 Inserir Dados Manualmente (Código danificado)
           </button>
 
-          <!-- Formulário de Inserção Manual (Oculto por padrão) -->
           <div id="manual-form" style="display: none; background: #f8f9fa; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--borda); margin-bottom: 15px;">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--cor-primaria); display: flex; align-items: center; gap: 8px;">
               <span>✏️</span> Dados Manuais
             </h3>
             <div class="input-group">
               <label for="manual-item">Item </label>
-              <input type="text" id="manual-item" placeholder="Ex: 16605491" autocomplete="off" />
+              <input type="text" id="manual-item" placeholder="Ex: 10005965" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="manual-lote">Lote</label>
-              <input type="text" id="manual-lote" placeholder="Ex: 3824365" autocomplete="off" />
+              <input type="text" id="manual-lote" placeholder="Ex: 40232339" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="manual-validade">Validade</label>
@@ -430,7 +427,7 @@
           
           <div class="button-group">
             <button id="btnEntrada" onclick="enviarDados('Entrada')">📥 Entrada</button>
-            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')"> Saída</button>
+            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">📤 Saída</button>
           </div>
           <div id="status"></div>
         </div>
@@ -461,10 +458,10 @@
   </main>
 
   <nav class="app-nav">
-    <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon"></span><span>Estoque</span></button>
+    <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
     <button id="nav-registrar" class="nav-link" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
     <button id="nav-movimentacoes" class="nav-link" onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
-    <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
+    <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">️</span><span>Alertas</span></button>
   </nav>
 
   <script>
@@ -693,17 +690,17 @@
       let item = 'Item N/A', lote = '', validade = '';
 
       for (let part of parts) {
-        // AI 10 = Lote (ex: 100003824365 -> 3824365)
+        // AI 10 = Lote (ex: 1000040232339 -> 40232339)
         if (part.startsWith('10') && part.length > 2) {
           let loteValor = part.substring(2);
           // Remove zeros à esquerda
           lote = loteValor.replace(/^0+/, '') || loteValor;
         } 
-        // AI 240 = Item/Parte (ex: 24016605491 -> 16605491)
+        // AI 240 = Item/Parte (ex: 24010005965 -> 10005965)
         else if (part.startsWith('240') && part.length > 3) {
           item = part.substring(3);
         } 
-        // AI 16 = Validade (ex: 1611/09/2026 -> 11/09/2026)
+        // AI 16 = Validade (ex: 1613/05/2027 -> 13/05/2027)
         else if (part.startsWith('16') && part.length > 2 && part.includes('/')) {
           validade = part.substring(2); 
         }
@@ -877,9 +874,12 @@
       const [ano, mes, dia] = validadeISO.split('-');
       const validadeBR = `${dia}/${mes}/${ano}`;
 
-      // Gera a string no formato DataMatrix SEM zeros à esquerda no lote
-      // Isso evita problemas com o Google Sheets
-      qrCodeCompleto = `017909927073285 21 10${lote} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
+      // LOTE DEVE ter 11 dígitos após o "10" (preenche com zeros à esquerda)
+      // Exemplo real da câmera: 1000040232339 -> "10" + "00040232339" (11 dígitos)
+      const lotePadded = lote.padStart(11, '0');
+      
+      // Gera a string EXATA no formato que o Google Sheets espera
+      qrCodeCompleto = `017909927073285 21 10${lotePadded} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
 
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
