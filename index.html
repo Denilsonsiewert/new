@@ -405,12 +405,12 @@
               <span>✏️</span> Dados Manuais
             </h3>
             <div class="input-group">
-              <label for="manual-item">Item</label>
-              <input type="text" id="manual-item" placeholder="Ex: 10005961" autocomplete="off" />
+              <label for="manual-item">Item </label>
+              <input type="text" id="manual-item" placeholder="Ex: 16605491" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="manual-lote">Lote</label>
-              <input type="text" id="manual-lote" placeholder="Ex: 12345" autocomplete="off" />
+              <input type="text" id="manual-lote" placeholder="Ex: 3824365" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="manual-validade">Validade</label>
@@ -680,16 +680,45 @@
       catch (err) { console.warn('Erro ao desligar lanterna:', err); }
     }
 
+    // --- FUNÇÃO UNIVERSAL DE EXTRAÇÃO DE DADOS ---
+    function extrairDadosDoQR(qrString) {
+      // Compatibilidade com formato manual antigo (caso ainda exista em algum lugar)
+      if (qrString.includes(';')) {
+        const parts = qrString.split(';');
+        return { item: parts[1] || 'Manual', lote: parts[2] || '', validade: parts[3] || '' };
+      }
+
+      // Formato DataMatrix real (ou falso gerado por nós), separado por espaços
+      const parts = qrString.split(' ');
+      let item = 'Item N/A', lote = '', validade = '';
+
+      for (let part of parts) {
+        // AI 10 = Lote (ex: 100003824365 -> 3824365)
+        if (part.startsWith('10') && part.length > 4) {
+          lote = part.substring(2).replace(/^0+/, ''); 
+        } 
+        // AI 24 ou 240 = Item/Parte (ex: 24016605491 -> 16605491)
+        else if (part.startsWith('24') && part.length > 4) {
+          item = part.startsWith('240') ? part.substring(3) : part.substring(2);
+        } 
+        // AI 16 = Validade (ex: 1611/09/2026 -> 11/09/2026)
+        else if (part.startsWith('16') && part.includes('/')) {
+          validade = part.substring(2); 
+        }
+      }
+
+      return { item, lote, validade };
+    }
+
     function onScanSuccess(decodedText) {
       if (qrCodeCompleto || !scannerActive || isManualMode) return;
       qrCodeCompleto = decodedText;
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
       
-      const parts = decodedText.split(';');
-      const itemName = parts.length > 1 ? parts[1] : decodedText;
+      const dados = extrairDadosDoQR(decodedText);
       
-      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Lido: " + itemName + "</strong>";
+      DOM_CACHE.qrResult.innerHTML = `✔️ <strong style='color:var(--cor-sucesso)'>Lido: ${dados.item}</strong><br><small>Lote: ${dados.lote} | Val: ${dados.validade}</small>`;
       DOM_CACHE.qrResult.classList.add('success');
       updateFocusIndicator('success');
       setTimeout(() => document.getElementById('quantidade').focus(), 200);
@@ -811,7 +840,6 @@
         DOM_CACHE.btnToggleManual.style.borderColor = 'var(--cor-perigo)';
         DOM_CACHE.btnToggleManual.style.color = 'var(--cor-perigo)';
         
-        // Limpa dados anteriores
         qrCodeCompleto = null;
         DOM_CACHE.qrResult.textContent = 'Preencha os dados manualmente e confirme.';
         DOM_CACHE.qrResult.classList.remove('success', 'manual');
@@ -825,7 +853,6 @@
         DOM_CACHE.btnToggleManual.style.borderColor = '';
         DOM_CACHE.btnToggleManual.style.color = '';
         
-        // Limpa formulário manual
         document.getElementById('manual-item').value = '';
         document.getElementById('manual-lote').value = '';
         document.getElementById('manual-validade').value = '';
@@ -834,38 +861,36 @@
       }
     }
 
-    function formatarDataBR(dataISO) {
-      if (!dataISO) return '';
-      const [ano, mes, dia] = dataISO.split('-');
-      return `${dia}/${mes}/${ano}`;
-    }
-
     function confirmarManual() {
       const item = document.getElementById('manual-item').value.trim();
       const lote = document.getElementById('manual-lote').value.trim();
       const validadeISO = document.getElementById('manual-validade').value;
-      const qtd = document.getElementById('quantidade').value;
 
       if (!item || !lote || !validadeISO) {
         showToast("Preencha Item, Lote e Validade.", "erro");
         return;
       }
 
-      const validadeBR = formatarDataBR(validadeISO);
+      // Formata a data de YYYY-MM-DD para DD/MM/YYYY
+      const [ano, mes, dia] = validadeISO.split('-');
+      const validadeBR = `${dia}/${mes}/${ano}`;
+
+      // Gera a string EXATA no formato que o Google Sheets espera
+      // Lote é preenchido com zeros à esquerda para ter 8 dígitos (ex: 3824365 -> 0003824365)
+      const lotePadded = lote.padStart(8, '0'); 
       
-      // Simula o formato do QR Code: ID;Item;Lote;Validade
-      qrCodeCompleto = `MANUAL;${item};${lote};${validadeBR}`;
-      
+      // Monta a string simulando o DataMatrix real para não quebrar o Google Sheets
+      qrCodeCompleto = `017909927073285 21 10${lotePadded} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
+
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
-      
+
       DOM_CACHE.qrResult.innerHTML = `✔️ <strong style='color:var(--cor-primaria)'>Manual: ${item}</strong><br><small>Lote: ${lote} | Val: ${validadeBR}</small>`;
       DOM_CACHE.qrResult.classList.add('manual');
-      
-      // Esconde o formulário manual após confirmação para focar na ação
+
       DOM_CACHE.manualForm.style.display = 'none';
       document.getElementById('quantidade').focus();
-      showToast("Dados manuais confirmados!", "sucesso");
+      showToast("Dados formatados e prontos para registro!", "sucesso");
     }
     // ------------------------------------
 
@@ -933,7 +958,6 @@
       registroEmProgresso = false;
       liberarBotoes();
       
-      // Limpa campos manuais também
       document.getElementById('manual-item').value = '';
       document.getElementById('manual-lote').value = '';
       document.getElementById('manual-validade').value = '';
@@ -978,7 +1002,6 @@
       
       const quantidade = document.getElementById('quantidade').value;
       
-      // Validação específica para modo manual
       if (isManualMode && !qrCodeCompleto) {
         showToast("Confirme os dados manuais antes de registrar.", "erro");
         return;
@@ -996,9 +1019,9 @@
       bloquearBotoes();
       
       if (tipo === 'Entrada') {
-        const qrParts = qrCodeCompleto.split(';');
-        if (verificarSeVencido(qrParts[3])) { 
-          mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); 
+        const dados = extrairDadosDoQR(qrCodeCompleto);
+        if (verificarSeVencido(dados.validade)) { 
+          mostrarModalVencido(dados.item, dados.lote, dados.validade, quantidade); 
           registroEmProgresso = false;
           liberarBotoes();
           return; 
