@@ -321,7 +321,7 @@
 
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-header">⚠️ Atenção: Item Vencido</div>
+      <div class="modal-header">️ Atenção: Item Vencido</div>
       <div class="modal-body">
         <p>Você está tentando dar entrada de um item que já está <strong>vencido</strong>.</p>
         <div class="modal-info-box">
@@ -341,7 +341,7 @@
 
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-header"> Nova Conferência</div>
+      <div class="modal-header">🔒 Nova Conferência</div>
       <div class="modal-body">
         <p>Esta ação irá <strong>apagar todos os dados</strong> de Estoque e Histórico.</p>
         <p>Digite a senha de administrador para confirmar:</p>
@@ -371,7 +371,7 @@
             </table>
           </div>
           <button class="btn-action-secondary" onclick="abrirModalSenha()">
-            🔄 Iniciar Nova Conferência (Limpar Dados)
+             Iniciar Nova Conferência (Limpar Dados)
           </button>
         </div>
       </div>
@@ -390,11 +390,11 @@
               <span class="focus-indicator" id="focusIndicator"></span>
               <span id="cameraStatus">Pronto</span>
             </div>
-            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna"></div>
+            <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
           </div>
 
           <button id="btn-toggle-manual" class="btn-action-secondary manual-mode" onclick="toggleManualEntry()">
-            📝 Inserir Dados Manualmente (Código danificado)
+             Inserir Dados Manualmente (Código danificado)
           </button>
 
           <div id="manual-form" style="display: none; background: #f8f9fa; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--borda); margin-bottom: 15px;">
@@ -402,7 +402,7 @@
               <span>✏️</span> Dados Manuais
             </h3>
             <div class="input-group">
-              <label for="manual-item">Item </label>
+              <label for="manual-item">Item / Descrição</label>
               <input type="text" id="manual-item" placeholder="Ex: 10005965" autocomplete="off" />
             </div>
             <div class="input-group">
@@ -461,7 +461,7 @@
     <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
     <button id="nav-registrar" class="nav-link" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
     <button id="nav-movimentacoes" class="nav-link" onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
-    <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">️</span><span>Alertas</span></button>
+    <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
   </nav>
 
   <script>
@@ -834,7 +834,7 @@
         DOM_CACHE.readerContainer.style.display = 'none';
         DOM_CACHE.cameraControls.style.display = 'none';
         DOM_CACHE.manualForm.style.display = 'block';
-        DOM_CACHE.btnToggleManual.innerHTML = '📷 Voltar para Leitura por Câmera';
+        DOM_CACHE.btnToggleManual.innerHTML = ' Voltar para Leitura por Câmera';
         DOM_CACHE.btnToggleManual.classList.remove('manual-mode');
         DOM_CACHE.btnToggleManual.style.borderColor = 'var(--cor-perigo)';
         DOM_CACHE.btnToggleManual.style.color = 'var(--cor-perigo)';
