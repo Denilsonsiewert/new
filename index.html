@@ -341,7 +341,7 @@
 
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-header"> Nova Conferência</div>
+      <div class="modal-header">🔒 Nova Conferência</div>
       <div class="modal-body">
         <p>Esta ação irá <strong>apagar todos os dados</strong> de Estoque e Histórico.</p>
         <p>Digite a senha de administrador para confirmar:</p>
@@ -396,7 +396,7 @@
 
           <!-- Botão para alternar para modo manual -->
           <button id="btn-toggle-manual" class="btn-action-secondary manual-mode" onclick="toggleManualEntry()">
-             Inserir Dados Manualmente (Código danificado)
+            📝 Inserir Dados Manualmente (Código danificado)
           </button>
 
           <!-- Formulário de Inserção Manual (Oculto por padrão) -->
@@ -430,7 +430,7 @@
           
           <div class="button-group">
             <button id="btnEntrada" onclick="enviarDados('Entrada')">📥 Entrada</button>
-            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">📤 Saída</button>
+            <button id="btnSaida" class="saida" onclick="enviarDados('Saída')"> Saída</button>
           </div>
           <div id="status"></div>
         </div>
@@ -461,7 +461,7 @@
   </main>
 
   <nav class="app-nav">
-    <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
+    <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon"></span><span>Estoque</span></button>
     <button id="nav-registrar" class="nav-link" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
     <button id="nav-movimentacoes" class="nav-link" onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
     <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
@@ -680,7 +680,7 @@
       catch (err) { console.warn('Erro ao desligar lanterna:', err); }
     }
 
-    // --- FUNÇÃO UNIVERSAL DE EXTRAÇÃO DE DADOS CORRIGIDA ---
+    // --- FUNÇÃO UNIVERSAL DE EXTRAÇÃO DE DADOS ---
     function extrairDadosDoQR(qrString) {
       // Compatibilidade com formato manual antigo
       if (qrString.includes(';')) {
@@ -695,13 +695,12 @@
       for (let part of parts) {
         // AI 10 = Lote (ex: 100003824365 -> 3824365)
         if (part.startsWith('10') && part.length > 2) {
-          // Remove apenas o prefixo "10" e mantém o resto
           let loteValor = part.substring(2);
-          // Remove zeros à esquerda APENAS se houver mais de 1 zero no início
+          // Remove zeros à esquerda
           lote = loteValor.replace(/^0+/, '') || loteValor;
         } 
-        // AI 24 ou 240 = Item/Parte (ex: 24016605491 -> 16605491)
-        else if ((part.startsWith('240') || part.startsWith('241')) && part.length > 3) {
+        // AI 240 = Item/Parte (ex: 24016605491 -> 16605491)
+        else if (part.startsWith('240') && part.length > 3) {
           item = part.substring(3);
         } 
         // AI 16 = Validade (ex: 1611/09/2026 -> 11/09/2026)
@@ -878,12 +877,9 @@
       const [ano, mes, dia] = validadeISO.split('-');
       const validadeBR = `${dia}/${mes}/${ano}`;
 
-      // Gera a string EXATA no formato que o Google Sheets espera
-      // Lote é preenchido com zeros à esquerda para ter 10 dígitos
-      const lotePadded = lote.padStart(10, '0'); 
-      
-      // Monta a string simulando o DataMatrix real para não quebrar o Google Sheets
-      qrCodeCompleto = `017909927073285 21 10${lotePadded} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
+      // Gera a string no formato DataMatrix SEM zeros à esquerda no lote
+      // Isso evita problemas com o Google Sheets
+      qrCodeCompleto = `017909927073285 21 10${lote} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
 
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
