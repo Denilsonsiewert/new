@@ -934,18 +934,17 @@
     }
 
     async function apiGet(action) {
-      const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
-      return await (await fetch(url)).json();
+      const separador = action === 'obter' ? `&_=${Date.now()}` : '';
+      const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}${separador}`;
+      return await (await fetch(url, { cache: 'no-store' })).json();
     }
-
     async function apiPost(payload) {
       return await (await fetch(WEB_APP_URL, {
-        method: 'POST',
+        method: 'POST', cache: 'no-store',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ ...payload, token: API_TOKEN })
       })).json();
     }
-
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -984,12 +983,20 @@
 
     function resetarFormulario() {
       document.getElementById('quantidade').value = '';
+      ['manual-item','manual-lote','manual-validade','codigo-leitor'].forEach(id => {
+        const campo = document.getElementById(id); if (campo) campo.value = '';
+      });
       qrCodeCompleto = null;
-      DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
+      DOM_CACHE.qrResult.textContent = modoEntradaAtual === 'manual'
+        ? 'Preencha item, lote e validade.'
+        : modoEntradaAtual === 'leitor'
+          ? 'Aguardando leitura pelo leitor sem fio.'
+          : 'Aponte a câmera para o Data Matrix';
       DOM_CACHE.qrResult.classList.remove('success');
       DOM_CACHE.status.style.display = 'none';
       registroEmProgresso = false;
       liberarBotoes();
+      if (modoEntradaAtual === 'leitor') setTimeout(() => document.getElementById('codigo-leitor')?.focus(), 80);
     }
 
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
@@ -1009,7 +1016,7 @@
           if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
           dataCache = null; lastDataFetch = 0;
           setTimeout(() => { resetarFormulario(); if (modoEntradaAtual === 'auto' || modoEntradaAtual === 'camera') startScannerWithDevice(); else if (modoEntradaAtual === 'leitor') document.getElementById('codigo-leitor')?.focus(); }, 600);
-          carregarTodosOsDados(true);
+          await carregarTodosOsDados(true);
         } else { showToast(res.mensagem, "erro"); liberarBotoes(); registroEmProgresso = false; }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
