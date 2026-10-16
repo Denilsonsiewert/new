@@ -144,6 +144,7 @@
       width: 40px; height: 3px; background: linear-gradient(90deg, var(--cor-primaria), var(--cor-primaria-light)); border-radius: 3px;
     }
 
+    /* Botão de Ação Secundária (Nova Conferência) */
     .btn-action-secondary {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; padding: 14px; margin-top: 10px;
@@ -152,14 +153,6 @@
       cursor: pointer; transition: all 0.2s; font-size: 1rem;
     }
     .btn-action-secondary:active { background: var(--cor-perigo); color: white; transform: scale(0.98); }
-    .btn-action-secondary.manual-mode {
-      border-color: var(--cor-primaria);
-      color: var(--cor-primaria);
-    }
-    .btn-action-secondary.manual-mode:active {
-      background: var(--cor-primaria);
-      color: white;
-    }
 
     #reader-container {
       position: relative; width: 100%; max-width: 420px; margin: 0 auto 18px;
@@ -224,7 +217,6 @@
       color: var(--cor-texto-secundario); font-size: 0.95rem;
     }
     .qr-result.success { background: #d1e7dd; border-color: var(--cor-sucesso); color: #0f5132; border-style: solid; }
-    .qr-result.manual { background: #e7f1ff; border-color: var(--cor-primaria); color: var(--cor-primaria-dark); border-style: solid; }
 
     .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .input-group label { font-weight: 600; font-size: 0.9rem; color: var(--cor-texto-secundario); margin-left: 4px; }
@@ -269,9 +261,10 @@
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; z-index: 9999; }
 
+    /* Modal Genérico */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: var(--padding-container); }
     .modal-overlay.active { display: flex; animation: modalBgIn 0.3s; }
-    .modal-content { background: var(--cor-surface); border-radius: var(--radius-xl); padding: 32px; max-width: 420px; width: 100%; box-shadow: var(--sombra-md); animation: slideUp 0.3s; }
+    .modal-content { background: var(--cor-surface); border-radius: var(--radius-xl); padding: 32px; max-width: 420px; width: 100%; box-shadow: var(--sombra-xl); animation: slideUp 0.3s; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     
     .modal-header { font-size: 1.25rem; font-weight: 700; color: var(--cor-perigo); margin-bottom: 18px; text-align: center; }
@@ -291,6 +284,7 @@
     .status-erro { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info { background: #d1ecf1; color: #0c5460; display: block; }
 
+    /* 🔧 Fallback CSS de zoom para WebView Android */
     html.webview-android-zoom-fallback #reader video {
         transform: scale(1.15) !important;
         transform-origin: center center !important;
@@ -319,9 +313,10 @@
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
 
+  <!-- Modal de Confirmação de Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-header">️ Atenção: Item Vencido</div>
+      <div class="modal-header">⚠️ Atenção: Item Vencido</div>
       <div class="modal-body">
         <p>Você está tentando dar entrada de um item que já está <strong>vencido</strong>.</p>
         <div class="modal-info-box">
@@ -339,6 +334,7 @@
     </div>
   </div>
 
+  <!-- Modal de Senha para Nova Conferência -->
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">🔒 Nova Conferência</div>
@@ -370,8 +366,10 @@
               <tbody id="corpo-tabela-estoque"></tbody>
             </table>
           </div>
+          
+          <!-- Botão para iniciar nova conferência -->
           <button class="btn-action-secondary" onclick="abrirModalSenha()">
-             Iniciar Nova Conferência (Limpar Dados)
+            🔄 Iniciar Nova Conferência (Limpar Dados)
           </button>
         </div>
       </div>
@@ -379,54 +377,43 @@
       <div id="page-registrar" class="page">
         <div class="card">
           <h2>📷 Registrar Movimentação</h2>
-          
           <div id="reader-container">
             <div id="reader"></div>
             <div class="focus-status" id="focusStatus"></div>
           </div>
 
-          <div class="camera-controls-module" id="camera-controls">
+          <div class="camera-controls-module">
             <div class="camera-info">
               <span class="focus-indicator" id="focusIndicator"></span>
               <span id="cameraStatus">Pronto</span>
             </div>
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
           </div>
-
-          <button id="btn-toggle-manual" class="btn-action-secondary manual-mode" onclick="toggleManualEntry()">
-             Inserir Dados Manualmente (Código danificado)
-          </button>
-
-          <div id="manual-form" style="display: none; background: #f8f9fa; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--borda); margin-bottom: 15px;">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--cor-primaria); display: flex; align-items: center; gap: 8px;">
-              <span>✏️</span> Dados Manuais
-            </h3>
-            <div class="input-group">
-              <label for="manual-item">Item / Descrição</label>
-              <input type="text" id="manual-item" placeholder="Ex: 10005965" autocomplete="off" />
-            </div>
-            <div class="input-group">
-              <label for="manual-lote">Lote</label>
-              <input type="text" id="manual-lote" placeholder="Ex: 40232339" autocomplete="off" />
-            </div>
-            <div class="input-group">
-              <label for="manual-validade">Validade</label>
-              <input type="date" id="manual-validade" />
-            </div>
-            <button class="btn-action-secondary" onclick="confirmarManual()" style="border-color: var(--cor-sucesso); color: var(--cor-sucesso); margin-top: 5px;">
-              ✔️ Confirmar Dados e Prosseguir
-            </button>
+          <div id="modo-entrada-box" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 auto 14px;max-width:420px;padding:12px 14px;background:#f8f9fa;border:1px solid var(--borda);border-radius:var(--radius-md);">
+            <label for="modo-entrada" style="font-weight:700;font-size:.86rem;">Modo:</label>
+            <select id="modo-entrada" onchange="selecionarModoLocal(this.value)" style="flex:1;min-height:42px;border:1px solid var(--borda);border-radius:10px;padding:0 10px;background:white;">
+              <option value="auto">Automático</option><option value="camera">Câmera</option><option value="manual">Manual</option><option value="leitor">Leitor sem fio</option>
+            </select>
+            <button type="button" onclick="configurarModoAdministrador()" style="min-height:42px;border:0;border-radius:10px;padding:0 12px;background:var(--cor-primaria);color:white;font-weight:700;">Administrador</button>
           </div>
-
+          <div id="manual-fields" style="display:none;max-width:420px;margin:0 auto 14px;padding:14px;background:#eef6ff;border:1px solid #cfe5fa;border-radius:var(--radius-md);">
+            <div class="input-group"><label for="manual-item">Item</label><input id="manual-item" inputmode="numeric" placeholder="Código do item"></div>
+            <div class="input-group"><label for="manual-lote">Lote</label><input id="manual-lote" inputmode="numeric" placeholder="Lote"></div>
+            <div class="input-group"><label for="manual-validade">Validade</label><input id="manual-validade" placeholder="DD/MM/AAAA"></div>
+            <button type="button" onclick="prepararEntradaManual()" style="width:100%;min-height:48px;border:0;border-radius:12px;background:var(--cor-primaria);color:#fff;font-weight:700;">Usar dados manuais</button>
+          </div>
+          <div id="leitor-fields" style="display:none;max-width:420px;margin:0 auto 14px;padding:14px;background:#f3fff7;border:1px solid #c8eed7;border-radius:var(--radius-md);">
+            <label for="codigo-leitor" style="display:block;font-weight:700;font-size:.86rem;margin-bottom:8px;">Leitor sem fio</label>
+            <input id="codigo-leitor" autocomplete="off" inputmode="none" placeholder="Aponte o leitor e aguarde o bip" onkeydown="capturarLeitor(event)" style="width:100%;height:54px;padding:0 16px;border:1px solid var(--borda);border-radius:12px;font-size:1rem;">
+            <small style="display:block;margin-top:8px;color:var(--cor-texto-secundario);">Compatível com leitor Bluetooth/USB que funciona como teclado (HID). O leitor deve enviar ENTER ao final.</small>
+          </div>
           <div id="qr-result" class="qr-result">Aponte a câmera para o Data Matrix</div>
-          
           <div class="input-group">
             <label for="quantidade">Quantidade</label>
             <input type="number" id="quantidade" placeholder="Ex: 5" min="1" inputmode="numeric" />
           </div>
-          
           <div class="button-group">
-            <button id="btnEntrada" onclick="enviarDados('Entrada')">📥 Entrada</button>
+            <button id="btnEntrada" onclick="enviarDados('Entrada')"> Entrada</button>
             <button id="btnSaida" class="saida" onclick="enviarDados('Saída')">📤 Saída</button>
           </div>
           <div id="status"></div>
@@ -450,7 +437,7 @@
 
       <div id="page-alertas" class="page">
         <div class="card">
-          <h2>⚠️ Alertas de Estoque</h2>
+          <h2>️ Alertas de Estoque</h2>
           <ul id="lista-alertas" class="alert-list"></ul>
         </div>
       </div>
@@ -467,13 +454,12 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-    const SENHA_ADMIN = '10032001';
+    const SENHA_ADMIN = '10032001'; // <--- ALTERE A SENHA AQUI
 
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
       btnFlash: null, btnEntrada: null, btnSaida: null,
-      loadingOverlay: null, focusStatus: null, focusIndicator: null, cameraStatus: null,
-      cameraControls: null, btnToggleManual: null, manualForm: null
+      loadingOverlay: null, focusStatus: null, focusIndicator: null, cameraStatus: null
     };
 
     let html5QrCode = null, currentTrack = null, flashOn = false, qrCodeCompleto = null;
@@ -485,7 +471,7 @@
     let consecutiveFocusSuccess = 0;
     let focusIntervalId = null;
     let torchMethod = null, torchSupported = null;
-    let isManualMode = false;
+    let modoEntradaAtual = 'auto';
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
@@ -499,6 +485,7 @@
       const aspectRatio = maxDimension / minDimension;
       isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
       deviceType = isTablet ? 'tablet' : 'phone';
+      console.log(`📱 Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
     }
 
     function getOptimalQRBoxSize() {
@@ -523,9 +510,6 @@
       DOM_CACHE.focusStatus     = document.getElementById('focusStatus');
       DOM_CACHE.focusIndicator  = document.getElementById('focusIndicator');
       DOM_CACHE.cameraStatus    = document.getElementById('cameraStatus');
-      DOM_CACHE.cameraControls  = document.getElementById('camera-controls');
-      DOM_CACHE.btnToggleManual = document.getElementById('btn-toggle-manual');
-      DOM_CACHE.manualForm      = document.getElementById('manual-form');
     }
 
     function normalizeError(err) {
@@ -609,7 +593,7 @@
     }
 
     async function startScannerWithDevice(deviceId = null) {
-      if (scannerActive || isManualMode) return;
+      if (scannerActive) return;
       await stopScanner(true);
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.status.style.display = 'none';
@@ -677,47 +661,12 @@
       catch (err) { console.warn('Erro ao desligar lanterna:', err); }
     }
 
-    // --- FUNÇÃO UNIVERSAL DE EXTRAÇÃO DE DADOS ---
-    function extrairDadosDoQR(qrString) {
-      // Compatibilidade com formato manual antigo
-      if (qrString.includes(';')) {
-        const parts = qrString.split(';');
-        return { item: parts[1] || 'Manual', lote: parts[2] || '', validade: parts[3] || '' };
-      }
-
-      // Formato DataMatrix real, separado por espaços
-      const parts = qrString.split(' ');
-      let item = 'Item N/A', lote = '', validade = '';
-
-      for (let part of parts) {
-        // AI 10 = Lote (ex: 1000040232339 -> 40232339)
-        if (part.startsWith('10') && part.length > 2) {
-          let loteValor = part.substring(2);
-          // Remove zeros à esquerda
-          lote = loteValor.replace(/^0+/, '') || loteValor;
-        } 
-        // AI 240 = Item/Parte (ex: 24010005965 -> 10005965)
-        else if (part.startsWith('240') && part.length > 3) {
-          item = part.substring(3);
-        } 
-        // AI 16 = Validade (ex: 1613/05/2027 -> 13/05/2027)
-        else if (part.startsWith('16') && part.length > 2 && part.includes('/')) {
-          validade = part.substring(2); 
-        }
-      }
-
-      return { item, lote, validade };
-    }
-
     function onScanSuccess(decodedText) {
-      if (qrCodeCompleto || !scannerActive || isManualMode) return;
+      if (qrCodeCompleto || !scannerActive) return;
       qrCodeCompleto = decodedText;
       beep(80, 1200, 0.4);
       if (navigator.vibrate) navigator.vibrate(100);
-      
-      const dados = extrairDadosDoQR(decodedText);
-      
-      DOM_CACHE.qrResult.innerHTML = `✔️ <strong style='color:var(--cor-sucesso)'>Lido: ${dados.item}</strong><br><small>Lote: ${dados.lote} | Val: ${dados.validade}</small>`;
+      DOM_CACHE.qrResult.innerHTML = "✔️ <strong style='color:var(--cor-sucesso)'>Lido: " + decodedText.split(';')[1] + "</strong>";
       DOM_CACHE.qrResult.classList.add('success');
       updateFocusIndicator('success');
       setTimeout(() => document.getElementById('quantidade').focus(), 200);
@@ -740,7 +689,7 @@
         autoFocusActive = false;
         consecutiveFocusSuccess = 0;
         DOM_CACHE.readerContainer.classList.remove('scanning-active', 'focusing');
-        if (!silent && !isManualMode) updateFocusIndicator('default');
+        if (!silent) updateFocusIndicator('default');
       }
     }
 
@@ -762,17 +711,64 @@
 
       let caps = {};
       try { caps = track.getCapabilities?.() || {}; } catch {}
-      
+      if (window.AndroidBridge?.logDebug) window.AndroidBridge.logDebug(`Capabilities: ${JSON.stringify(caps)}`);
+
       if (caps.zoom?.min !== undefined && caps.zoom?.max !== undefined) {
         const target = caps.zoom.min + ((caps.zoom.max - caps.zoom.min) * 0.6);
         const ok = await tryApplyConstraint(track, 'zoom', target);
+        if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', ok, `Target: ${target.toFixed(2)}`);
         if (!ok) document.documentElement.classList.add('webview-android-zoom-fallback');
       } else {
         document.documentElement.classList.add('webview-android-zoom-fallback');
+        if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('zoom', false, 'Não suportado');
       }
 
       const hasTorch = caps.torch !== undefined;
       DOM_CACHE.btnFlash.style.display = hasTorch ? 'flex' : 'none';
+      if (window.AndroidBridge?.onConstraintApplied) window.AndroidBridge.onConstraintApplied('torch', hasTorch, `Suporte: ${hasTorch}`);
+    }
+
+    async function applyFixedZoom(maxAttempts = 5, delayMs = 300) {
+      console.log('🔍 [Zoom] Iniciando aplicação de zoom...');
+      const notifyAndroid = (success, message = '') => {
+        if (window.AndroidBridge && typeof window.AndroidBridge.onZoomApplied === 'function') {
+          window.AndroidBridge.onZoomApplied(success);
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.logDebug === 'function') {
+          window.AndroidBridge.logDebug(`[Zoom] ${message}`);
+        }
+      };
+      
+      const tryApplyZoom = async (attempt) => {
+        if (attempt > maxAttempts) {
+          console.warn(`🔍 [Zoom] Falha após ${maxAttempts} tentativas`);
+          notifyAndroid(false, `Falha após ${maxAttempts} tentativas`);
+          return false;
+        }
+        try {
+          const videoElem = document.querySelector('#reader video');
+          if (!videoElem || !videoElem.srcObject) { await new Promise(r => setTimeout(r, delayMs)); return tryApplyZoom(attempt + 1); }
+          const tracks = videoElem.srcObject.getVideoTracks();
+          if (!tracks || tracks.length === 0) { await new Promise(r => setTimeout(r, delayMs)); return tryApplyZoom(attempt + 1); }
+          const track = tracks[0];
+          if (typeof track.getCapabilities !== 'function') { notifyAndroid(false, 'getCapabilities não suportado'); return false; }
+          const capabilities = track.getCapabilities();
+          if (!capabilities.zoom || capabilities.zoom.min === undefined) { notifyAndroid(false, 'Zoom não suportado'); return false; }
+          const minZoom = capabilities.zoom.min;
+          const maxZoom = capabilities.zoom.max;
+          const targetZoom = minZoom + ((maxZoom - minZoom) * 0.6);
+          console.log(`🔍 [Zoom] Aplicando: ${targetZoom.toFixed(2)} (min: ${minZoom}, max: ${maxZoom})`);
+          await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+          console.log('✅ [Zoom] Aplicado com sucesso!');
+          notifyAndroid(true, `Zoom ${targetZoom.toFixed(2)} aplicado`);
+          return true;
+        } catch (err) {
+          console.warn(`🔍 [Zoom] Erro na tentativa ${attempt}:`, err.message || err);
+          await new Promise(r => setTimeout(r, delayMs));
+          return tryApplyZoom(attempt + 1);
+        }
+      };
+      return tryApplyZoom(1);
     }
 
     function setupTurboAutofocus() {
@@ -788,23 +784,44 @@
         if (currentTrack && autoFocusActive && scannerActive) {
           focusAttempts++;
           updateFocusIndicator('focusing');
-          if (focusAttempts % (isTablet ? 4 : 3) === 0) {
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
-              .then(() => {
-                consecutiveFocusSuccess++;
-                if (consecutiveFocusSuccess >= 2) {
-                  updateFocusIndicator('success');
-                  setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, isTablet ? 500 : 400);
-                }
-                setTimeout(() => {
-                  if (currentTrack && autoFocusActive) {
-                    currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+          if (isTablet) {
+            if (focusAttempts % 4 === 0) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+                .then(() => {
+                  consecutiveFocusSuccess++;
+                  if (consecutiveFocusSuccess >= 2) {
+                    updateFocusIndicator('success');
+                    setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, 500);
                   }
-                }, isTablet ? 80 : 50);
-              })
-              .catch(() => { consecutiveFocusSuccess = 0; });
+                  setTimeout(() => {
+                    if (currentTrack && autoFocusActive) {
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                    }
+                  }, 80);
+                })
+                .catch(() => { consecutiveFocusSuccess = 0; });
+            } else {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+            }
           } else {
-            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+            if (focusAttempts % 3 === 0) {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+                .then(() => {
+                  consecutiveFocusSuccess++;
+                  if (consecutiveFocusSuccess >= 2) {
+                    updateFocusIndicator('success');
+                    setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, 400);
+                  }
+                  setTimeout(() => {
+                    if (currentTrack && autoFocusActive) {
+                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+                    }
+                  }, 50);
+                })
+                .catch(() => { consecutiveFocusSuccess = 0; });
+            } else {
+              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+            }
           }
         }
       }, focusInterval);
@@ -815,6 +832,7 @@
       DOM_CACHE.btnFlash.style.display = 'flex';
       const suporta = await detectTorchSupport();
       if (!suporta) { DOM_CACHE.btnFlash.style.display = 'none'; } 
+      else { DOM_CACHE.btnFlash.style.display = 'flex'; }
     }
 
     async function toggleFlash() {
@@ -825,73 +843,67 @@
       else { showToast('Lanterna não disponível neste dispositivo', 'info'); DOM_CACHE.btnFlash.style.display = 'none'; }
     }
 
-    // --- FUNÇÕES DE INSERÇÃO MANUAL ---
-    function toggleManualEntry() {
-      isManualMode = !isManualMode;
-      
-      if (isManualMode) {
-        stopScanner(true);
-        DOM_CACHE.readerContainer.style.display = 'none';
-        DOM_CACHE.cameraControls.style.display = 'none';
-        DOM_CACHE.manualForm.style.display = 'block';
-        DOM_CACHE.btnToggleManual.innerHTML = ' Voltar para Leitura por Câmera';
-        DOM_CACHE.btnToggleManual.classList.remove('manual-mode');
-        DOM_CACHE.btnToggleManual.style.borderColor = 'var(--cor-perigo)';
-        DOM_CACHE.btnToggleManual.style.color = 'var(--cor-perigo)';
-        
-        qrCodeCompleto = null;
-        DOM_CACHE.qrResult.textContent = 'Preencha os dados manualmente e confirme.';
-        DOM_CACHE.qrResult.classList.remove('success', 'manual');
-        document.getElementById('quantidade').value = '';
-      } else {
-        DOM_CACHE.readerContainer.style.display = 'block';
-        DOM_CACHE.cameraControls.style.display = 'flex';
-        DOM_CACHE.manualForm.style.display = 'none';
-        DOM_CACHE.btnToggleManual.innerHTML = '📝 Inserir Dados Manualmente (Código danificado)';
-        DOM_CACHE.btnToggleManual.classList.add('manual-mode');
-        DOM_CACHE.btnToggleManual.style.borderColor = '';
-        DOM_CACHE.btnToggleManual.style.color = '';
-        
-        document.getElementById('manual-item').value = '';
-        document.getElementById('manual-lote').value = '';
-        document.getElementById('manual-validade').value = '';
-        
-        startScannerWithDevice();
-      }
+    function aplicarModoUI(modo) {
+      modoEntradaAtual = ['auto','camera','manual','leitor'].includes(modo) ? modo : 'auto';
+      const select = document.getElementById('modo-entrada'); if (select) select.value = modoEntradaAtual;
+      const manual = document.getElementById('manual-fields');
+      const leitor = document.getElementById('leitor-fields');
+      const camera = document.getElementById('reader-container');
+      const controls = document.querySelector('.camera-controls-module');
+      const usarCamera = modoEntradaAtual === 'auto' || modoEntradaAtual === 'camera';
+      if (manual) manual.style.display = modoEntradaAtual === 'manual' ? 'block' : 'none';
+      if (leitor) leitor.style.display = modoEntradaAtual === 'leitor' ? 'block' : 'none';
+      if (camera) camera.style.display = usarCamera ? 'block' : 'none';
+      if (controls) controls.style.display = usarCamera ? 'flex' : 'none';
+      if (modoEntradaAtual === 'manual') DOM_CACHE.qrResult.textContent = 'Preencha item, lote e validade.';
+      if (modoEntradaAtual === 'leitor') setTimeout(() => document.getElementById('codigo-leitor')?.focus(), 150);
+      if (!usarCamera) stopScanner(true); else if (document.getElementById('page-registrar')?.classList.contains('active')) startScannerWithDevice();
     }
-
-    function confirmarManual() {
+    function selecionarModoLocal(modo) {
+      aplicarModoUI(modo);
+      localStorage.setItem('modoEntradaPreferido', modo);
+    }
+    async function carregarConfiguracaoEntrada() {
+      try {
+        const res = await apiGet('config');
+        const remoto = res?.config?.modoEntrada || localStorage.getItem('modoEntradaPreferido') || 'auto';
+        aplicarModoUI(remoto);
+      } catch { aplicarModoUI(localStorage.getItem('modoEntradaPreferido') || 'auto'); }
+    }
+    async function configurarModoAdministrador() {
+      const senha = prompt('Senha do administrador:');
+      if (senha === null) return;
+      const modo = document.getElementById('modo-entrada').value;
+      try {
+        const res = await apiPost({ action:'configurarModo', modoEntrada:modo, adminKey:senha });
+        if (res.status !== 'sucesso') throw new Error(res.mensagem || 'Não foi possível alterar o modo.');
+        aplicarModoUI(res.config.modoEntrada); localStorage.setItem('modoEntradaPreferido', res.config.modoEntrada);
+        showToast('Modo salvo no servidor: ' + res.config.modoEntrada, 'sucesso');
+      } catch (err) { showToast(normalizeError(err), 'erro'); }
+    }
+    function prepararEntradaManual() {
       const item = document.getElementById('manual-item').value.trim();
       const lote = document.getElementById('manual-lote').value.trim();
-      const validadeISO = document.getElementById('manual-validade').value;
-
-      if (!item || !lote || !validadeISO) {
-        showToast("Preencha Item, Lote e Validade.", "erro");
-        return;
-      }
-
-      // Formata a data de YYYY-MM-DD para DD/MM/YYYY
-      const [ano, mes, dia] = validadeISO.split('-');
-      const validadeBR = `${dia}/${mes}/${ano}`;
-
-      // LOTE DEVE ter 11 dígitos após o "10" (preenche com zeros à esquerda)
-      // Exemplo real da câmera: 1000040232339 -> "10" + "00040232339" (11 dígitos)
-      const lotePadded = lote.padStart(11, '0');
-      
-      // Gera a string EXATA no formato que o Google Sheets espera
-      qrCodeCompleto = `017909927073285 21 10${lotePadded} 911135170289 240${item} 1101/01/2020 16${validadeBR} 9701/01/2020 11:52:49 313`;
-
-      beep(80, 1200, 0.4);
-      if (navigator.vibrate) navigator.vibrate(100);
-
-      DOM_CACHE.qrResult.innerHTML = `✔️ <strong style='color:var(--cor-primaria)'>Manual: ${item}</strong><br><small>Lote: ${lote} | Val: ${validadeBR}</small>`;
-      DOM_CACHE.qrResult.classList.add('manual');
-
-      DOM_CACHE.manualForm.style.display = 'none';
+      const validade = document.getElementById('manual-validade').value.trim();
+      if (!item || !lote || !validade) { showToast('Informe item, lote e validade.', 'erro'); return; }
+      qrCodeCompleto = `manual;${item};${lote};${validade}`;
+      DOM_CACHE.qrResult.innerHTML = `✔️ <strong style="color:var(--cor-sucesso)">Manual: ${item} / lote ${lote}</strong>`;
+      DOM_CACHE.qrResult.classList.add('success');
       document.getElementById('quantidade').focus();
-      showToast("Dados formatados e prontos para registro!", "sucesso");
     }
-    // ------------------------------------
+    function capturarLeitor(event) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      const input = event.currentTarget;
+      const raw = input.value.trim();
+      if (!raw) return;
+      qrCodeCompleto = raw;
+      DOM_CACHE.qrResult.innerHTML = `✔️ <strong style="color:var(--cor-sucesso)">Código recebido pelo leitor</strong>`;
+      DOM_CACHE.qrResult.classList.add('success');
+      input.value = '';
+      beep(80, 1200, 0.4);
+      document.getElementById('quantidade').focus();
+    }
 
     async function apiGet(action) {
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}`;
@@ -927,14 +939,8 @@
     }
 
     async function confirmarEntradaVencida() {
-      if (registroEmProgresso) return;
-      registroEmProgresso = true;
-      bloquearBotoes();
-      
       document.getElementById('modal-vencido').classList.remove('active');
-      if (entradaVencidaPendente) {
-        await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
-      }
+      if (entradaVencidaPendente) await registrarMovimentacao(entradaVencidaPendente.tipo, entradaVencidaPendente.qrCode, entradaVencidaPendente.quantidade);
       entradaVencidaPendente = null;
     }
 
@@ -942,7 +948,7 @@
       document.getElementById('modal-vencido').classList.remove('active');
       entradaVencidaPendente = null;
       resetarFormulario();
-      if (!isManualMode) startScannerWithDevice();
+      startScannerWithDevice();
     }
 
     function liberarBotoes() { DOM_CACHE.btnEntrada.disabled = false; DOM_CACHE.btnSaida.disabled = false; }
@@ -951,82 +957,55 @@
     function resetarFormulario() {
       document.getElementById('quantidade').value = '';
       qrCodeCompleto = null;
-      DOM_CACHE.qrResult.textContent = isManualMode ? 'Preencha os dados manualmente e confirme.' : 'Aponte a câmera para o Data Matrix';
-      DOM_CACHE.qrResult.classList.remove('success', 'manual');
+      DOM_CACHE.qrResult.textContent = 'Aponte a câmera para o Data Matrix';
+      DOM_CACHE.qrResult.classList.remove('success');
       DOM_CACHE.status.style.display = 'none';
       registroEmProgresso = false;
       liberarBotoes();
-      
-      document.getElementById('manual-item').value = '';
-      document.getElementById('manual-lote').value = '';
-      document.getElementById('manual-validade').value = '';
     }
 
     async function registrarMovimentacao(tipo, qrCode, quantidade) {
+      if (registroEmProgresso) return;
+      registroEmProgresso = true;
+      bloquearBotoes();
       const statusDiv = DOM_CACHE.status;
       statusDiv.innerText = 'Registrando...';
       statusDiv.className = 'status-info';
       statusDiv.style.display = 'block';
-      
       try {
         const res = await apiPost({ action: 'registrar', tipo, qrCodeCompleto: qrCode, quantidade });
         statusDiv.innerText = res.mensagem;
         statusDiv.className = res.status === 'sucesso' ? 'status-sucesso' : 'status-erro';
-        
         if (res.status === 'sucesso') {
           showToast(res.mensagem, "sucesso");
           if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
           dataCache = null; lastDataFetch = 0;
-          setTimeout(() => { 
-            resetarFormulario(); 
-            if (!isManualMode) startScannerWithDevice(); 
-          }, 600);
+          setTimeout(() => { resetarFormulario(); if (modoEntradaAtual === 'auto' || modoEntradaAtual === 'camera') startScannerWithDevice(); else if (modoEntradaAtual === 'leitor') document.getElementById('codigo-leitor')?.focus(); }, 600);
           carregarTodosOsDados(true);
-        } else { 
-          showToast(res.mensagem, "erro"); 
-          registroEmProgresso = false;
-          liberarBotoes(); 
-        }
+        } else { showToast(res.mensagem, "erro"); liberarBotoes(); registroEmProgresso = false; }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
         showToast('Erro de conexão', "erro");
-        registroEmProgresso = false;
         liberarBotoes();
+        registroEmProgresso = false;
       }
     }
 
     async function enviarDados(tipo) {
       if (registroEmProgresso) return;
-      
       const quantidade = document.getElementById('quantidade').value;
-      
-      if (isManualMode && !qrCodeCompleto) {
-        showToast("Confirme os dados manuais antes de registrar.", "erro");
-        return;
-      }
-
       if (!qrCodeCompleto || !quantidade || quantidade <= 0) {
-        DOM_CACHE.status.innerText = 'Erro: Leia um código (ou insira manualmente) e informe a quantidade.';
+        DOM_CACHE.status.innerText = 'Erro: Leia um código e informe a quantidade.';
         DOM_CACHE.status.className = 'status-erro';
         DOM_CACHE.status.style.display = 'block';
         showToast("Leia o código e informe a quantidade.", "erro");
         return;
       }
-      
-      registroEmProgresso = true;
-      bloquearBotoes();
-      
       if (tipo === 'Entrada') {
-        const dados = extrairDadosDoQR(qrCodeCompleto);
-        if (verificarSeVencido(dados.validade)) { 
-          mostrarModalVencido(dados.item, dados.lote, dados.validade, quantidade); 
-          registroEmProgresso = false;
-          liberarBotoes();
-          return; 
-        }
+        const qrParts = qrCodeCompleto.split(';');
+        if (verificarSeVencido(qrParts[3])) { mostrarModalVencido(qrParts[1], qrParts[2], qrParts[3], quantidade); return; }
       }
-      
       await registrarMovimentacao(tipo, qrCodeCompleto, quantidade);
     }
 
@@ -1060,18 +1039,7 @@
     function renderizarEstoque() {
       const tbody = document.getElementById('corpo-tabela-estoque');
       if (!appData.estoque?.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--cor-texto-claro)">Nenhum item encontrado.</td></tr>'; return; }
-      
-      const estoqueUnico = [];
-      const seen = new Set();
-      for (const item of appData.estoque) {
-        const key = `${item.item}|${item.lote || ''}|${item.validade || ''}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          estoqueUnico.push(item);
-        }
-      }
-
-      tbody.innerHTML = estoqueUnico.map(item =>
+      tbody.innerHTML = appData.estoque.map(item =>
         `<tr><td data-label="Item">${item.item}</td><td data-label="Lote">${item.lote||''}</td><td data-label="Validade">${item.validade||''}</td><td data-label="Total"><strong>${item.total}</strong></td></tr>`
       ).join('');
     }
@@ -1088,18 +1056,7 @@
     function renderizarMovimentacoes() {
       const tbody = document.getElementById('corpo-tabela-movimentacoes');
       if (!appData.movimentacoes?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--cor-texto-claro)">Nenhuma movimentação encontrada.</td></tr>'; return; }
-      
-      const movUnicas = [];
-      const seen = new Set();
-      for (const mov of appData.movimentacoes) {
-        const key = `${mov.dataHora}|${mov.item}|${mov.lote}|${mov.qtd}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          movUnicas.push(mov);
-        }
-      }
-
-      tbody.innerHTML = movUnicas.map(mov =>
+      tbody.innerHTML = appData.movimentacoes.map(mov =>
         `<tr><td data-label="Data">${mov.dataHora}</td><td data-label="Tipo" class="${mov.tipo==='Entrada'?'tipo-entrada':'tipo-saida'}">${mov.tipo}</td><td data-label="Item">${mov.item}</td><td data-label="Lote">${mov.lote}</td><td data-label="Validade">${mov.validade}</td><td data-label="Qtd">${mov.qtd}</td></tr>`
       ).join('');
     }
@@ -1117,13 +1074,10 @@
       document.getElementById('page-' + pageId).classList.add('active');
       document.getElementById('nav-' + pageId).classList.add('active');
       document.querySelector('.app-main').scrollTop = 0;
-      if (pageId === 'registrar') { 
-        if (!isManualMode) startScannerWithDevice(); 
-      } else { 
-        stopScanner(); 
-        refreshActivePage(); 
-      }
+      if (pageId === 'registrar') { aplicarModoUI(modoEntradaAtual); } else { stopScanner(); refreshActivePage(); }
     }
+
+    // --- FUNÇÕES DE LIMPEZA DE DADOS (NOVA CONFERÊNCIA) ---
 
     function abrirModalSenha() {
       document.getElementById('modal-senha').classList.add('active');
@@ -1166,7 +1120,8 @@
 
     window.addEventListener('load', () => { 
       detectDeviceType();
-      initDOMCache(); 
+      initDOMCache();
+      carregarConfiguracaoEntrada();
       carregarTodosOsDados();
       if (window.AndroidBridge?.onCameraReady) window.AndroidBridge.onCameraReady();
     });
