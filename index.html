@@ -117,19 +117,19 @@
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(20px) saturate(180%);
       box-shadow: 0 -1px 0 var(--borda), 0 -8px 24px rgba(0,0,0,0.04);
-      display: grid; grid-template-columns: repeat(4, 1fr);
+      display: grid; grid-template-columns: repeat(5, 1fr); /* Alterado de 4 para 5 para acomodar o botão Admin */
       align-items: stretch; z-index: 1000;
       padding-bottom: var(--safe-bottom);
       border-top: 1px solid rgba(255,255,255,0.2);
     }
     .nav-link {
-      border: none; background: none; cursor: pointer; padding: 8px 4px; 
+      border: none; background: none; cursor: pointer; padding: 8px 2px; /* Ajustado para 5 itens */
       color: var(--cor-texto-secundario); transition: all var(--transition-normal);
-      font-weight: 500; font-size: clamp(0.68rem, 2.5vw, 0.78rem);
+      font-weight: 500; font-size: clamp(0.62rem, 2vw, 0.75rem); /* Ajustado para melhor encaixe */
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; 
       outline: none; position: relative; letter-spacing: 0.2px;
     }
-    .nav-link .icon { font-size: clamp(1.2rem, 4.5vw, 1.35rem); line-height: 1; transition: transform var(--transition-normal); }
+    .nav-link .icon { font-size: clamp(1.15rem, 4vw, 1.3rem); line-height: 1; transition: transform var(--transition-normal); }
     .nav-link:hover .icon { transform: translateY(-2px); }
     .nav-link.active { color: var(--cor-primaria); font-weight: 700; }
     .nav-link.active .icon { transform: scale(1.1); }
@@ -544,11 +544,13 @@
     </div>
   </main>
 
+  <!-- Barra de Navegação Inferior com 5 itens (Administração adicionada ao lado de Alertas) -->
   <nav class="app-nav">
     <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
     <button id="nav-registrar" class="nav-link" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
     <button id="nav-movimentacoes" class="nav-link" onclick="mostrarPagina('movimentacoes')"><span class="icon">📋</span><span>Histórico</span></button>
     <button id="nav-alertas" class="nav-link" onclick="mostrarPagina('alertas')"><span class="icon">⚠️</span><span>Alertas</span></button>
+    <button id="nav-administracao" class="nav-link" onclick="abrirAdministracao()"><span class="icon">⚙️</span><span>Admin</span></button>
   </nav>
 
   <script>
