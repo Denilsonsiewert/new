@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
+  <!-- Biblioteca QR Code removida do head para carregamento sob demanda (Lazy Loading) -->
 
   <style>
     :root {
@@ -154,7 +154,6 @@
       width: 40px; height: 3px; background: linear-gradient(90deg, var(--cor-primaria), var(--cor-primaria-light)); border-radius: 3px;
     }
 
-    /* Botão de Ação Secundária (Nova Conferência) */
     .btn-action-secondary {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; padding: 14px; margin-top: 10px;
@@ -271,7 +270,6 @@
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; z-index: 9999; }
 
-    /* Modal Genérico */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: var(--padding-container); }
     .modal-overlay.active { display: flex; animation: modalBgIn 0.3s; }
     .modal-content { background: var(--cor-surface); border-radius: var(--radius-xl); padding: 32px; max-width: 420px; width: 100%; box-shadow: var(--sombra-xl); animation: slideUp 0.3s; }
@@ -294,7 +292,6 @@
     .status-erro { background: #f8d7da; color: var(--cor-perigo); display: block; }
     .status-info { background: #d1ecf1; color: #0c5460; display: block; }
 
-    /* 🔧 Fallback CSS de zoom para WebView Android */
     html.webview-android-zoom-fallback #reader video {
         transform: scale(1.15) !important;
         transform-origin: center center !important;
@@ -303,7 +300,6 @@
         margin: 6.5% auto !important;
     }
 
-    /* Layout desktop: aproveita a tela larga sem prejudicar tablet/celular. */
     @media (min-width: 900px) {
       :root { --padding-container: 28px; --nav-width: 220px; }
       body { overflow: hidden; }
@@ -329,7 +325,6 @@
       .content-wrapper { padding-left: 52px; padding-right: 52px; }
       .styled-table th, .styled-table td { padding-left: 22px; padding-right: 22px; }
     }
-
   </style>
 </head>
 
@@ -351,8 +346,6 @@
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
   </div>
 
-
-  <!-- Acesso restrito à administração -->
   <div id="modal-login-admin" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-login-admin">
     <div class="modal-content">
       <div class="modal-header" id="titulo-login-admin" style="color:var(--cor-primaria)">🔐 Administração</div>
@@ -371,7 +364,6 @@
     </div>
   </div>
 
-  <!-- Modal de Confirmação de Item Vencido -->
   <div id="modal-vencido" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">⚠️ Atenção: Item Vencido</div>
@@ -392,7 +384,6 @@
     </div>
   </div>
 
-  <!-- Modal de Senha para Nova Conferência -->
   <div id="modal-senha" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">🔒 Nova Conferência</div>
@@ -424,8 +415,6 @@
               <tbody id="corpo-tabela-estoque"></tbody>
             </table>
           </div>
-          
-          <!-- Botão para iniciar nova conferência -->
           <button class="btn-action-secondary" onclick="abrirModalSenha()">
             🔄 Iniciar Nova Conferência (Limpar Dados)
           </button>
@@ -487,7 +476,6 @@
         </div>
       </div>
 
-
       <div id="page-administracao" class="page">
         <div class="card">
           <h2>⚙️ Painel de Administração</h2>
@@ -531,14 +519,13 @@
 
       <div id="page-alertas" class="page">
         <div class="card">
-          <h2>️ Alertas de Estoque</h2>
+          <h2>⚠️ Alertas de Estoque</h2>
           <ul id="lista-alertas" class="alert-list"></ul>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Barra de Navegação Inferior com 5 itens -->
   <nav class="app-nav">
     <button id="nav-estoque" class="nav-link active" onclick="mostrarPagina('estoque')"><span class="icon">📦</span><span>Estoque</span></button>
     <button id="nav-registrar" class="nav-link" onclick="mostrarPagina('registrar')"><span class="icon">📷</span><span>Registrar</span></button>
@@ -570,10 +557,26 @@
     let focusIntervalId = null;
     let torchMethod = null, torchSupported = null;
     let modoEntradaAtual = 'auto';
+    let qrLibraryLoaded = false;
 
     let appData = { estoque: [], alertas: [], movimentacoes: [] };
     let dataCache = null, lastDataFetch = 0;
     const CACHE_DURATION = 3000;
+
+    // NOVO: Carregamento sob demanda da biblioteca QR Code (Lazy Loading)
+    async function carregarBibliotecaQR() {
+      if (qrLibraryLoaded || window.Html5Qrcode) {
+        qrLibraryLoaded = true;
+        return Promise.resolve();
+      }
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+        script.onload = () => { qrLibraryLoaded = true; resolve(); };
+        script.onerror = () => reject(new Error("Falha ao carregar biblioteca QR"));
+        document.head.appendChild(script);
+      });
+    }
 
     function detectDeviceType() {
       const screenWidth = window.innerWidth;
@@ -583,7 +586,6 @@
       const aspectRatio = maxDimension / minDimension;
       isTablet = minDimension >= 600 || (minDimension >= 480 && aspectRatio < 2);
       deviceType = isTablet ? 'tablet' : 'phone';
-      console.log(`📱 Dispositivo: ${deviceType} (${screenWidth}x${screenHeight})`);
     }
 
     function getOptimalQRBoxSize() {
@@ -692,6 +694,17 @@
 
     async function startScannerWithDevice(deviceId = null) {
       if (scannerActive) return;
+      
+      // Carrega a biblioteca apenas quando necessário
+      try {
+        DOM_CACHE.qrResult.textContent = 'Carregando leitor...';
+        await carregarBibliotecaQR();
+      } catch (err) {
+        DOM_CACHE.qrResult.textContent = 'Erro ao carregar leitor.';
+        showToast("Falha ao carregar biblioteca de leitura.", "erro");
+        return;
+      }
+
       await stopScanner(true);
       DOM_CACHE.qrResult.textContent = 'Iniciando câmera...';
       DOM_CACHE.status.style.display = 'none';
@@ -827,19 +840,13 @@
     }
 
     async function applyFixedZoom(maxAttempts = 5, delayMs = 300) {
-      console.log('🔍 [Zoom] Iniciando aplicação de zoom...');
       const notifyAndroid = (success, message = '') => {
-        if (window.AndroidBridge && typeof window.AndroidBridge.onZoomApplied === 'function') {
-          window.AndroidBridge.onZoomApplied(success);
-        }
-        if (window.AndroidBridge && typeof window.AndroidBridge.logDebug === 'function') {
-          window.AndroidBridge.logDebug(`[Zoom] ${message}`);
-        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.onZoomApplied === 'function') window.AndroidBridge.onZoomApplied(success);
+        if (window.AndroidBridge && typeof window.AndroidBridge.logDebug === 'function') window.AndroidBridge.logDebug(`[Zoom] ${message}`);
       };
       
       const tryApplyZoom = async (attempt) => {
         if (attempt > maxAttempts) {
-          console.warn(`🔍 [Zoom] Falha após ${maxAttempts} tentativas`);
           notifyAndroid(false, `Falha após ${maxAttempts} tentativas`);
           return false;
         }
@@ -852,16 +859,11 @@
           if (typeof track.getCapabilities !== 'function') { notifyAndroid(false, 'getCapabilities não suportado'); return false; }
           const capabilities = track.getCapabilities();
           if (!capabilities.zoom || capabilities.zoom.min === undefined) { notifyAndroid(false, 'Zoom não suportado'); return false; }
-          const minZoom = capabilities.zoom.min;
-          const maxZoom = capabilities.zoom.max;
-          const targetZoom = minZoom + ((maxZoom - minZoom) * 0.6);
-          console.log(`🔍 [Zoom] Aplicando: ${targetZoom.toFixed(2)} (min: ${minZoom}, max: ${maxZoom})`);
+          const targetZoom = capabilities.zoom.min + ((capabilities.zoom.max - capabilities.zoom.min) * 0.6);
           await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-          console.log('✅ [Zoom] Aplicado com sucesso!');
           notifyAndroid(true, `Zoom ${targetZoom.toFixed(2)} aplicado`);
           return true;
         } catch (err) {
-          console.warn(`🔍 [Zoom] Erro na tentativa ${attempt}:`, err.message || err);
           await new Promise(r => setTimeout(r, delayMs));
           return tryApplyZoom(attempt + 1);
         }
@@ -882,44 +884,25 @@
         if (currentTrack && autoFocusActive && scannerActive) {
           focusAttempts++;
           updateFocusIndicator('focusing');
-          if (isTablet) {
-            if (focusAttempts % 4 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
-                .then(() => {
-                  consecutiveFocusSuccess++;
-                  if (consecutiveFocusSuccess >= 2) {
-                    updateFocusIndicator('success');
-                    setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, 500);
+          const isSingleShot = isTablet ? (focusAttempts % 4 === 0) : (focusAttempts % 3 === 0);
+          
+          if (isSingleShot) {
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
+              .then(() => {
+                consecutiveFocusSuccess++;
+                if (consecutiveFocusSuccess >= 2) {
+                  updateFocusIndicator('success');
+                  setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, isTablet ? 500 : 400);
+                }
+                setTimeout(() => {
+                  if (currentTrack && autoFocusActive) {
+                    currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
                   }
-                  setTimeout(() => {
-                    if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-                    }
-                  }, 80);
-                })
-                .catch(() => { consecutiveFocusSuccess = 0; });
-            } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
+                }, isTablet ? 80 : 50);
+              })
+              .catch(() => { consecutiveFocusSuccess = 0; });
           } else {
-            if (focusAttempts % 3 === 0) {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "single-shot" }] })
-                .then(() => {
-                  consecutiveFocusSuccess++;
-                  if (consecutiveFocusSuccess >= 2) {
-                    updateFocusIndicator('success');
-                    setTimeout(() => { if (autoFocusActive) updateFocusIndicator('focusing'); }, 400);
-                  }
-                  setTimeout(() => {
-                    if (currentTrack && autoFocusActive) {
-                      currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-                    }
-                  }, 50);
-                })
-                .catch(() => { consecutiveFocusSuccess = 0; });
-            } else {
-              currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
+            currentTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
           }
         }
       }, focusInterval);
@@ -949,25 +932,33 @@
       const camera = document.getElementById('reader-container');
       const controls = document.querySelector('.camera-controls-module');
       const usarCamera = modoEntradaAtual === 'auto' || modoEntradaAtual === 'camera';
+      
       if (manual) manual.style.display = modoEntradaAtual === 'manual' ? 'block' : 'none';
       if (leitor) leitor.style.display = modoEntradaAtual === 'leitor' ? 'block' : 'none';
       if (camera) camera.style.display = usarCamera ? 'block' : 'none';
       if (controls) controls.style.display = usarCamera ? 'flex' : 'none';
+      
       if (modoEntradaAtual === 'manual') DOM_CACHE.qrResult.textContent = 'Preencha item, lote e validade.';
       if (modoEntradaAtual === 'leitor') setTimeout(() => document.getElementById('codigo-leitor')?.focus(), 150);
-      if (!usarCamera) stopScanner(true); else if (document.getElementById('page-registrar')?.classList.contains('active')) startScannerWithDevice();
+      if (!usarCamera) stopScanner(true); 
+      else if (document.getElementById('page-registrar')?.classList.contains('active')) startScannerWithDevice();
     }
+
     function selecionarModoLocal(modo) {
       aplicarModoUI(modo);
       localStorage.setItem(CHAVE_MODO_LOCAL, modo);
     }
+
     async function carregarConfiguracaoEntrada() {
       try {
         const res = await apiGet('config');
         const remoto = res?.config?.modoEntrada || localStorage.getItem(CHAVE_MODO_LOCAL) || 'auto';
         aplicarModoUI(remoto);
-      } catch { aplicarModoUI(localStorage.getItem(CHAVE_MODO_LOCAL) || 'auto'); }
+      } catch { 
+        aplicarModoUI(localStorage.getItem(CHAVE_MODO_LOCAL) || 'auto'); 
+      }
     }
+
     function obterSenhaAdminLocal() {
       return localStorage.getItem(CHAVE_SENHA_LOCAL) || SENHA_ADMIN_PADRAO;
     }
@@ -1018,7 +1009,6 @@
         localStorage.setItem(CHAVE_MODO_LOCAL, res.config?.modoEntrada || modo);
         showToast('Modo de leitura salvo com sucesso.', 'sucesso');
       } catch (err) {
-        // Mantém a configuração local para que a interface continue funcional, mas informa a limitação de sincronização.
         aplicarModoUI(modo);
         localStorage.setItem(CHAVE_MODO_LOCAL, modo);
         showToast('Modo salvo neste dispositivo. Servidor não confirmou: ' + normalizeError(err), 'info');
@@ -1044,6 +1034,7 @@
       senhaAdminSessao = '';
       if (document.getElementById('page-administracao').classList.contains('active')) mostrarPagina('estoque');
     }
+
     function prepararEntradaManual() {
       const item = document.getElementById('manual-item').value.trim();
       const lote = document.getElementById('manual-lote').value.trim();
@@ -1054,6 +1045,7 @@
       DOM_CACHE.qrResult.classList.add('success');
       document.getElementById('quantidade').focus();
     }
+
     function capturarLeitor(event) {
       if (event.key !== 'Enter') return;
       event.preventDefault();
@@ -1073,6 +1065,7 @@
       const url = `${WEB_APP_URL}?action=${action}&token=${encodeURIComponent(API_TOKEN)}${separador}`;
       return await (await fetch(url, { cache: 'no-store' })).json();
     }
+
     async function apiPost(payload) {
       return await (await fetch(WEB_APP_URL, {
         method: 'POST', cache: 'no-store',
@@ -1080,6 +1073,7 @@
         body: JSON.stringify({ ...payload, token: API_TOKEN })
       })).json();
     }
+
     function verificarSeVencido(validade) {
       if (!validade) return false;
       try {
@@ -1150,9 +1144,17 @@
           showToast(res.mensagem, "sucesso");
           if (autoTorchEnabled && flashOn) await turnOffTorchAutomatically();
           dataCache = null; lastDataFetch = 0;
-          setTimeout(() => { resetarFormulario(); if (modoEntradaAtual === 'auto' || modoEntradaAtual === 'camera') startScannerWithDevice(); else if (modoEntradaAtual === 'leitor') document.getElementById('codigo-leitor')?.focus(); }, 600);
+          setTimeout(() => { 
+            resetarFormulario(); 
+            if (modoEntradaAtual === 'auto' || modoEntradaAtual === 'camera') startScannerWithDevice(); 
+            else if (modoEntradaAtual === 'leitor') document.getElementById('codigo-leitor')?.focus(); 
+          }, 600);
           await carregarTodosOsDados(true);
-        } else { showToast(res.mensagem, "erro"); liberarBotoes(); registroEmProgresso = false; }
+        } else { 
+          showToast(res.mensagem, "erro"); 
+          liberarBotoes(); 
+          registroEmProgresso = false; 
+        }
       } catch (err) {
         statusDiv.innerText = 'Erro: ' + normalizeError(err);
         statusDiv.className = 'status-erro';
@@ -1182,22 +1184,36 @@
     async function carregarTodosOsDados(isUpdate = false) {
       const overlay = DOM_CACHE.loadingOverlay;
       const agora = Date.now();
+      
       if (dataCache && (agora - lastDataFetch) < CACHE_DURATION && !isUpdate) {
         Object.assign(appData, dataCache);
         refreshActivePage();
         return;
       }
-      if (!isUpdate) overlay.style.display = 'flex';
+
+      // OTIMIZAÇÃO: Só mostra overlay travando a tela se for a primeira abertura absoluta (sem dados em cache)
+      if (!isUpdate && appData.estoque.length === 0) {
+        overlay.style.display = 'flex';
+      }
+
       try {
         const res = await apiGet('obter');
         if (res.status === 'sucesso') {
-          dataCache = res.dados; lastDataFetch = agora;
+          dataCache = res.dados; 
+          lastDataFetch = agora;
           Object.assign(appData, res.dados);
+          // Salva no localStorage para abertura instantânea na próxima vez
+          localStorage.setItem('appDataCache', JSON.stringify(res.dados));
           refreshActivePage();
         } else { throw new Error(res.mensagem); }
       } catch (err) {
-        showToast('Erro ao carregar dados: ' + normalizeError(err), "erro");
-      } finally { if (!isUpdate) overlay.style.display = 'none'; }
+        console.warn('Erro ao carregar dados:', err);
+        if (appData.estoque.length === 0) {
+          showToast('Erro ao carregar dados: ' + normalizeError(err), "erro");
+        }
+      } finally { 
+        overlay.style.display = 'none'; 
+      }
     }
 
     function refreshActivePage() {
@@ -1252,8 +1268,6 @@
       if (pageId !== 'administracao' && adminAutenticado) { adminAutenticado = false; senhaAdminSessao = ''; }
     }
 
-    // --- FUNÇÕES DE LIMPEZA DE DADOS (NOVA CONFERÊNCIA) ---
-
     function abrirModalSenha() {
       document.getElementById('modal-senha').classList.add('active');
       document.getElementById('senha-admin').value = '';
@@ -1281,6 +1295,7 @@
         if (res.status === 'sucesso') {
           showToast("Dados apagados com sucesso!", "sucesso");
           dataCache = null; lastDataFetch = 0;
+          localStorage.removeItem('appDataCache');
           carregarTodosOsDados(true);
         } else {
           showToast(res.mensagem, "erro");
@@ -1297,11 +1312,23 @@
       if (e.key === 'Enter') validarLoginAdmin();
     });
 
-    window.addEventListener('load', () => { 
+    // OTIMIZAÇÃO: Usa DOMContentLoaded em vez de 'load' para renderizar a interface instantaneamente
+    window.addEventListener('DOMContentLoaded', () => { 
       detectDeviceType();
       initDOMCache();
+      
+      // Carrega dados do cache local instantaneamente para não mostrar tela em branco
+      const cachedData = localStorage.getItem('appDataCache');
+      if (cachedData) {
+        try {
+          Object.assign(appData, JSON.parse(cachedData));
+          refreshActivePage();
+        } catch(e) { console.warn('Erro ao ler cache', e); }
+      }
+      
       carregarConfiguracaoEntrada();
-      carregarTodosOsDados();
+      carregarTodosOsDados(); // Busca dados frescos em segundo plano
+      
       if (window.AndroidBridge?.onCameraReady) window.AndroidBridge.onCameraReady();
     });
     
