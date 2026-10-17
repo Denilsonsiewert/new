@@ -85,6 +85,21 @@
       border-bottom: 1px solid rgba(255,255,255,0.3);
     }
     .app-header img { height: clamp(28px, 7vw, 38px); width: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08)); }
+    .header-admin {
+      position: absolute; right: var(--padding-container); top: 50%; transform: translateY(-50%);
+      border: 0; border-radius: 11px; padding: 10px 13px; min-height: 42px;
+      background: var(--cor-primaria); color: #fff; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,87,157,.18); white-space: nowrap;
+    }
+    .header-admin:active { transform: translateY(-50%) scale(.97); }
+    .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .admin-option { border: 1px solid var(--borda); border-radius: 14px; padding: 16px; background: #f8fafc; }
+    .admin-option label { display:block; font-weight:700; margin-bottom:8px; }
+    .admin-option select, .admin-option input { width:100%; min-height:48px; border:1px solid #d6dce4; border-radius:10px; padding:10px 12px; font:inherit; background:#fff; }
+    .admin-primary { width:100%; min-height:50px; border:0; border-radius:12px; background:var(--cor-primaria); color:#fff; font-weight:700; font-size:1rem; cursor:pointer; margin-top:12px; }
+    .admin-secondary { width:100%; min-height:48px; border:1px solid #d6dce4; border-radius:12px; background:#fff; color:var(--cor-texto); font-weight:700; cursor:pointer; margin-top:10px; }
+    .admin-note { margin-top:12px; color:var(--cor-texto-secundario); font-size:.88rem; line-height:1.5; }
+    @media (max-width: 560px) { .header-admin { padding:8px 9px; font-size:.78rem; min-height:38px; } .app-header { justify-content:flex-start; padding-right:100px; } .app-header h1 { text-align:left; } .admin-grid { grid-template-columns:1fr; } }
     .app-header h1 {
       margin: 0; font-size: clamp(1.15rem, 4.5vw, 1.6rem); font-weight: 800; color: var(--cor-primaria);
       letter-spacing: -0.6px; text-align: center; line-height: 1.15;
@@ -329,6 +344,7 @@
   <header class="app-header">
     <img src="./logo-weg.png" alt="WEG Logo" onerror="this.style.display='none'">
     <h1>Controle de Estoque</h1>
+    <button class="header-admin" type="button" onclick="abrirAdministracao()">⚙️ Administração</button>
   </header>
 
   <div id="loading-overlay" class="loading-overlay">
@@ -339,6 +355,26 @@
       </g></g>
     </svg>
     <span style="font-weight: 600; color: var(--cor-texto-secundario);">Sincronizando dados...</span>
+  </div>
+
+
+  <!-- Acesso restrito à administração -->
+  <div id="modal-login-admin" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-login-admin">
+    <div class="modal-content">
+      <div class="modal-header" id="titulo-login-admin" style="color:var(--cor-primaria)">🔐 Administração</div>
+      <div class="modal-body">
+        <p>Digite a senha de administrador para acessar as configurações.</p>
+        <div class="input-group" style="margin-top:16px">
+          <label for="login-senha-admin">Senha de administrador</label>
+          <input type="password" id="login-senha-admin" autocomplete="current-password" placeholder="Digite sua senha" style="text-align:center">
+        </div>
+        <div id="login-admin-erro" role="alert" style="display:none;color:var(--cor-perigo);font-weight:600;margin-bottom:12px">Senha incorreta.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-confirmar" style="background:var(--cor-primaria)" onclick="validarLoginAdmin()">Entrar</button>
+        <button class="btn-cancelar" onclick="fecharLoginAdmin()">Cancelar</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal de Confirmação de Item Vencido -->
@@ -417,13 +453,7 @@
             </div>
             <div id="btnFlash" class="control-btn" onclick="toggleFlash()" title="Lanterna">🔦</div>
           </div>
-          <div id="modo-entrada-box" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 auto 14px;max-width:420px;padding:12px 14px;background:#f8f9fa;border:1px solid var(--borda);border-radius:var(--radius-md);">
-            <label for="modo-entrada" style="font-weight:700;font-size:.86rem;">Modo:</label>
-            <select id="modo-entrada" onchange="selecionarModoLocal(this.value)" style="flex:1;min-height:42px;border:1px solid var(--borda);border-radius:10px;padding:0 10px;background:white;">
-              <option value="auto">Automático</option><option value="camera">Câmera</option><option value="manual">Manual</option><option value="leitor">Leitor sem fio</option>
-            </select>
-            <button type="button" onclick="configurarModoAdministrador()" style="min-height:42px;border:0;border-radius:10px;padding:0 12px;background:var(--cor-primaria);color:white;font-weight:700;">Administrador</button>
-          </div>
+          <div id="modo-entrada-box" style="display:none" aria-hidden="true"><select id="modo-entrada" onchange="selecionarModoLocal(this.value)"><option value="auto">Automático</option><option value="camera">Câmera manual</option><option value="manual">Digitação manual</option><option value="leitor">Leitor sem fio</option></select></div>
           <div id="manual-fields" style="display:none;max-width:420px;margin:0 auto 14px;padding:14px;background:#eef6ff;border:1px solid #cfe5fa;border-radius:var(--radius-md);">
             <div class="input-group"><label for="manual-item">Item</label><input id="manual-item" inputmode="numeric" placeholder="Código do item"></div>
             <div class="input-group"><label for="manual-lote">Lote</label><input id="manual-lote" inputmode="numeric" placeholder="Lote"></div>
@@ -463,6 +493,48 @@
         </div>
       </div>
 
+
+      <div id="page-administracao" class="page">
+        <div class="card">
+          <h2>⚙️ Painel de Administração</h2>
+          <p style="text-align:center;color:var(--cor-texto-secundario);margin:-8px 0 24px;line-height:1.5">
+            Configure o método de leitura e gerencie a senha de acesso.
+          </p>
+
+          <div class="admin-option" style="margin-bottom:18px">
+            <label for="modo-admin">Método de leitura do código</label>
+            <select id="modo-admin">
+              <option value="auto">Automático (câmera com leitura automática)</option>
+              <option value="camera">Câmera manual</option>
+              <option value="manual">Digitação manual dos dados</option>
+              <option value="leitor">Leitor sem fio Bluetooth/USB</option>
+            </select>
+            <button class="admin-primary" type="button" onclick="salvarModoAdmin()">💾 Salvar modo de leitura</button>
+            <p class="admin-note">O modo escolhido será aplicado à tela Registrar. O seletor de modo não ficará visível para os operadores.</p>
+          </div>
+
+          <div class="admin-option">
+            <label for="senha-admin-atual">Alterar senha de administrador</label>
+            <div class="input-group">
+              <label for="senha-admin-atual">Senha atual</label>
+              <input type="password" id="senha-admin-atual" autocomplete="current-password" placeholder="Senha atual">
+            </div>
+            <div class="input-group">
+              <label for="senha-admin-nova">Nova senha</label>
+              <input type="password" id="senha-admin-nova" autocomplete="new-password" placeholder="Crie uma nova senha" minlength="6">
+            </div>
+            <div class="input-group">
+              <label for="senha-admin-confirmar">Confirmar nova senha</label>
+              <input type="password" id="senha-admin-confirmar" autocomplete="new-password" placeholder="Digite novamente a nova senha" minlength="6">
+            </div>
+            <button class="admin-primary" type="button" onclick="alterarSenhaAdmin()">🔑 Atualizar senha</button>
+            <p class="admin-note">A senha alterada nesta versão fica salva neste navegador/dispositivo. Para proteger também as operações no servidor e sincronizar a senha entre dispositivos, o Apps Script precisa validar e armazenar a nova senha no servidor.</p>
+          </div>
+
+          <button class="admin-secondary" type="button" onclick="sairAdministracao()">Sair do perfil de administração</button>
+        </div>
+      </div>
+
       <div id="page-alertas" class="page">
         <div class="card">
           <h2>️ Alertas de Estoque</h2>
@@ -482,7 +554,9 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbztT62x-sYOCIuv-CvKbN0rZfeDLa9KMpjoE0sFaqnu_fFs8yDErpwxU80_wJVH3c4tSA/exec';
     const API_TOKEN   = 'sk_ESTOQUE_7vQ2d9A4mX8pL5rB1tC6hN3zY0';
-    const SENHA_ADMIN = '10032001'; // <--- ALTERE A SENHA AQUI
+    const SENHA_ADMIN_PADRAO = '10032001';
+    const CHAVE_SENHA_LOCAL = 'estoqueAdminSenhaV2';
+    const CHAVE_MODO_LOCAL = 'modoEntradaPreferido';
 
     const DOM_CACHE = {
       readerContainer: null, reader: null, qrResult: null, status: null,
@@ -889,25 +963,90 @@
     }
     function selecionarModoLocal(modo) {
       aplicarModoUI(modo);
-      localStorage.setItem('modoEntradaPreferido', modo);
+      localStorage.setItem(CHAVE_MODO_LOCAL, modo);
     }
     async function carregarConfiguracaoEntrada() {
       try {
         const res = await apiGet('config');
-        const remoto = res?.config?.modoEntrada || localStorage.getItem('modoEntradaPreferido') || 'auto';
+        const remoto = res?.config?.modoEntrada || localStorage.getItem(CHAVE_MODO_LOCAL) || 'auto';
         aplicarModoUI(remoto);
-      } catch { aplicarModoUI(localStorage.getItem('modoEntradaPreferido') || 'auto'); }
+      } catch { aplicarModoUI(localStorage.getItem(CHAVE_MODO_LOCAL) || 'auto'); }
     }
-    async function configurarModoAdministrador() {
-      const senha = prompt('Senha do administrador:');
-      if (senha === null) return;
-      const modo = document.getElementById('modo-entrada').value;
+    function obterSenhaAdminLocal() {
+      return localStorage.getItem(CHAVE_SENHA_LOCAL) || SENHA_ADMIN_PADRAO;
+    }
+
+    let adminAutenticado = false;
+    let senhaAdminSessao = '';
+
+    function abrirAdministracao() {
+      if (adminAutenticado) { mostrarPagina('administracao'); sincronizarModoAdmin(); return; }
+      document.getElementById('login-senha-admin').value = '';
+      document.getElementById('login-admin-erro').style.display = 'none';
+      document.getElementById('modal-login-admin').classList.add('active');
+      setTimeout(() => document.getElementById('login-senha-admin').focus(), 100);
+    }
+
+    function fecharLoginAdmin() {
+      document.getElementById('modal-login-admin').classList.remove('active');
+      document.getElementById('login-senha-admin').value = '';
+    }
+
+    function validarLoginAdmin() {
+      const digitada = document.getElementById('login-senha-admin').value;
+      if (digitada !== obterSenhaAdminLocal()) {
+        document.getElementById('login-admin-erro').style.display = 'block';
+        document.getElementById('login-senha-admin').value = '';
+        return;
+      }
+      adminAutenticado = true;
+      senhaAdminSessao = digitada;
+      fecharLoginAdmin();
+      sincronizarModoAdmin();
+      mostrarPagina('administracao');
+      showToast('Acesso administrativo liberado.', 'sucesso');
+    }
+
+    function sincronizarModoAdmin() {
+      const modo = localStorage.getItem(CHAVE_MODO_LOCAL) || modoEntradaAtual || 'auto';
+      document.getElementById('modo-admin').value = modo;
+    }
+
+    async function salvarModoAdmin() {
+      if (!adminAutenticado) { showToast('Acesse o perfil de administração novamente.', 'erro'); return; }
+      const modo = document.getElementById('modo-admin').value;
       try {
-        const res = await apiPost({ action:'configurarModo', modoEntrada:modo, adminKey:senha });
-        if (res.status !== 'sucesso') throw new Error(res.mensagem || 'Não foi possível alterar o modo.');
-        aplicarModoUI(res.config.modoEntrada); localStorage.setItem('modoEntradaPreferido', res.config.modoEntrada);
-        showToast('Modo salvo no servidor: ' + res.config.modoEntrada, 'sucesso');
-      } catch (err) { showToast(normalizeError(err), 'erro'); }
+        const res = await apiPost({ action:'configurarModo', modoEntrada:modo, adminKey:senhaAdminSessao });
+        if (res.status !== 'sucesso') throw new Error(res.mensagem || 'O servidor recusou a alteração.');
+        aplicarModoUI(res.config?.modoEntrada || modo);
+        localStorage.setItem(CHAVE_MODO_LOCAL, res.config?.modoEntrada || modo);
+        showToast('Modo de leitura salvo com sucesso.', 'sucesso');
+      } catch (err) {
+        // Mantém a configuração local para que a interface continue funcional, mas informa a limitação de sincronização.
+        aplicarModoUI(modo);
+        localStorage.setItem(CHAVE_MODO_LOCAL, modo);
+        showToast('Modo salvo neste dispositivo. Servidor não confirmou: ' + normalizeError(err), 'info');
+      }
+    }
+
+    function alterarSenhaAdmin() {
+      if (!adminAutenticado) { showToast('Acesso administrativo expirado.', 'erro'); sairAdministracao(); return; }
+      const atual = document.getElementById('senha-admin-atual').value;
+      const nova = document.getElementById('senha-admin-nova').value;
+      const confirmar = document.getElementById('senha-admin-confirmar').value;
+      if (atual !== obterSenhaAdminLocal()) { showToast('A senha atual está incorreta.', 'erro'); return; }
+      if (nova.length < 6) { showToast('A nova senha deve ter pelo menos 6 caracteres.', 'erro'); return; }
+      if (nova !== confirmar) { showToast('A confirmação não corresponde à nova senha.', 'erro'); return; }
+      localStorage.setItem(CHAVE_SENHA_LOCAL, nova);
+      senhaAdminSessao = nova;
+      ['senha-admin-atual','senha-admin-nova','senha-admin-confirmar'].forEach(id => document.getElementById(id).value = '');
+      showToast('Senha atualizada neste dispositivo.', 'sucesso');
+    }
+
+    function sairAdministracao() {
+      adminAutenticado = false;
+      senhaAdminSessao = '';
+      if (document.getElementById('page-administracao').classList.contains('active')) mostrarPagina('estoque');
     }
     function prepararEntradaManual() {
       const item = document.getElementById('manual-item').value.trim();
@@ -1106,10 +1245,15 @@
 
     function mostrarPagina(pageId) {
       document.querySelectorAll('.page, .nav-link').forEach(el => el.classList.remove('active'));
-      document.getElementById('page-' + pageId).classList.add('active');
-      document.getElementById('nav-' + pageId).classList.add('active');
+      const paginaDestino = document.getElementById('page-' + pageId);
+      if (!paginaDestino) return;
+      paginaDestino.classList.add('active');
+      const navDestino = document.getElementById('nav-' + pageId);
+      if (navDestino) navDestino.classList.add('active');
       document.querySelector('.app-main').scrollTop = 0;
-      if (pageId === 'registrar') { aplicarModoUI(modoEntradaAtual); } else { stopScanner(); refreshActivePage(); }
+      if (pageId === 'registrar') { aplicarModoUI(modoEntradaAtual); }
+      else { stopScanner(); refreshActivePage(); }
+      if (pageId !== 'administracao' && adminAutenticado) { adminAutenticado = false; senhaAdminSessao = ''; }
     }
 
     // --- FUNÇÕES DE LIMPEZA DE DADOS (NOVA CONFERÊNCIA) ---
@@ -1126,7 +1270,7 @@
 
     async function executarLimpeza() {
       const senhaInput = document.getElementById('senha-admin').value;
-      if (senhaInput !== SENHA_ADMIN) {
+      if (senhaInput !== obterSenhaAdminLocal()) {
         showToast("Senha incorreta!", "erro");
         document.getElementById('senha-admin').value = '';
         return;
@@ -1152,6 +1296,10 @@
         DOM_CACHE.loadingOverlay.querySelector('span').textContent = "Sincronizando dados...";
       }
     }
+
+    document.getElementById('login-senha-admin')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') validarLoginAdmin();
+    });
 
     window.addEventListener('load', () => { 
       detectDeviceType();
